@@ -1,5 +1,8 @@
 package de.applicatus.app.ui.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -7,6 +10,7 @@ import de.applicatus.app.data.model.Character
 import de.applicatus.app.data.model.Spell
 import de.applicatus.app.data.model.SpellSlot
 import de.applicatus.app.data.model.SpellSlotWithSpell
+import de.applicatus.app.data.model.SlotType
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.SpellChecker
 import kotlinx.coroutines.flow.*
@@ -16,6 +20,10 @@ class CharacterDetailViewModel(
     private val repository: ApplicatusRepository,
     private val characterId: Long
 ) : ViewModel() {
+    
+    // Bearbeitungsmodus-State
+    var isEditMode by mutableStateOf(false)
+        private set
     
     val character: StateFlow<Character?> = repository.getCharacterByIdFlow(characterId)
         .stateIn(
@@ -39,6 +47,61 @@ class CharacterDetailViewModel(
             initialValue = emptyList()
         )
     
+    fun toggleEditMode() {
+        isEditMode = !isEditMode
+    }
+    
+    fun updateCharacter(updatedCharacter: Character) {
+        viewModelScope.launch {
+            repository.updateCharacter(updatedCharacter)
+        }
+    }
+    
+    fun addSlot(slotType: SlotType, volumePoints: Int = 0) {
+        viewModelScope.launch {
+            // Prüfe Volumenpunkte-Limit bei Zauberspeicher
+            if (slotType == SlotType.SPELL_STORAGE) {
+                val currentVolume = spellSlots.value
+                    .filter { it.slot.slotType == SlotType.SPELL_STORAGE }
+                    .sumOf { it.slot.volumePoints }
+                
+                if (currentVolume + volumePoints > 100) {
+                    // Fehler: Limit überschritten
+                    return@launch
+                }
+            }
+            
+            val nextSlotNumber = (spellSlots.value.maxOfOrNull { it.slot.slotNumber } ?: -1) + 1
+            
+            val newSlot = SpellSlot(
+                characterId = characterId,
+                slotNumber = nextSlotNumber,
+                slotType = slotType,
+                volumePoints = volumePoints,
+                spellId = null
+            )
+            
+            repository.insertSlot(newSlot)
+        }
+    }
+    
+    fun removeSlot(slot: SpellSlot) {
+        viewModelScope.launch {
+            repository.deleteSlot(slot)
+        }
+    }
+    
+    fun canAddApplicatusSlot(): Boolean {
+        return character.value?.hasApplicatus == true
+    }
+    
+    fun getRemainingVolumePoints(): Int {
+        val usedVolume = spellSlots.value
+            .filter { it.slot.slotType == SlotType.SPELL_STORAGE }
+            .sumOf { it.slot.volumePoints }
+        return 100 - usedVolume
+    }
+    
     fun updateSlotSpell(slot: SpellSlot, spellId: Long?) {
         viewModelScope.launch {
             repository.updateSlot(
@@ -46,7 +109,8 @@ class CharacterDetailViewModel(
                     spellId = spellId,
                     isFilled = false,
                     zfpStar = null,
-                    lastRollResult = null
+                    lastRollResult = null,
+                    applicatusRollResult = null
                 )
             )
         }
@@ -90,23 +154,51 @@ class CharacterDetailViewModel(
             val attr2 = getAttributeValue(char, spell.attribute2)
             val attr3 = getAttributeValue(char, spell.attribute3)
             
-            // Führe die Zauberprobe durch
-            val result = SpellChecker.performSpellCheck(
-                zfw = slot.zfw,
-                modifier = slot.modifier,
-                attribute1 = attr1,
-                attribute2 = attr2,
-                attribute3 = attr3
-            )
-            
-            // Aktualisiere den Slot
-            repository.updateSlot(
-                slot.copy(
-                    isFilled = result.success,
-                    zfpStar = if (result.success) result.zfpStar else null,
-                    lastRollResult = formatRollResult(result)
+            // Prüfe, ob es ein Applicatus-Slot ist
+            if (slot.slotType == SlotType.APPLICATUS && char.hasApplicatus) {
+                // Führe Applicatus-Probe durch
+                val result = SpellChecker.performApplicatusCheck(
+                    spellZfw = slot.zfw,
+                    spellModifier = slot.modifier,
+                    spellAttribute1 = attr1,
+                    spellAttribute2 = attr2,
+                    spellAttribute3 = attr3,
+                    applicatusZfw = char.applicatusZfw,
+                    applicatusModifier = char.applicatusModifier,
+                    characterKl = char.kl,
+                    characterIn = char.inValue,
+                    characterCh = char.ch
                 )
-            )
+                
+                // Aktualisiere den Slot
+                repository.updateSlot(
+                    slot.copy(
+                        isFilled = result.overallSuccess,
+                        zfpStar = if (result.overallSuccess) result.spellResult.zfpStar else null,
+                        lastRollResult = formatRollResult(result.spellResult),
+                        applicatusRollResult = result.applicatusResult?.let { formatRollResult(it) }
+                    )
+                )
+            } else {
+                // Normale Zauberprobe (Zauberspeicher)
+                val result = SpellChecker.performSpellCheck(
+                    zfw = slot.zfw,
+                    modifier = slot.modifier,
+                    attribute1 = attr1,
+                    attribute2 = attr2,
+                    attribute3 = attr3
+                )
+                
+                // Aktualisiere den Slot
+                repository.updateSlot(
+                    slot.copy(
+                        isFilled = result.success,
+                        zfpStar = if (result.success) result.zfpStar else null,
+                        lastRollResult = formatRollResult(result),
+                        applicatusRollResult = null
+                    )
+                )
+            }
         }
     }
     
@@ -116,7 +208,8 @@ class CharacterDetailViewModel(
                 slot.copy(
                     isFilled = false,
                     zfpStar = null,
-                    lastRollResult = null
+                    lastRollResult = null,
+                    applicatusRollResult = null
                 )
             )
         }

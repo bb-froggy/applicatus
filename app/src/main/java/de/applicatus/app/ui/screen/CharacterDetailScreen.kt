@@ -8,14 +8,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import de.applicatus.app.data.model.Character
 import de.applicatus.app.data.model.Spell
 import de.applicatus.app.data.model.SpellSlot
 import de.applicatus.app.data.model.SpellSlotWithSpell
+import de.applicatus.app.data.model.SlotType
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +31,10 @@ fun CharacterDetailScreen(
     val character by viewModel.character.collectAsState()
     val spellSlots by viewModel.spellSlots.collectAsState()
     val allSpells by viewModel.allSpells.collectAsState()
+    val isEditMode = viewModel.isEditMode
+    
+    var showAddSlotDialog by remember { mutableStateOf(false) }
+    var showEditCharacterDialog by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -36,8 +44,23 @@ fun CharacterDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.toggleEditMode() }) {
+                        Icon(
+                            if (isEditMode) Icons.Default.Clear else Icons.Default.Edit,
+                            contentDescription = if (isEditMode) "Bearbeitungsmodus beenden" else "Bearbeitungsmodus"
+                        )
+                    }
                 }
             )
+        },
+        floatingActionButton = {
+            if (isEditMode) {
+                FloatingActionButton(onClick = { showAddSlotDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Slot hinzufügen")
+                }
+            }
         }
     ) { padding ->
         Column(
@@ -48,44 +71,66 @@ fun CharacterDetailScreen(
         ) {
             // Character attributes
             character?.let { char ->
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Eigenschaften",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("MU: ${char.mu}  KL: ${char.kl}  IN: ${char.inValue}  CH: ${char.ch}")
-                        Text("FF: ${char.ff}  GE: ${char.ge}  KO: ${char.ko}  KK: ${char.kk}")
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Global modifier controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Globaler Modifikator:",
-                    style = MaterialTheme.typography.titleMedium
+                CharacterAttributesCard(
+                    character = char,
+                    isEditMode = isEditMode,
+                    onEditCharacter = { showEditCharacterDialog = true }
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = { viewModel.updateAllModifiers(-1) }) {
-                        Text("-", style = MaterialTheme.typography.titleLarge)
-                    }
-                    IconButton(onClick = { viewModel.updateAllModifiers(1) }) {
-                        Icon(Icons.Default.Add, contentDescription = "Alle +1")
-                    }
-                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
+            
+            // Applicatus info if available
+            character?.let { char ->
+                if (char.hasApplicatus && isEditMode) {
+                    ApplicatusInfoCard(character = char)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+            
+            // Volume points info
+            if (isEditMode) {
+                val remainingVolume = viewModel.getRemainingVolumePoints()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (remainingVolume >= 0) 
+                            MaterialTheme.colorScheme.secondaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = "Verbleibende Volumenpunkte: $remainingVolume / 100",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Global modifier controls (only in usage mode)
+            if (!isEditMode) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Globaler Modifikator:",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(onClick = { viewModel.updateAllModifiers(-1) }) {
+                            Text("-", style = MaterialTheme.typography.titleLarge)
+                        }
+                        IconButton(onClick = { viewModel.updateAllModifiers(1) }) {
+                            Icon(Icons.Default.Add, contentDescription = "Alle +1")
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             
             // Spell slots
             Text(
@@ -96,49 +141,234 @@ fun CharacterDetailScreen(
             Spacer(modifier = Modifier.height(8.dp))
             
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(if (isEditMode) 12.dp else 8.dp)
             ) {
                 items(spellSlots, key = { it.slot.id }) { slotWithSpell ->
-                    SpellSlotCard(
-                        slotWithSpell = slotWithSpell,
-                        allSpells = allSpells,
-                        onSpellSelected = { spell ->
-                            viewModel.updateSlotSpell(slotWithSpell.slot, spell.id)
-                        },
-                        onZfwChanged = { zfw ->
-                            viewModel.updateSlotZfw(slotWithSpell.slot, zfw)
-                        },
-                        onModifierChanged = { modifier ->
-                            viewModel.updateSlotModifier(slotWithSpell.slot, modifier)
-                        },
-                        onVariantChanged = { variant ->
-                            viewModel.updateSlotVariant(slotWithSpell.slot, variant)
-                        },
-                        onCastSpell = {
-                            slotWithSpell.spell?.let { spell ->
-                                viewModel.castSpell(slotWithSpell.slot, spell)
+                    if (isEditMode) {
+                        SpellSlotCardEditMode(
+                            slotWithSpell = slotWithSpell,
+                            allSpells = allSpells,
+                            onSpellSelected = { spell ->
+                                viewModel.updateSlotSpell(slotWithSpell.slot, spell.id)
+                            },
+                            onZfwChanged = { zfw ->
+                                viewModel.updateSlotZfw(slotWithSpell.slot, zfw)
+                            },
+                            onModifierChanged = { modifier ->
+                                viewModel.updateSlotModifier(slotWithSpell.slot, modifier)
+                            },
+                            onVariantChanged = { variant ->
+                                viewModel.updateSlotVariant(slotWithSpell.slot, variant)
+                            },
+                            onDeleteSlot = {
+                                viewModel.removeSlot(slotWithSpell.slot)
                             }
-                        },
-                        onClearSlot = {
-                            viewModel.clearSlot(slotWithSpell.slot)
-                        }
+                        )
+                    } else {
+                        SpellSlotCardUsageMode(
+                            slotWithSpell = slotWithSpell,
+                            onCastSpell = {
+                                slotWithSpell.spell?.let { spell ->
+                                    viewModel.castSpell(slotWithSpell.slot, spell)
+                                }
+                            },
+                            onClearSlot = {
+                                viewModel.clearSlot(slotWithSpell.slot)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    if (showAddSlotDialog) {
+        AddSlotDialog(
+            canAddApplicatus = viewModel.canAddApplicatusSlot(),
+            remainingVolumePoints = viewModel.getRemainingVolumePoints(),
+            onDismiss = { showAddSlotDialog = false },
+            onConfirm = { slotType, volumePoints ->
+                viewModel.addSlot(slotType, volumePoints)
+                showAddSlotDialog = false
+            }
+        )
+    }
+    
+    if (showEditCharacterDialog) {
+        character?.let { char ->
+            EditCharacterDialog(
+                character = char,
+                onDismiss = { showEditCharacterDialog = false },
+                onConfirm = { updatedCharacter ->
+                    viewModel.updateCharacter(updatedCharacter)
+                    showEditCharacterDialog = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun CharacterAttributesCard(
+    character: Character,
+    isEditMode: Boolean,
+    onEditCharacter: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Eigenschaften",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (isEditMode) {
+                    IconButton(onClick = onEditCharacter) {
+                        Icon(Icons.Default.Edit, contentDescription = "Eigenschaften bearbeiten")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("MU: ${character.mu}  KL: ${character.kl}  IN: ${character.inValue}  CH: ${character.ch}")
+            Text("FF: ${character.ff}  GE: ${character.ge}  KO: ${character.ko}  KK: ${character.kk}")
+        }
+    }
+}
+
+@Composable
+fun ApplicatusInfoCard(character: Character) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Applicatus",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("ZfW: ${character.applicatusZfw}  Modifikator: ${character.applicatusModifier}")
+            Text("Probe: KL/IN/CH", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+// Usage Mode - Kompakte Ansicht
+@Composable
+fun SpellSlotCardUsageMode(
+    slotWithSpell: SpellSlotWithSpell,
+    onCastSpell: () -> Unit,
+    onClearSlot: () -> Unit
+) {
+    val slot = slotWithSpell.slot
+    val spell = slotWithSpell.spell
+    
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${slot.slotNumber + 1}. ",
+                        style = MaterialTheme.typography.titleSmall
                     )
+                    Text(
+                        text = spell?.name ?: "Leer",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (slot.slotType == SlotType.SPELL_STORAGE) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "(${slot.volumePoints}VP)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+                
+                if (spell != null) {
+                    Text(
+                        text = "ZfW: ${slot.zfw} | Mod: ${slot.modifier}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    if (slot.variant.isNotBlank()) {
+                        Text(
+                            text = slot.variant,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+                
+                if (slot.isFilled) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "✓ Gefüllt: ${slot.zfpStar} ZfP*",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                if (slot.lastRollResult != null) {
+                    Text(
+                        text = slot.lastRollResult,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (slot.isFilled) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                if (slot.applicatusRollResult != null) {
+                    Text(
+                        text = "Applicatus: ${slot.applicatusRollResult}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+            
+            // Actions
+            if (spell != null) {
+                if (!slot.isFilled) {
+                    Button(onClick = onCastSpell) {
+                        Text("Sprechen")
+                    }
+                } else {
+                    IconButton(onClick = onClearSlot) {
+                        Icon(Icons.Default.Clear, contentDescription = "Leeren")
+                    }
                 }
             }
         }
     }
 }
 
+// Edit Mode - Ausführliche Ansicht
 @Composable
-fun SpellSlotCard(
+fun SpellSlotCardEditMode(
     slotWithSpell: SpellSlotWithSpell,
     allSpells: List<Spell>,
     onSpellSelected: (Spell) -> Unit,
     onZfwChanged: (Int) -> Unit,
     onModifierChanged: (Int) -> Unit,
     onVariantChanged: (String) -> Unit,
-    onCastSpell: () -> Unit,
-    onClearSlot: () -> Unit
+    onDeleteSlot: () -> Unit
 ) {
     val slot = slotWithSpell.slot
     val spell = slotWithSpell.spell
@@ -158,15 +388,26 @@ fun SpellSlotCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Slot ${slot.slotNumber + 1}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                if (slot.isFilled) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Slot ${slot.slotNumber + 1}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Chip(
                         onClick = {},
-                        label = { Text("Gefüllt: ${slot.zfpStar} ZfP*") }
+                        label = { 
+                            Text(
+                                if (slot.slotType == SlotType.APPLICATUS) 
+                                    "Applicatus" 
+                                else 
+                                    "Speicher (${slot.volumePoints}VP)"
+                            ) 
+                        }
                     )
+                }
+                IconButton(onClick = onDeleteSlot) {
+                    Icon(Icons.Default.Delete, contentDescription = "Slot löschen")
                 }
             }
             
@@ -190,7 +431,7 @@ fun SpellSlotCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // ZfW, Modifier, Variant
+            // ZfW, Modifier
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -258,52 +499,6 @@ fun SpellSlotCard(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Cast/Clear buttons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (!slot.isFilled) {
-                    Button(
-                        onClick = onCastSpell,
-                        modifier = Modifier.weight(1f),
-                        enabled = spell != null
-                    ) {
-                        Text("Zauber einspeichern")
-                    }
-                } else {
-                    Button(
-                        onClick = onClearSlot,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Clear, contentDescription = "Leeren")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Slot leeren")
-                    }
-                }
-            }
-            
-            // Show last roll result
-            if (slot.lastRollResult != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (slot.isFilled) 
-                            MaterialTheme.colorScheme.primaryContainer 
-                        else 
-                            MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = slot.lastRollResult,
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
         }
     }
     
@@ -317,6 +512,261 @@ fun SpellSlotCard(
             }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddSlotDialog(
+    canAddApplicatus: Boolean,
+    remainingVolumePoints: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (SlotType, Int) -> Unit
+) {
+    var selectedType by remember { mutableStateOf(SlotType.SPELL_STORAGE) }
+    var volumePointsText by remember { mutableStateOf("10") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Neuer Zauberslot") },
+        text = {
+            Column {
+                Text("Slot-Typ auswählen:")
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedType == SlotType.SPELL_STORAGE,
+                        onClick = { selectedType = SlotType.SPELL_STORAGE },
+                        label = { Text("Zauberspeicher") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    FilterChip(
+                        selected = selectedType == SlotType.APPLICATUS,
+                        onClick = { selectedType = SlotType.APPLICATUS },
+                        label = { Text("Applicatus") },
+                        enabled = canAddApplicatus,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                if (selectedType == SlotType.SPELL_STORAGE) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Volumenpunkte (1-100):")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = volumePointsText,
+                        onValueChange = { 
+                            volumePointsText = it.filter { c -> c.isDigit() }
+                        },
+                        label = { Text("Volumenpunkte") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Text(
+                        text = "Verbleibend: $remainingVolumePoints VP",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (remainingVolumePoints >= (volumePointsText.toIntOrNull() ?: 0))
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val volumePoints = if (selectedType == SlotType.SPELL_STORAGE) {
+                        volumePointsText.toIntOrNull()?.coerceIn(1, 100) ?: 10
+                    } else {
+                        0
+                    }
+                    
+                    // Prüfe Volumenpunkte-Limit
+                    if (selectedType == SlotType.SPELL_STORAGE && volumePoints > remainingVolumePoints) {
+                        return@TextButton
+                    }
+                    
+                    onConfirm(selectedType, volumePoints)
+                },
+                enabled = if (selectedType == SlotType.SPELL_STORAGE) {
+                    val vp = volumePointsText.toIntOrNull() ?: 0
+                    vp in 1..remainingVolumePoints
+                } else {
+                    true
+                }
+            ) {
+                Text("Hinzufügen")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditCharacterDialog(
+    character: Character,
+    onDismiss: () -> Unit,
+    onConfirm: (Character) -> Unit
+) {
+    var mu by remember { mutableStateOf(character.mu.toString()) }
+    var kl by remember { mutableStateOf(character.kl.toString()) }
+    var inValue by remember { mutableStateOf(character.inValue.toString()) }
+    var ch by remember { mutableStateOf(character.ch.toString()) }
+    var ff by remember { mutableStateOf(character.ff.toString()) }
+    var ge by remember { mutableStateOf(character.ge.toString()) }
+    var ko by remember { mutableStateOf(character.ko.toString()) }
+    var kk by remember { mutableStateOf(character.kk.toString()) }
+    var hasApplicatus by remember { mutableStateOf(character.hasApplicatus) }
+    var applicatusZfw by remember { mutableStateOf(character.applicatusZfw.toString()) }
+    var applicatusModifier by remember { mutableStateOf(character.applicatusModifier.toString()) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Charakter bearbeiten") },
+        text = {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    Text("Eigenschaften:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = mu,
+                            onValueChange = { mu = it.filter { c -> c.isDigit() } },
+                            label = { Text("MU") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = kl,
+                            onValueChange = { kl = it.filter { c -> c.isDigit() } },
+                            label = { Text("KL") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = inValue,
+                            onValueChange = { inValue = it.filter { c -> c.isDigit() } },
+                            label = { Text("IN") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = ch,
+                            onValueChange = { ch = it.filter { c -> c.isDigit() } },
+                            label = { Text("CH") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = ff,
+                            onValueChange = { ff = it.filter { c -> c.isDigit() } },
+                            label = { Text("FF") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = ge,
+                            onValueChange = { ge = it.filter { c -> c.isDigit() } },
+                            label = { Text("GE") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = ko,
+                            onValueChange = { ko = it.filter { c -> c.isDigit() } },
+                            label = { Text("KO") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = kk,
+                            onValueChange = { kk = it.filter { c -> c.isDigit() } },
+                            label = { Text("KK") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Applicatus:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = hasApplicatus,
+                            onCheckedChange = { hasApplicatus = it }
+                        )
+                        Text("Charakter hat Applicatus")
+                    }
+                }
+                if (hasApplicatus) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = applicatusZfw,
+                                onValueChange = { applicatusZfw = it.filter { c -> c.isDigit() } },
+                                label = { Text("Applicatus ZfW") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = applicatusModifier,
+                                onValueChange = { applicatusModifier = it },
+                                label = { Text("Applicatus Mod") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val updatedCharacter = character.copy(
+                        mu = mu.toIntOrNull() ?: 8,
+                        kl = kl.toIntOrNull() ?: 8,
+                        inValue = inValue.toIntOrNull() ?: 8,
+                        ch = ch.toIntOrNull() ?: 8,
+                        ff = ff.toIntOrNull() ?: 8,
+                        ge = ge.toIntOrNull() ?: 8,
+                        ko = ko.toIntOrNull() ?: 8,
+                        kk = kk.toIntOrNull() ?: 8,
+                        hasApplicatus = hasApplicatus,
+                        applicatusZfw = applicatusZfw.toIntOrNull() ?: 0,
+                        applicatusModifier = applicatusModifier.toIntOrNull() ?: 0
+                    )
+                    onConfirm(updatedCharacter)
+                }
+            ) {
+                Text("Speichern")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
 }
 
 @Composable

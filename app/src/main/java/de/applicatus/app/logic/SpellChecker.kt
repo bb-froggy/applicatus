@@ -13,9 +13,15 @@ data class SpellCheckResult(
     val isTripleTwenty: Boolean = false
 )
 
+data class ApplicatusCheckResult(
+    val spellResult: SpellCheckResult,
+    val applicatusResult: SpellCheckResult?,
+    val overallSuccess: Boolean
+)
+
 object SpellChecker {
     /**
-     * Führt eine Zauberprobe durch
+     * Führt eine Zauberprobe durch (ohne Applicatus)
      * @param zfw Zauberfertigkeit
      * @param modifier Modifikator
      * @param attribute1 Eigenschaftswert 1
@@ -115,6 +121,61 @@ object SpellChecker {
             zfpStar = zfpStar,
             rolls = rolls,
             message = if (success) "Zauber erfolgreich!" else "Zauber fehlgeschlagen!"
+        )
+    }
+    
+    /**
+     * Führt eine Applicatus-Zauberprobe durch (mit Applicatus-Probe)
+     * Applicatus verwendet immer KL/IN/CH
+     */
+    fun performApplicatusCheck(
+        spellZfw: Int,
+        spellModifier: Int,
+        spellAttribute1: Int,
+        spellAttribute2: Int,
+        spellAttribute3: Int,
+        applicatusZfw: Int,
+        applicatusModifier: Int,
+        characterKl: Int,
+        characterIn: Int,
+        characterCh: Int
+    ): ApplicatusCheckResult {
+        // Erst Applicatus-Probe
+        val applicatusResult = performSpellCheck(
+            zfw = applicatusZfw,
+            modifier = applicatusModifier,
+            attribute1 = characterKl,
+            attribute2 = characterIn,
+            attribute3 = characterCh
+        )
+        
+        // Applicatus fehlgeschlagen → Gesamtergebnis ist Misserfolg
+        if (!applicatusResult.success) {
+            return ApplicatusCheckResult(
+                spellResult = SpellCheckResult(
+                    success = false,
+                    zfpStar = 0,
+                    rolls = emptyList(),
+                    message = "Applicatus fehlgeschlagen!"
+                ),
+                applicatusResult = applicatusResult,
+                overallSuccess = false
+            )
+        }
+        
+        // Applicatus erfolgreich → eigentliche Zauberprobe
+        val spellResult = performSpellCheck(
+            zfw = spellZfw,
+            modifier = spellModifier,
+            attribute1 = spellAttribute1,
+            attribute2 = spellAttribute2,
+            attribute3 = spellAttribute3
+        )
+        
+        return ApplicatusCheckResult(
+            spellResult = spellResult,
+            applicatusResult = applicatusResult,
+            overallSuccess = spellResult.success
         )
     }
     

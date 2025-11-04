@@ -15,5 +15,8 @@ data class Character(
     val ff: Int = 8,  // Fingerfertigkeit
     val ge: Int = 8,  // Gewandtheit
     val ko: Int = 8,  // Konstitution
-    val kk: Int = 8   // Körperkraft
+    val kk: Int = 8,  // Körperkraft
+    val hasApplicatus: Boolean = false,  // Hat der Charakter Applicatus?
+    val applicatusZfw: Int = 0,          // Applicatus-Zauberfertigkeit
+    val applicatusModifier: Int = 0      // Applicatus-Modifikator
 )

@@ -30,7 +30,10 @@ class CharacterListViewModel(
         ff: Int = 8,
         ge: Int = 8,
         ko: Int = 8,
-        kk: Int = 8
+        kk: Int = 8,
+        hasApplicatus: Boolean = false,
+        applicatusZfw: Int = 0,
+        applicatusModifier: Int = 0
     ) {
         viewModelScope.launch {
             val character = Character(
@@ -42,11 +45,14 @@ class CharacterListViewModel(
                 ff = ff,
                 ge = ge,
                 ko = ko,
-                kk = kk
+                kk = kk,
+                hasApplicatus = hasApplicatus,
+                applicatusZfw = applicatusZfw,
+                applicatusModifier = applicatusModifier
             )
             val characterId = repository.insertCharacter(character)
-            // Initialize 10 spell slots for the new character
-            repository.initializeSlotsForCharacter(characterId)
+            // Keine automatische Initialisierung von Slots mehr
+            // Benutzer fügt Slots selbst im Bearbeitungsmodus hinzu
         }
     }
     

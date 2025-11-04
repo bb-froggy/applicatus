@@ -56,8 +56,11 @@ fun CharacterListScreen(
     if (showAddDialog) {
         AddCharacterDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, mu, kl, inValue, ch, ff, ge, ko, kk ->
-                viewModel.addCharacter(name, mu, kl, inValue, ch, ff, ge, ko, kk)
+            onConfirm = { name, mu, kl, inValue, ch, ff, ge, ko, kk, hasApplicatus, applicatusZfw, applicatusModifier ->
+                viewModel.addCharacter(
+                    name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                    hasApplicatus, applicatusZfw, applicatusModifier
+                )
                 showAddDialog = false
             }
         )
@@ -107,7 +110,7 @@ fun CharacterListItem(
 @Composable
 fun AddCharacterDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, Int, Int, Int, Int, Int, Int, Int, Int) -> Unit
+    onConfirm: (String, Int, Int, Int, Int, Int, Int, Int, Int, Boolean, Int, Int) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var mu by remember { mutableStateOf("8") }
@@ -118,71 +121,118 @@ fun AddCharacterDialog(
     var ge by remember { mutableStateOf("8") }
     var ko by remember { mutableStateOf("8") }
     var kk by remember { mutableStateOf("8") }
+    var hasApplicatus by remember { mutableStateOf(false) }
+    var applicatusZfw by remember { mutableStateOf("0") }
+    var applicatusModifier by remember { mutableStateOf("0") }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Neuer Charakter") },
         text = {
-            Column(
+            LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    singleLine = true
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
                     OutlinedTextField(
-                        value = mu,
-                        onValueChange = { mu = it.filter { c -> c.isDigit() } },
-                        label = { Text("MU") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = kl,
-                        onValueChange = { kl = it.filter { c -> c.isDigit() } },
-                        label = { Text("KL") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = inValue,
-                        onValueChange = { inValue = it.filter { c -> c.isDigit() } },
-                        label = { Text("IN") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = ch,
-                        onValueChange = { ch = it.filter { c -> c.isDigit() } },
-                        label = { Text("CH") },
-                        modifier = Modifier.weight(1f)
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = ff,
-                        onValueChange = { ff = it.filter { c -> c.isDigit() } },
-                        label = { Text("FF") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = ge,
-                        onValueChange = { ge = it.filter { c -> c.isDigit() } },
-                        label = { Text("GE") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = ko,
-                        onValueChange = { ko = it.filter { c -> c.isDigit() } },
-                        label = { Text("KO") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = kk,
-                        onValueChange = { kk = it.filter { c -> c.isDigit() } },
-                        label = { Text("KK") },
-                        modifier = Modifier.weight(1f)
-                    )
+                item {
+                    Text("Eigenschaften:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = mu,
+                            onValueChange = { mu = it.filter { c -> c.isDigit() } },
+                            label = { Text("MU") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = kl,
+                            onValueChange = { kl = it.filter { c -> c.isDigit() } },
+                            label = { Text("KL") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = inValue,
+                            onValueChange = { inValue = it.filter { c -> c.isDigit() } },
+                            label = { Text("IN") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = ch,
+                            onValueChange = { ch = it.filter { c -> c.isDigit() } },
+                            label = { Text("CH") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = ff,
+                            onValueChange = { ff = it.filter { c -> c.isDigit() } },
+                            label = { Text("FF") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = ge,
+                            onValueChange = { ge = it.filter { c -> c.isDigit() } },
+                            label = { Text("GE") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = ko,
+                            onValueChange = { ko = it.filter { c -> c.isDigit() } },
+                            label = { Text("KO") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = kk,
+                            onValueChange = { kk = it.filter { c -> c.isDigit() } },
+                            label = { Text("KK") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Applicatus:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = hasApplicatus,
+                            onCheckedChange = { hasApplicatus = it }
+                        )
+                        Text("Charakter hat Applicatus")
+                    }
+                }
+                if (hasApplicatus) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = applicatusZfw,
+                                onValueChange = { applicatusZfw = it.filter { c -> c.isDigit() } },
+                                label = { Text("Applicatus ZfW") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = applicatusModifier,
+                                onValueChange = { applicatusModifier = it },
+                                label = { Text("Applicatus Mod") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         },
@@ -199,7 +249,10 @@ fun AddCharacterDialog(
                             ff.toIntOrNull() ?: 8,
                             ge.toIntOrNull() ?: 8,
                             ko.toIntOrNull() ?: 8,
-                            kk.toIntOrNull() ?: 8
+                            kk.toIntOrNull() ?: 8,
+                            hasApplicatus,
+                            applicatusZfw.toIntOrNull() ?: 0,
+                            applicatusModifier.toIntOrNull() ?: 0
                         )
                     }
                 }
