@@ -27,6 +27,17 @@ class CharacterListViewModel(
     var importState by mutableStateOf<ImportState>(ImportState.Idle)
         private set
     
+    // Spell Sync State
+    var spellSyncState by mutableStateOf<SpellSyncState>(SpellSyncState.Idle)
+        private set
+    
+    sealed class SpellSyncState {
+        object Idle : SpellSyncState()
+        object Syncing : SpellSyncState()
+        data class Success(val count: Int) : SpellSyncState()
+        data class Error(val message: String) : SpellSyncState()
+    }
+    
     sealed class ImportState {
         object Idle : ImportState()
         object Importing : ImportState()
@@ -120,6 +131,25 @@ class CharacterListViewModel(
     
     fun resetImportState() {
         importState = ImportState.Idle
+    }
+    
+    /**
+     * Synchronisiert fehlende Zauber aus InitialSpells in die Datenbank.
+     */
+    fun syncMissingSpells() {
+        viewModelScope.launch {
+            spellSyncState = SpellSyncState.Syncing
+            try {
+                val addedCount = repository.syncMissingSpells()
+                spellSyncState = SpellSyncState.Success(addedCount)
+            } catch (e: Exception) {
+                spellSyncState = SpellSyncState.Error(e.message ?: "Unbekannter Fehler")
+            }
+        }
+    }
+    
+    fun resetSpellSyncState() {
+        spellSyncState = SpellSyncState.Idle
     }
 }
 

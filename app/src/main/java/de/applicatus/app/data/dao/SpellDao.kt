@@ -26,4 +26,7 @@ interface SpellDao {
     
     @Query("SELECT COUNT(*) FROM spells")
     suspend fun getSpellCount(): Int
+    
+    @Query("SELECT name FROM spells")
+    suspend fun getAllSpellNames(): List<String>
 }

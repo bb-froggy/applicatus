@@ -1,5 +1,79 @@
 # Applicatus - Implementierungsübersicht
 
+## ⚠️ Wichtige Hinweise für Entwickler
+
+### Build-Prozess und Testing
+
+**WICHTIG: Immer nach Code-Änderungen einen Build durchführen!**
+
+Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler frühzeitig zu erkennen:
+
+```bash
+# Schneller Debug-Build zum Testen
+.\gradlew.bat assembleDebug
+
+# Vollständiger Build (Debug + Release)
+.\gradlew.bat build
+
+# Mit detailliertem Stacktrace bei Fehlern
+.\gradlew.bat build --stacktrace
+```
+
+### Häufige Build-Fehler und deren Vermeidung
+
+#### 1. Nicht existierende Compose-Komponenten
+**Problem**: Verwendung von Compose-Komponenten, die in der verwendeten Version nicht verfügbar sind.
+
+**Beispiel**: `HorizontalDivider` (Material 3) vs. `Divider` (Material 2)
+
+**Lösung**: 
+- Prüfe die verfügbaren Komponenten in der verwendeten Compose-Version
+- Bei Unsicherheit: Verwende etablierte Komponenten wie `Divider` statt neuerer Alternativen
+- Teste den Build nach dem Hinzufügen neuer UI-Komponenten
+
+#### 2. String-Ressourcen mit Platzhaltern
+**Problem**: Strings mit mehreren Platzhaltern (`%d`, `%s`) benötigen das `formatted="false"` Attribut.
+
+**Beispiel**:
+```xml
+<!-- FALSCH - führt zu Build-Fehler -->
+<string name="message">%d neue%s Zauber wurde%s hinzugefügt.</string>
+
+<!-- RICHTIG - mit formatted="false" -->
+<string name="message" formatted="false">%d neue%s Zauber wurde%s hinzugefügt.</string>
+```
+
+**Regel**: Sobald ein String mehr als einen Platzhalter enthält oder nicht-positionierte Formate verwendet, muss `formatted="false"` hinzugefügt werden.
+
+#### 3. Import-Statements prüfen
+**Problem**: Fehlende oder falsche Import-Statements führen zu "Unresolved reference"-Fehlern.
+
+**Lösung**:
+- Prüfe alle verwendeten Icons/Komponenten auf korrekte Imports
+- Bei Material Design Icons: `androidx.compose.material.icons.filled.*`
+- Bei Material 3 Komponenten: `androidx.compose.material3.*`
+
+#### 4. Lint-Fehler vs. Compilation-Fehler
+**Problem**: Lint kann manchmal Fehler melden, obwohl der Code korrekt kompiliert.
+
+**Unterscheidung**:
+- **Compilation-Fehler** (kritisch): Der Code kann nicht gebaut werden → muss behoben werden
+- **Lint-Fehler** (Warnung): Meist Code-Stil oder potenzielle Probleme → können ignoriert werden
+
+**Workaround bei Lint-Bugs**:
+```bash
+# Build ohne Lint-Checks (wenn Lint selbst Fehler hat)
+.\gradlew.bat assembleDebug -x lint
+.\gradlew.bat assembleRelease -x lint
+```
+
+### Best Practices
+
+1. **Inkrementelle Änderungen**: Mache kleinere, testbare Änderungen statt großer Umbauten
+2. **Build nach jedem Feature**: Baue die App nach jeder abgeschlossenen Änderung
+3. **Fehler sofort beheben**: Behebe Build-Fehler sofort, bevor du weitermachst
+4. **Kompatibilität prüfen**: Prüfe die Kompatibilität neuer APIs mit der Min SDK Version (API 26)
+
 ## ✅ Fertiggestellte Komponenten
 
 ### 1. Projektstruktur
@@ -110,6 +184,16 @@
 - ✅ Charaktere anzeigen und löschen
 - ✅ Charaktereigenschaften bearbeiten
 - ✅ Persistente Speicherung
+
+### Zauberverwaltung
+- ✅ 235+ vordefinierte Zauber (Initial-Zauber + Hexenzauber)
+- ✅ Automatische Initialisierung beim ersten Start
+- ✅ **Zauber-Datenbank-Synchronisation**:
+  - ✅ Menüpunkt "Zauber-Datenbank aktualisieren"
+  - ✅ Erkennung fehlender Zauber (Vergleich mit InitialSpells)
+  - ✅ Automatisches Hinzufügen neuer Zauber nach App-Updates
+  - ✅ Statusmeldung über Anzahl hinzugefügter Zauber
+  - ✅ Keine Duplikate (Abgleich über Zaubernamen)
 
 ### Zauberslot-System
 - ✅ Variable Anzahl von Slots (nicht mehr fix 10)

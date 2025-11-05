@@ -25,4 +25,12 @@
     <string name="zfp_star">ZfP*</string>
     <string name="import_spells">Zauber importieren</string>
     <string name="export_spells">Zauber exportieren</string>
+    
+    <!-- Spell Sync -->
+    <string name="sync_spells">Zauber-Datenbank aktualisieren</string>
+    <string name="syncing_spells">Synchronisiere Zauber…</string>
+    <string name="sync_success_title">Zauber synchronisiert</string>
+    <string name="sync_success_none">Alle Zauber sind bereits aktuell. Es wurden keine neuen Zauber hinzugefügt.</string>
+    <string name="sync_success_count" formatted="false">%d neue%s Zauber wurde%s zur Datenbank hinzugefügt.</string>
+    <string name="sync_error_title">Synchronisation fehlgeschlagen</string>
 </resources>

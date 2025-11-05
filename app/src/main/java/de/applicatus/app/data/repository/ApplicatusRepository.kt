@@ -1,5 +1,6 @@
 package de.applicatus.app.data.repository
 
+import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.dao.CharacterDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
@@ -24,6 +25,26 @@ class ApplicatusRepository(
     suspend fun deleteAllSpells() = spellDao.deleteAllSpells()
     suspend fun getSpellById(id: Long) = spellDao.getSpellById(id)
     suspend fun getSpellCount() = spellDao.getSpellCount()
+    
+    /**
+     * Synchronisiert fehlende Zauber aus InitialSpells in die Datenbank.
+     * Vergleicht die vorhandenen Zauber mit den Initial-Zaubern und fügt fehlende hinzu.
+     * @return Anzahl der neu hinzugefügten Zauber
+     */
+    suspend fun syncMissingSpells(): Int {
+        val existingSpellNames = spellDao.getAllSpellNames().toSet()
+        val initialSpells = InitialSpells.getDefaultSpells()
+        
+        val missingSpells = initialSpells.filter { spell ->
+            spell.name !in existingSpellNames
+        }
+        
+        if (missingSpells.isNotEmpty()) {
+            insertSpells(missingSpells)
+        }
+        
+        return missingSpells.size
+    }
     
     // Characters
     val allCharacters: Flow<List<Character>> = characterDao.getAllCharacters()

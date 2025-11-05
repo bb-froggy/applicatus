@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,6 +39,7 @@ fun CharacterListScreen(
     val context = LocalContext.current
     val characters by viewModel.characters.collectAsState()
     val importState = viewModel.importState
+    val spellSyncState = viewModel.spellSyncState
     
     var showAddDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
@@ -61,6 +63,15 @@ fun CharacterListScreen(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Zauber-Datenbank aktualisieren") },
+                            leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.syncMissingSpells()
+                            }
+                        )
+                        Divider()
                         DropdownMenuItem(
                             text = { Text("Charakter aus JSON importieren") },
                             leadingIcon = { Icon(Icons.Default.Add, null) },
@@ -168,6 +179,59 @@ fun CharacterListScreen(
                 title = { Text("Importiere Charakter...") },
                 text = { 
                     Row(horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator()
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        else -> {}
+    }
+    
+    // Spell Sync Status Dialog
+    when (spellSyncState) {
+        is CharacterListViewModel.SpellSyncState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetSpellSyncState() },
+                title = { Text("Zauber synchronisiert") },
+                text = { 
+                    val count = spellSyncState.count
+                    Text(
+                        if (count == 0) {
+                            "Alle Zauber sind bereits aktuell. Es wurden keine neuen Zauber hinzugefügt."
+                        } else {
+                            "$count neue${if (count == 1) "r" else ""} Zauber wurde${if (count == 1) "" else "n"} zur Datenbank hinzugefügt."
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetSpellSyncState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.SpellSyncState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetSpellSyncState() },
+                title = { Text("Synchronisation fehlgeschlagen") },
+                text = { Text(spellSyncState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetSpellSyncState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        CharacterListViewModel.SpellSyncState.Syncing -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Synchronisiere Zauber...") },
+                text = { 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
                         CircularProgressIndicator()
                     }
                 },
