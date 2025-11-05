@@ -1,0 +1,1 @@
+Die Datei README.md beschreibt die Verwendung und Funktionalität des Projekts. Die Datei IMPLEMENTATION.md enthält technische Details zur Implementierung des Codes. Die Datei EXPORT_IMPORT_GUIDE.md bietet Anleitungen zum Exportieren und Importieren von Daten.
