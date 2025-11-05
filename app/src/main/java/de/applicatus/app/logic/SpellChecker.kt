@@ -90,30 +90,50 @@ object SpellChecker {
             )
         }
         
-        // Normale Probe
         // ZfP* = ZfW - Modifikator
         var zfpStar = zfw - modifier
         
         val attributes = listOf(attribute1, attribute2, attribute3)
-        
-        // Prüfe jeden Würfelwurf gegen die Eigenschaft
-        rolls.forEachIndexed { index, roll ->
-            val attribute = attributes[index]
-            if (roll > attribute) {
-                // Überwurf: Differenz von ZfP* abziehen
-                val difference = roll - attribute
-                zfpStar -= difference
+        var success : Boolean
+        if (zfw > modifier) {
+            // Normale Probe
+            
+            // Prüfe jeden Würfelwurf gegen die Eigenschaft
+            rolls.forEachIndexed { index, roll ->
+                val attribute = attributes[index]
+                if (roll > attribute) {
+                    // Überwurf: Differenz von ZfP* abziehen
+                    val difference = roll - attribute
+                    zfpStar -= difference
+                }
+            }
+            
+            // Prüfe Erfolg/Misserfolg
+            success = zfpStar >= 0
+            
+            // ZfP* wird auf ZfW gedeckelt (kann nicht höher sein als ZfW)
+            if (success) {
+                zfpStar = minOf(zfpStar, zfw)
+            } else {
+                zfpStar = 0
+            }
+        } else {
+            // Erschwerte Probe: Jede Eigenschaft muss um die Erschwernis unterwürfelt werden
+            var difficulty = modifier - zfw
+            zfpStar = 0 // Besser kann es nicht werden
+            success = true  // Grundannahme ... kann sich aber gleich noch ändern
+
+            // Prüfe jeden Würfelwurf gegen die Eigenschaft
+            rolls.forEachIndexed { index, roll ->
+                val attribute = attributes[index]
+                if (roll + difficulty > attribute) {
+                    success = false
+                }
             }
         }
-        
-        // Prüfe Erfolg/Misserfolg
-        val success = zfpStar >= 0
-        
-        // ZfP* wird auf ZfW gedeckelt (kann nicht höher sein als ZfW)
-        if (success) {
-            zfpStar = minOf(zfpStar, zfw)
-        } else {
-            zfpStar = 0
+
+        if (success && zfpStar == 0) {
+            zfpStar = 1 // Ein Erfolg hat immer mindestens 1 ZfP*
         }
         
         return SpellCheckResult(
