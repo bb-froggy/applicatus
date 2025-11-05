@@ -39,6 +39,9 @@ fun ApplicatusNavHost(
                 viewModel = viewModel,
                 onCharacterClick = { characterId ->
                     navController.navigate(Screen.CharacterDetail.createRoute(characterId))
+                },
+                onNearbySyncClick = {
+                    navController.navigate(Screen.NearbySync.createRouteForReceive())
                 }
             )
         }
@@ -65,13 +68,21 @@ fun ApplicatusNavHost(
         composable(
             route = Screen.NearbySync.route,
             arguments = listOf(
-                navArgument("characterId") { type = NavType.LongType },
-                navArgument("characterName") { type = NavType.StringType }
+                navArgument("characterId") { 
+                    type = NavType.LongType
+                    defaultValue = -1L  // -1 bedeutet: Kein Charakter ausgewählt (Empfangsmodus)
+                    nullable = false
+                },
+                navArgument("characterName") { 
+                    type = NavType.StringType
+                    defaultValue = ""
+                    nullable = false
+                }
             )
         ) { backStackEntry ->
-            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: -1L
             val characterName = backStackEntry.arguments?.getString("characterName")?.let {
-                URLDecoder.decode(it, "UTF-8")
+                if (it.isNotEmpty()) URLDecoder.decode(it, "UTF-8") else ""
             } ?: ""
             
             val viewModel: NearbySyncViewModel = viewModel(
@@ -80,7 +91,7 @@ fun ApplicatusNavHost(
             
             NearbySyncScreen(
                 viewModel = viewModel,
-                characterId = characterId,
+                characterId = if (characterId != -1L) characterId else null,  // null = Empfangsmodus
                 characterName = characterName,
                 onNavigateBack = { navController.popBackStack() }
             )

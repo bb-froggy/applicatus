@@ -25,6 +25,7 @@ data class CharacterExportDto(
 @Serializable
 data class CharacterDto(
     val id: Long = 0,
+    val guid: String,  // Eindeutige GUID für Import/Export-Abgleich
     val name: String,
     val mu: Int = 8,
     val kl: Int = 8,
@@ -41,6 +42,7 @@ data class CharacterDto(
     companion object {
         fun fromCharacter(character: Character) = CharacterDto(
             id = character.id,
+            guid = character.guid,
             name = character.name,
             mu = character.mu,
             kl = character.kl,
@@ -58,6 +60,7 @@ data class CharacterDto(
     
     fun toCharacter() = Character(
         id = 0, // Neue ID wird bei Insert generiert
+        guid = guid,  // GUID wird übernommen
         name = name,
         mu = mu,
         kl = kl,

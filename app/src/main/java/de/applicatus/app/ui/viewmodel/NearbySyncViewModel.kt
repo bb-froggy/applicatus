@@ -140,9 +140,10 @@ class NearbySyncViewModel(
                 kotlinx.serialization.serializer<CharacterExportDto>(),
                 dto
             )
+            // Import ohne targetCharacterId = neuer Charakter wird angelegt
             val result = exportManager.importCharacter(
                 jsonString,
-                overwriteExisting = false
+                targetCharacterId = null
             )
             
             syncState = if (result.isSuccess) {

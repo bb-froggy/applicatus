@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -46,6 +46,26 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // GUID-Spalte zu Character-Tabelle hinzufügen
+                // Generiere UUIDs für bestehende Charaktere
+                database.execSQL("ALTER TABLE characters ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
+                
+                // Update bestehende Charaktere mit neuen GUIDs
+                // Leider kann SQLite keine UUID-Funktion direkt aufrufen, daher werden sie in Code generiert
+                val cursor = database.query("SELECT id FROM characters")
+                val updates = mutableListOf<String>()
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(0)
+                    val guid = java.util.UUID.randomUUID().toString()
+                    updates.add("UPDATE characters SET guid = '$guid' WHERE id = $id")
+                }
+                cursor.close()
+                updates.forEach { database.execSQL(it) }
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -53,7 +73,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

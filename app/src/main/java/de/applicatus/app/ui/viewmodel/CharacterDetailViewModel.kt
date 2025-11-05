@@ -271,16 +271,20 @@ class CharacterDetailViewModel(
         }
     }
     
-    fun importCharacterFromFile(context: Context, uri: Uri, overwrite: Boolean = false) {
+    /**
+     * Importiert einen Charakter aus einer Datei und überschreibt den aktuellen Charakter.
+     * GUID-Validierung stellt sicher, dass nur der richtige Charakter überschrieben wird.
+     */
+    fun importCharacterFromFile(context: Context, uri: Uri) {
         viewModelScope.launch {
             exportState = ExportState.Exporting
-            val result = exportManager.loadCharacterFromFile(context, uri, overwrite)
+            val result = exportManager.loadCharacterFromFile(context, uri, characterId)
             exportState = if (result.isSuccess) {
                 val (_, warning) = result.getOrNull()!!
                 val message = if (warning != null) {
                     "Import erfolgreich mit Warnung:\n$warning"
                 } else {
-                    "Charakter erfolgreich importiert"
+                    "Charakter erfolgreich überschrieben"
                 }
                 ExportState.Success(message)
             } else {
@@ -307,13 +311,17 @@ class CharacterDetailViewModel(
         }
     }
     
-    suspend fun importCharacterFromNearby(dto: CharacterExportDto, overwrite: Boolean = false): Result<Pair<Long, String?>> {
+    /**
+     * Importiert einen Charakter von Nearby und überschreibt den aktuellen Charakter.
+     * GUID-Validierung stellt sicher, dass nur der richtige Charakter überschrieben wird.
+     */
+    suspend fun importCharacterFromNearby(dto: CharacterExportDto): Result<Pair<Long, String?>> {
         return try {
             val json = kotlinx.serialization.json.Json {
                 ignoreUnknownKeys = true
             }
             val jsonString = json.encodeToString(kotlinx.serialization.serializer(), dto)
-            exportManager.importCharacter(jsonString, overwrite)
+            exportManager.importCharacter(jsonString, characterId)
         } catch (e: Exception) {
             Result.failure(e)
         }

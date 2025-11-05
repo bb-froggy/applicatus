@@ -21,6 +21,7 @@ class CharacterExportDtoTest {
     fun `CharacterDto serializes correctly`() {
         val characterDto = CharacterDto(
             id = 1,
+            guid = "test-guid-abc",
             name = "Test Charakter",
             mu = 12,
             kl = 14,
@@ -38,6 +39,7 @@ class CharacterExportDtoTest {
         val jsonString = json.encodeToString(characterDto)
         
         assertTrue(jsonString.contains("Test Charakter"))
+        assertTrue(jsonString.contains("test-guid-abc"))
         assertTrue(jsonString.contains("\"mu\": 12"))
         assertTrue(jsonString.contains("\"hasApplicatus\": true"))
         assertTrue(jsonString.contains("\"applicatusZfw\": 10"))
@@ -51,6 +53,7 @@ class CharacterExportDtoTest {
         val jsonString = """
             {
                 "id": 1,
+                "guid": "test-guid-def",
                 "name": "Test",
                 "mu": 8,
                 "kl": 8,
@@ -69,6 +72,7 @@ class CharacterExportDtoTest {
         val dto = json.decodeFromString<CharacterDto>(jsonString)
         
         assertEquals("Test", dto.name)
+        assertEquals("test-guid-def", dto.guid)
         assertEquals(8, dto.mu)
         assertFalse(dto.hasApplicatus)
     }
@@ -107,6 +111,7 @@ class CharacterExportDtoTest {
         val exportDto = CharacterExportDto(
             version = DataModelVersion.CURRENT_VERSION,
             character = CharacterDto(
+                guid = "test-guid-123",
                 name = "Test",
                 mu = 8, kl = 8, inValue = 8, ch = 8,
                 ff = 8, ge = 8, ko = 8, kk = 8
@@ -123,11 +128,13 @@ class CharacterExportDtoTest {
             jsonString.contains("\"version\""))
         assertTrue("JSON should contain version value: $jsonString",
             jsonString.contains(DataModelVersion.CURRENT_VERSION.toString()))
+        assertTrue("JSON should contain guid", jsonString.contains("test-guid-123"))
         assertTrue("JSON should contain character name", jsonString.contains("Test"))
         assertTrue("JSON should contain export timestamp", jsonString.contains("exportTimestamp"))
         
         val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
         assertEquals(DataModelVersion.CURRENT_VERSION, decoded.version)
+        assertEquals("test-guid-123", decoded.character.guid)
         assertEquals("Test", decoded.character.name)
         assertEquals(timestamp, decoded.exportTimestamp)
     }
@@ -137,6 +144,7 @@ class CharacterExportDtoTest {
         val exportDto = CharacterExportDto(
             version = 2,
             character = CharacterDto(
+                guid = "gandalf-guid-456",
                 name = "Gandalf",
                 mu = 14, kl = 15, inValue = 14, ch = 13,
                 ff = 10, ge = 11, ko = 12, kk = 9,
@@ -201,6 +209,7 @@ class CharacterExportDtoTest {
                 "version": 2,
                 "character": {
                     "id": 1,
+                    "guid": "test-guid-789",
                     "name": "Test",
                     "mu": 8, "kl": 8, "inValue": 8, "ch": 8,
                     "ff": 8, "ge": 8, "ko": 8, "kk": 8,
@@ -219,6 +228,46 @@ class CharacterExportDtoTest {
         val decoded = json.decodeFromString<CharacterExportDto>(jsonWithExtraFields)
         assertEquals("Test", decoded.character.name)
         assertEquals(2, decoded.version)
+    }
+    
+    @Test
+    fun `CharacterDto contains GUID field`() {
+        val guid = "unique-guid-12345"
+        val characterDto = CharacterDto(
+            guid = guid,
+            name = "TestChar",
+            mu = 10, kl = 10, inValue = 10, ch = 10,
+            ff = 10, ge = 10, ko = 10, kk = 10
+        )
+        
+        val jsonString = json.encodeToString(characterDto)
+        
+        assertTrue("JSON should contain guid field", jsonString.contains("\"guid\""))
+        assertTrue("JSON should contain guid value", jsonString.contains(guid))
+        
+        val decoded = json.decodeFromString<CharacterDto>(jsonString)
+        assertEquals(guid, decoded.guid)
+    }
+    
+    @Test
+    fun `GUID is preserved in round-trip serialization`() {
+        val originalGuid = "preserved-guid-999"
+        val exportDto = CharacterExportDto(
+            version = 2,
+            character = CharacterDto(
+                guid = originalGuid,
+                name = "RoundTrip",
+                mu = 8, kl = 8, inValue = 8, ch = 8,
+                ff = 8, ge = 8, ko = 8, kk = 8
+            ),
+            spellSlots = listOf(),
+            exportTimestamp = System.currentTimeMillis()
+        )
+        
+        val jsonString = json.encodeToString(exportDto)
+        val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
+        
+        assertEquals(originalGuid, decoded.character.guid)
     }
     
     @Test

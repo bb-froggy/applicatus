@@ -2,11 +2,13 @@ package de.applicatus.app.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 @Entity(tableName = "characters")
 data class Character(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val guid: String = UUID.randomUUID().toString(),  // Eindeutige GUID für Import/Export
     val name: String,
     val mu: Int = 8,  // Mut
     val kl: Int = 8,  // Klugheit

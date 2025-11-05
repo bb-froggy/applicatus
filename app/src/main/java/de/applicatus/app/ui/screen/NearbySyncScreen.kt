@@ -22,7 +22,7 @@ import de.applicatus.app.ui.viewmodel.NearbySyncViewModel
 @Composable
 fun NearbySyncScreen(
     viewModel: NearbySyncViewModel,
-    characterId: Long,
+    characterId: Long?,  // null = Empfangsmodus (von CharacterListScreen)
     characterName: String,
     onNavigateBack: () -> Unit
 ) {
@@ -71,7 +71,12 @@ fun NearbySyncScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nearby Sync: $characterName") },
+                title = { 
+                    Text(
+                        if (characterId != null) "Nearby Sync: $characterName" 
+                        else "Nearby Sync: Empfangen"
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         viewModel.stopAllConnections()
@@ -110,15 +115,24 @@ fun NearbySyncScreen(
                 ) {
                     Text("Aktionen", style = MaterialTheme.typography.titleMedium)
                     
-                    // Send Character Button
-                    Button(
-                        onClick = { viewModel.sendCharacter(characterId) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = viewModel.connectionState is NearbyConnectionsService.ConnectionState.Connected
-                    ) {
-                        Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Charakter senden")
+                    // Send Character Button (nur wenn characterId vorhanden)
+                    if (characterId != null) {
+                        Button(
+                            onClick = { viewModel.sendCharacter(characterId) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = viewModel.connectionState is NearbyConnectionsService.ConnectionState.Connected
+                        ) {
+                            Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Charakter '$characterName' senden")
+                        }
+                    } else {
+                        // Im Empfangsmodus: Hinweis anzeigen
+                        Text(
+                            text = "Empfangsmodus: Verbinde mit einem Gerät, um einen Charakter zu empfangen",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     
                     // Advertise Button

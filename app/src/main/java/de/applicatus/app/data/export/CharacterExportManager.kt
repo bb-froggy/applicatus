@@ -77,11 +77,14 @@ class CharacterExportManager(
     
     /**
      * Importiert einen Charakter aus einem JSON-String.
+     * @param jsonString Der JSON-String mit den Charakterdaten
+     * @param targetCharacterId Optional: ID eines bestehenden Charakters, der überschrieben werden soll
+     *                          Wenn null, wird ein neuer Charakter angelegt
      * @return Result mit Pair<Character-ID, Warnung?>
      */
     suspend fun importCharacter(
         jsonString: String,
-        overwriteExisting: Boolean = false
+        targetCharacterId: Long? = null
     ): Result<Pair<Long, String?>> = withContext(Dispatchers.IO) {
         try {
             val exportDto = json.decodeFromString<CharacterExportDto>(jsonString)
@@ -92,20 +95,29 @@ class CharacterExportManager(
                 return@withContext Result.failure(Exception(warning ?: "Inkompatible Version"))
             }
             
-            // Prüfen, ob Charakter bereits existiert (nach Name)
-            val characters = repository.allCharacters.first()
-            val existingCharacter = characters.find { it.name == exportDto.character.name }
+            val overwriteWarning = DataModelVersion.checkOverwriteWarning(
+                DataModelVersion.CURRENT_VERSION, 
+                exportDto.version
+            )
             
-            val overwriteWarning = if (existingCharacter != null && overwriteExisting) {
-                DataModelVersion.checkOverwriteWarning(
-                    DataModelVersion.CURRENT_VERSION, 
-                    exportDto.version
+            val characterId = if (targetCharacterId != null) {
+                // Überschreiben eines bestehenden Charakters
+                val existingCharacter = repository.getCharacterById(targetCharacterId)
+                    ?: return@withContext Result.failure(Exception("Ziel-Charakter nicht gefunden"))
+                
+                // GUID-Validierung: Nur überschreiben, wenn GUIDs übereinstimmen
+                if (existingCharacter.guid != exportDto.character.guid) {
+                    return@withContext Result.failure(Exception(
+                        "GUID-Mismatch: Der ausgewählte Charakter stimmt nicht mit dem importierten Charakter überein. " +
+                        "Bitte importiere von der Charakterauswahl aus, um einen neuen Charakter anzulegen."
+                    ))
+                }
+                
+                // Bestehenden Charakter aktualisieren (ID und GUID beibehalten)
+                val updatedCharacter = exportDto.character.toCharacter().copy(
+                    id = existingCharacter.id,
+                    guid = existingCharacter.guid
                 )
-            } else null
-            
-            val characterId = if (existingCharacter != null && overwriteExisting) {
-                // Bestehenden Charakter aktualisieren
-                val updatedCharacter = exportDto.character.toCharacter().copy(id = existingCharacter.id)
                 repository.updateCharacter(updatedCharacter)
                 
                 // Alte Slots löschen
@@ -114,7 +126,7 @@ class CharacterExportManager(
                 
                 existingCharacter.id
             } else {
-                // Neuen Charakter erstellen
+                // Neuen Charakter erstellen (mit GUID aus Import)
                 repository.insertCharacter(exportDto.character.toCharacter())
             }
             
@@ -139,18 +151,21 @@ class CharacterExportManager(
     
     /**
      * Lädt einen Charakter aus einer JSON-Datei.
+     * @param context Android Context
+     * @param uri URI der zu lesenden Datei
+     * @param targetCharacterId Optional: ID eines bestehenden Charakters, der überschrieben werden soll
      */
     suspend fun loadCharacterFromFile(
         context: Context,
         uri: Uri,
-        overwriteExisting: Boolean = false
+        targetCharacterId: Long? = null
     ): Result<Pair<Long, String?>> = withContext(Dispatchers.IO) {
         try {
             val jsonString = context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 inputStream.bufferedReader().readText()
             } ?: return@withContext Result.failure(IOException("Konnte Datei nicht lesen"))
             
-            importCharacter(jsonString, overwriteExisting)
+            importCharacter(jsonString, targetCharacterId)
         } catch (e: Exception) {
             Result.failure(e)
         }

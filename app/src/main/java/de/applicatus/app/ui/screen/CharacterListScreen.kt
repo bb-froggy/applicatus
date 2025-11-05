@@ -1,5 +1,8 @@
 package de.applicatus.app.ui.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,10 +10,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.Character
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
@@ -19,15 +25,53 @@ import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 @Composable
 fun CharacterListScreen(
     viewModel: CharacterListViewModel,
-    onCharacterClick: (Long) -> Unit
+    onCharacterClick: (Long) -> Unit,
+    onNearbySyncClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val characters by viewModel.characters.collectAsState()
+    val importState = viewModel.importState
+    
     var showAddDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    
+    // File picker für JSON-Import
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.importCharacterFromFile(context, it) }
+    }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Charaktere") }
+                title = { Text("Charaktere") },
+                actions = {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menü")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Charakter aus JSON importieren") },
+                            leadingIcon = { Icon(Icons.Default.Add, null) },
+                            onClick = {
+                                showMenu = false
+                                importLauncher.launch("application/json")
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Charakter über Nearby empfangen") },
+                            leadingIcon = { Icon(Icons.Default.Share, null) },
+                            onClick = {
+                                showMenu = false
+                                onNearbySyncClick()
+                            }
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -53,6 +97,22 @@ fun CharacterListScreen(
         }
     }
     
+    // Import-Status Snackbar
+    LaunchedEffect(importState) {
+        when (importState) {
+            is CharacterListViewModel.ImportState.Success -> {
+                // Automatisch zum importierten Charakter navigieren
+                onCharacterClick(importState.characterId)
+                viewModel.resetImportState()
+            }
+            is CharacterListViewModel.ImportState.Error -> {
+                // Fehler wird als Snackbar angezeigt
+                // In produktivem Code könnte man einen SnackbarHost verwenden
+            }
+            else -> {}
+        }
+    }
+    
     if (showAddDialog) {
         AddCharacterDialog(
             onDismiss = { showAddDialog = false },
@@ -64,6 +124,50 @@ fun CharacterListScreen(
                 showAddDialog = false
             }
         )
+    }
+    
+    // Import Status Dialog
+    when (importState) {
+        is CharacterListViewModel.ImportState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetImportState() },
+                title = { Text("Import erfolgreich") },
+                text = { Text(importState.message) },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        onCharacterClick(importState.characterId)
+                        viewModel.resetImportState()
+                    }) {
+                        Text("Zum Charakter")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.ImportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetImportState() },
+                title = { Text("Import fehlgeschlagen") },
+                text = { Text(importState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetImportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        CharacterListViewModel.ImportState.Importing -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Importiere Charakter...") },
+                text = { 
+                    Row(horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator()
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        else -> {}
     }
 }
 

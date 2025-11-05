@@ -1,8 +1,15 @@
 package de.applicatus.app.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.data.export.CharacterExportDto
+import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.model.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,6 +20,19 @@ import kotlinx.coroutines.launch
 class CharacterListViewModel(
     private val repository: ApplicatusRepository
 ) : ViewModel() {
+    
+    private val exportManager = CharacterExportManager(repository)
+    
+    // Import State
+    var importState by mutableStateOf<ImportState>(ImportState.Idle)
+        private set
+    
+    sealed class ImportState {
+        object Idle : ImportState()
+        object Importing : ImportState()
+        data class Success(val message: String, val characterId: Long) : ImportState()
+        data class Error(val message: String) : ImportState()
+    }
     
     val characters: StateFlow<List<Character>> = repository.allCharacters
         .stateIn(
@@ -60,6 +80,46 @@ class CharacterListViewModel(
         viewModelScope.launch {
             repository.deleteCharacter(character)
         }
+    }
+    
+    /**
+     * Importiert einen Charakter aus einer JSON-Datei und legt einen neuen Charakter an.
+     */
+    fun importCharacterFromFile(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            importState = ImportState.Importing
+            val result = exportManager.loadCharacterFromFile(context, uri, targetCharacterId = null)
+            importState = if (result.isSuccess) {
+                val (characterId, warning) = result.getOrNull()!!
+                val message = if (warning != null) {
+                    "Import erfolgreich mit Warnung:\n$warning"
+                } else {
+                    "Charakter erfolgreich importiert"
+                }
+                ImportState.Success(message, characterId)
+            } else {
+                ImportState.Error("Import fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+    
+    /**
+     * Importiert einen Charakter von Nearby und legt einen neuen Charakter an.
+     */
+    suspend fun importCharacterFromNearby(dto: CharacterExportDto): Result<Pair<Long, String?>> {
+        return try {
+            val json = kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+            }
+            val jsonString = json.encodeToString(kotlinx.serialization.serializer(), dto)
+            exportManager.importCharacter(jsonString, targetCharacterId = null)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    fun resetImportState() {
+        importState = ImportState.Idle
     }
 }
 

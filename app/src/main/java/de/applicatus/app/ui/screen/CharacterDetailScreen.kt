@@ -56,7 +56,7 @@ fun CharacterDetailScreen(
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        uri?.let { viewModel.importCharacterFromFile(context, it, overwrite = false) }
+        uri?.let { viewModel.importCharacterFromFile(context, it) }
     }
     
     // Export State Dialog
