@@ -171,11 +171,10 @@
 
 ## 📝 Nicht implementiert (optional für Zukunft)
 
-- ⚪ JSON/CSV Import/Export
 - ⚪ Zauber bearbeiten/hinzufügen in der App
 - ⚪ Statistiken über Würfelerfolge
-- ⚪ Backup/Restore-Funktionalität
 - ⚪ Themes (Hell/Dunkel)
+- ⚪ Cloud-Backup-Integration
 
 ## 🚀 Build & Run
 
@@ -235,3 +234,81 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 - Automatische doppelte Probe beim Zaubern
 - Probe auf KL/IN/CH (Applicatus-Eigenschaften)
 - Beide Ergebnisse werden gespeichert und angezeigt
+
+## 🆕 Neue Features (Version 3 - Export/Import & Synchronisation)
+
+### Charakter-Export/Import
+- ✅ **JSON-Export**: Charaktere als JSON-Datei exportieren
+  - Enthält alle Charakterdaten, Slots und Zauber
+  - Mit Datenmodell-Versionsnummer
+  - Zeitstempel des Exports
+- ✅ **JSON-Import**: Charaktere aus JSON-Dateien importieren
+  - Automatische Versionskompatibilitätsprüfung
+  - Zauber-Matching nach Namen
+  - Warnung bei Überschreiben existierender Charaktere
+  - Warnung bei Versionsunterschieden
+
+### Nearby Connections Synchronisation
+- ✅ **Gerätesuche**: Entdeckung von Geräten in der Nähe via Bluetooth/WLAN
+- ✅ **Verbindungsaufbau**: Direkte Peer-to-Peer-Verbindung zwischen Geräten
+- ✅ **Charakter-Übertragung**: Senden und Empfangen von Charakterdaten
+- ✅ **Versionspr\u00fcfung**: Warnung bei inkompatiblen Datenmodell-Versionen
+- ✅ **Berechtigungsverwaltung**: Automatische Anfrage erforderlicher Permissions
+
+### Datenmodell-Versionierung
+- ✅ **Versionsnummer**: Aktuelle Version 2 des Datenmodells
+- ✅ **Kompatibilitätscheck**: Prüfung bei Import/Sync
+- ✅ **Warnungen**: 
+  - Bei älteren Versionen (Import möglich mit Warnung)
+  - Bei neueren Versionen (Import blockiert, App-Update nötig)
+  - Beim Überschreiben mit älterer Version
+
+### Implementierte Komponenten
+
+#### Backend
+- ✅ `DataModelVersion.kt`: Versionsverwaltung und Kompatibilitätsprüfung
+- ✅ `CharacterExportDto.kt`: DTOs für Serialisierung (Character, SpellSlot)
+- ✅ `CharacterExportManager.kt`: Export/Import-Logik mit Dateiverwaltung
+- ✅ `NearbyConnectionsService.kt`: Wrapper für Google Nearby Connections API
+  - Advertising (als Empfänger bereitstellen)
+  - Discovery (nach Geräten suchen)
+  - Connection Management
+  - Datentransfer
+
+#### ViewModels
+- ✅ `CharacterDetailViewModel`: Erweitert um Export/Import-Funktionen
+- ✅ `NearbySyncViewModel`: Neues ViewModel für Nearby-Synchronisation
+  - Geräteverwaltung
+  - Verbindungsstatus
+  - Sende-/Empfangsstatus
+
+#### UI
+- ✅ `CharacterDetailScreen`: Erweitert um Export/Import-Menu
+  - "Als JSON exportieren" Option
+  - "JSON importieren" Option
+  - "Nearby Sync" Navigation
+  - Erfolgs-/Fehlermeldungen
+- ✅ `NearbySyncScreen`: Neuer Screen für Nearby-Synchronisation
+  - Verbindungsstatus-Anzeige
+  - Geräteliste
+  - Senden/Empfangen-Buttons
+  - Permission-Handling
+  - Anleitungstext
+
+#### Dependencies
+- ✅ `kotlinx-serialization-json`: JSON-Serialisierung
+- ✅ `play-services-nearby`: Google Nearby Connections API
+
+#### Permissions
+- ✅ Bluetooth-Permissions (BLUETOOTH, BLUETOOTH_ADMIN, BLUETOOTH_ADVERTISE, etc.)
+- ✅ WLAN-Permissions (ACCESS_WIFI_STATE, CHANGE_WIFI_STATE)
+- ✅ Standort-Permissions (ACCESS_FINE_LOCATION für Nearby)
+- ✅ Nearby-WLAN-Permissions (NEARBY_WIFI_DEVICES für Android 13+)
+
+### Nutzungsszenarien
+
+1. **Backup erstellen**: Charakter als JSON exportieren und auf Cloud speichern
+2. **Gerät wechseln**: Charakter exportieren, auf neues Gerät übertragen und importieren
+3. **Schnelle Übertragung**: Nearby Sync für direkten Transfer zwischen zwei Geräten
+4. **Charaktere teilen**: JSON-Datei mit anderen Spielern teilen
+

@@ -1,5 +1,8 @@
 package de.applicatus.app.ui.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,13 +10,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.Character
 import de.applicatus.app.data.model.Spell
@@ -26,15 +33,60 @@ import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 @Composable
 fun CharacterDetailScreen(
     viewModel: CharacterDetailViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToNearbySync: (Long, String) -> Unit = { _, _ -> }
 ) {
     val character by viewModel.character.collectAsState()
     val spellSlots by viewModel.spellSlots.collectAsState()
     val allSpells by viewModel.allSpells.collectAsState()
     val isEditMode = viewModel.isEditMode
+    val context = LocalContext.current
     
     var showAddSlotDialog by remember { mutableStateOf(false) }
     var showEditCharacterDialog by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
+    
+    // File pickers
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let { viewModel.exportCharacterToFile(context, it) }
+    }
+    
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.importCharacterFromFile(context, it, overwrite = false) }
+    }
+    
+    // Export State Dialog
+    when (val state = viewModel.exportState) {
+        is CharacterDetailViewModel.ExportState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetExportState() },
+                title = { Text("Erfolg") },
+                text = { Text(state.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetExportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterDetailViewModel.ExportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetExportState() },
+                title = { Text("Fehler") },
+                text = { Text(state.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetExportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        else -> {}
+    }
     
     Scaffold(
         topBar = {
@@ -51,6 +103,55 @@ fun CharacterDetailScreen(
                             if (isEditMode) Icons.Default.Clear else Icons.Default.Edit,
                             contentDescription = if (isEditMode) "Bearbeitungsmodus beenden" else "Bearbeitungsmodus"
                         )
+                    }
+                    
+                    // More Menu
+                    Box {
+                        IconButton(onClick = { showMoreMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Mehr")
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showMoreMenu,
+                            onDismissRequest = { showMoreMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Als JSON exportieren") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.ArrowForward, null)
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    exportLauncher.launch("${character?.name ?: "character"}.json")
+                                }
+                            )
+                            
+                            DropdownMenuItem(
+                                text = { Text("JSON importieren") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Add, null)
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    importLauncher.launch(arrayOf("application/json"))
+                                }
+                            )
+                            
+                            Divider()
+                            
+                            DropdownMenuItem(
+                                text = { Text("Nearby Sync") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Share, null)
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    character?.let { char ->
+                                        onNavigateToNearbySync(char.id, char.name)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             )

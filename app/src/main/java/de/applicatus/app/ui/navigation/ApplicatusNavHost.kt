@@ -1,6 +1,7 @@
 package de.applicatus.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -10,16 +11,22 @@ import androidx.navigation.navArgument
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.screen.CharacterDetailScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
+import de.applicatus.app.ui.screen.NearbySyncScreen
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModelFactory
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 import de.applicatus.app.ui.viewmodel.CharacterListViewModelFactory
+import de.applicatus.app.ui.viewmodel.NearbySyncViewModel
+import de.applicatus.app.ui.viewmodel.NearbySyncViewModelFactory
+import java.net.URLDecoder
 
 @Composable
 fun ApplicatusNavHost(
     navController: NavHostController,
     repository: ApplicatusRepository
 ) {
+    val context = LocalContext.current
+    
     NavHost(
         navController = navController,
         startDestination = Screen.CharacterList.route
@@ -48,6 +55,33 @@ fun ApplicatusNavHost(
             )
             CharacterDetailScreen(
                 viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToNearbySync = { charId, charName ->
+                    navController.navigate(Screen.NearbySync.createRoute(charId, charName))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.NearbySync.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType },
+                navArgument("characterName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            val characterName = backStackEntry.arguments?.getString("characterName")?.let {
+                URLDecoder.decode(it, "UTF-8")
+            } ?: ""
+            
+            val viewModel: NearbySyncViewModel = viewModel(
+                factory = NearbySyncViewModelFactory(repository, context)
+            )
+            
+            NearbySyncScreen(
+                viewModel = viewModel,
+                characterId = characterId,
+                characterName = characterName,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

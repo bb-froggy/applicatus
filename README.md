@@ -5,11 +5,32 @@ Eine Android-App zur Verwaltung von Zauberspeichern für das Pen-and-Paper-Rolle
 ## Features
 
 - **Charakterverwaltung**: Erstellen und verwalten Sie mehrere Charaktere mit ihren Eigenschaftswerten (MU, KL, IN, CH, FF, GE, KO, KK)
-- **Zauberslots**: Jeder Charakter hat 10 Zauberslots für den Applicatus-Zauber
+- **Zwei Slot-Typen**: 
+  - Applicatus-Slots für den gleichnamigen Zauber
+  - Zauberspeicher-Slots mit konfigurierbaren Volumenpunkten (max. 100 gesamt)
 - **Zauberprobe**: Automatische Würfelprobe beim Einspeichern von Zaubern mit W20-Würfeln
 - **Besondere Würfelergebnisse**: Erkennung von Doppel-1, Dreifach-1, Doppel-20 und Dreifach-20
-- **Zauberliste**: Über 200 vordefinierte Zauber aus DSA
+- **Zauberliste**: Über 190 vordefinierte Zauber aus DSA
+- **Bearbeitungs- und Nutzungsmodus**: Getrennte Modi für Vorbereitung und Spielen
+- **Export/Import**: 
+  - JSON-Export und -Import von Charakteren
+  - Nearby Connections für direkten Transfer zwischen Geräten
+  - Versionskontrolle mit Warnungen bei Versionsunterschieden
 - **Persistente Speicherung**: Alle Daten werden lokal gespeichert
+
+## Export & Synchronisation
+
+### JSON-Export/Import
+- Exportieren Sie Charaktere als JSON-Dateien
+- Importieren Sie Charaktere auf anderen Geräten
+- Automatische Versionskompatibilitätsprüfung
+- Ideal für Backups und Gerätewechsel
+
+### Nearby Connections
+- Direkte Übertragung zwischen zwei Geräten via Bluetooth/WLAN
+- Keine Internetverbindung erforderlich
+- Sicher und schnell
+- Perfekt für den Austausch am Spieltisch
 
 ## Technische Details
 

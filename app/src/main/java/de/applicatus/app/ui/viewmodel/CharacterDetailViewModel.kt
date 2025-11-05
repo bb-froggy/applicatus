@@ -1,11 +1,15 @@
 package de.applicatus.app.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.data.export.CharacterExportDto
+import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.model.Character
 import de.applicatus.app.data.model.Spell
 import de.applicatus.app.data.model.SpellSlot
@@ -20,6 +24,19 @@ class CharacterDetailViewModel(
     private val repository: ApplicatusRepository,
     private val characterId: Long
 ) : ViewModel() {
+    
+    private val exportManager = CharacterExportManager(repository)
+    
+    // Export/Import State
+    var exportState by mutableStateOf<ExportState>(ExportState.Idle)
+        private set
+    
+    sealed class ExportState {
+        object Idle : ExportState()
+        object Exporting : ExportState()
+        data class Success(val message: String) : ExportState()
+        data class Error(val message: String) : ExportState()
+    }
     
     // Bearbeitungsmodus-State
     var isEditMode by mutableStateOf(false)
@@ -239,6 +256,71 @@ class CharacterDetailViewModel(
             result.success -> "Erfolg! [$rollsStr] ZfP*: ${result.zfpStar}"
             else -> "Fehlgeschlagen! [$rollsStr]"
         }
+    }
+    
+    // Export/Import Funktionen
+    fun exportCharacterToFile(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            exportState = ExportState.Exporting
+            val result = exportManager.saveCharacterToFile(context, characterId, uri)
+            exportState = if (result.isSuccess) {
+                ExportState.Success("Charakter erfolgreich exportiert")
+            } else {
+                ExportState.Error("Export fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+    
+    fun importCharacterFromFile(context: Context, uri: Uri, overwrite: Boolean = false) {
+        viewModelScope.launch {
+            exportState = ExportState.Exporting
+            val result = exportManager.loadCharacterFromFile(context, uri, overwrite)
+            exportState = if (result.isSuccess) {
+                val (_, warning) = result.getOrNull()!!
+                val message = if (warning != null) {
+                    "Import erfolgreich mit Warnung:\n$warning"
+                } else {
+                    "Charakter erfolgreich importiert"
+                }
+                ExportState.Success(message)
+            } else {
+                ExportState.Error("Import fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+    
+    suspend fun exportCharacterForNearby(): Result<CharacterExportDto> {
+        return try {
+            val jsonResult = exportManager.exportCharacter(characterId)
+            if (jsonResult.isFailure) {
+                return Result.failure(jsonResult.exceptionOrNull() ?: Exception("Export fehlgeschlagen"))
+            }
+            
+            // Parse JSON zurück zu DTO für Nearby
+            val json = kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+            }
+            val dto = json.decodeFromString<CharacterExportDto>(jsonResult.getOrNull()!!)
+            Result.success(dto)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun importCharacterFromNearby(dto: CharacterExportDto, overwrite: Boolean = false): Result<Pair<Long, String?>> {
+        return try {
+            val json = kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+            }
+            val jsonString = json.encodeToString(kotlinx.serialization.serializer(), dto)
+            exportManager.importCharacter(jsonString, overwrite)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    fun resetExportState() {
+        exportState = ExportState.Idle
     }
 }
 

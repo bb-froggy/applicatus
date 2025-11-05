@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 android {
@@ -70,7 +71,18 @@ dependencies {
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.10.1")
     
+    // Kotlinx Serialization for JSON
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    
+    // Nearby Connections API
+    implementation("com.google.android.gms:play-services-nearby:19.0.0")
+    
+    // Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))

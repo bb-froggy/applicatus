@@ -1,0 +1,119 @@
+Name	Probe	K	Merkmal	Verbreitung
+Abvenenum reine Speise	KL/KL/FF	C	Objekt	Dru6, Elf6, Hex6, Mag6, Geo5, Ach4, Sch4
+Accuratum Zaubernadel	KL/CH/FF	C	Objekt	Mag4, Srl4, Hex2
+Adlerauge Luchsenohr	KL/IN/FF	B	Hellsicht, Eigenschaften	Elf7, Ach3, Dru3, Geo3, Hex3, Mag3
+Adlerschwinge Wolfsgestalt	MU/IN/GE	D	Form	Elf6, Ach3, Mag3, Dru(Elf)2, Hex(Elf)2
+Analys Arcanstruktur	KL/KL/IN	D	Hellsicht, Metamagie	Mag6, Ach3, Dru(Mag)2, Geo(Mag)2, Hex(Mag)2
+Ängste lindern	MU/IN/CH	C	Einfluss	Hex7, Geo5, Dru4, Mag4
+Arachnea Krabbeltier	MU/IN/CH	D	Herbeirufung	Mag2, Bor1, Hex1
+Arcanovi Artefakt	KL/KL/FF	E	Objekt, Metamagie	Ach4, Mag4, Geo2, Hex2, Dru1, Elf1
+Armatrutz	IN/GE/KO	B	Eigenschaften, Elementar (Erz)	Elf6, Mag6, Hex3, Dru2
+Attributo	KL/CH/*	B	Eigenschaften	Dru5, Elf5, Geo5, Hex5, Mag5, Ach3, Sch3, Srl3
+Balsam Salabunde	KL/IN/CH	C	Heilung, Form	Elf7, Mag7, Ach5, Geo5, Dru4, Hex3
+Band und Fessel	KL/CH/KK	C	Einfluss	Elf5, Hex4, Dru3, Mag3, Ach2, Bor2, Geo2
+Bannbaladin	IN/CH/CH	B	Einfluss	Elf7, Mag6, Dru3, Hex3, Srl(Mag)3
+Beherrschung brechen	KL/IN/CH	C	Antimagie, Herrschaft	Dru7, Geo6, Mag6, Hex5, Ach4, Elf4
+Beschwörung vereiteln	MU/IN/CH	C	Antimagie, Beschwörung	Mag3, Dru2, Hex2, Elf(Mag)2, Geo(Mag)2
+Bewegung stören	KL/IN/FF	C	Antimagie, Telekinese	Mag5, Elf4, Sch4, Hex3
+Blick aufs Wesen	KL/IN/CH	C	Hellsicht	Elf6, Geo5, Mag5, Ach4, Dru4, Hex4
+Blick in die Gedanken	KL/KL/CH	D	Hellsicht	Elf5, Mag5, Ach4, Dru4, Hex4, Geo3
+Blitz dich find	KL/IN/GE	B	Einfluss	Elf7, Mag6, Dru5, Hex5, Ach4, Geo4, Sch4, Srl4
+Böser Blick	MU/CH/CH	C	Einfluss	Dru7, Geo6, Ach5, Bor2, Hex(Dru)2, Mag(Dru)2, Mag2
+Chamaelioni Mimikry	IN/CH/GE	C	Illusion	Elf5, Hex(Elf)3, Mag(Elf)3
+Chimaeroform Hybridgestalt	KL/IN/KO	F	Dämonisch (Asfaloth), Form	Mag2, Hex1
+Claudibus Clavistibor	KL/FF/KK	C	Objekt	Mag6, Hex5, Srl5, Dru(Hex)2, Elf(Mag)2, Sch(Mag)2
+Corpofesso Gliederschmerz	KL/KO/KK	C	Eigenschaften	Mag4, Elf(Mag)2, Hex(Mag)2
+Cryptographo Zauberschrift	KL/KL/IN	C	Objekt, Verständigung	Mag6, Ach2, Hex(Mag)2, Srl(Mag)2
+Dunkelheit	KL/KL/FF	C	Umwelt	Dru7, Geo4, Mag4, Sch4, Ach3, Hex3, Srl(Mag)3, Elf2
+Eigenschaft wiederherstellen	KL/IN/CH	C	Antimagie, Eigenschaften	Hex6, Ach5, Dru5, Geo5, Mag5, Elf5
+Einfluss bannen	IN/CH/CH	B	Antimagie, Einfluss	Dru6, Geo6, Hex6, Ach5, Elf5, Mag4, Sch4, Srl3
+Eins mit der Natur	IN/GE/KO	C	Eigenschaften, Elementar (allgemein)	Geo7, Dru5, Elf2, Hex(Geo)2, Mag(Dru)2
+Exposami Lebenskraft	KL/IN/IN	B	Hellsicht	Elf6, Ach4, Dru4, Geo4, Hex3, Mag3
+Flim Flam Funkel	KL/KL/FF	A	Umwelt	Ach7, Elf7, Mag7, Dru6, Hex6, Geo5, Sch4, Srl(Mag)4
+Fluch der Pestilenz	MU/KL/CH	D	Dämonisch (Mishkara)	Dru5, Bor2, Hex2, Mag(Dru)2
+Fulminictus Donnerkeil	IN/GE/KO	C	Schaden, Kraft	Elf7, Mag5, Hex(Mag)2
+Gefunden!	KL/IN/GE	C	Hellsicht	Sch5, Ach3, Hex3, Mag3, Srl(Sch)3
+Geisterbann	MU/MU/CH	C	Antimagie, Geisterwesen	Dru7, Mag5, Geo4, Hex4
+Geisterruf	MU/MU/CH	D	Geisterwesen, Herbeirufung	Dru6, Geo3, Hex3, Mag3
+Große Gier	KL/KL/CH	C	Einfluss, Herrschaft	Hex7, Geo3
+Halluzination	KL/IN/CH	C	Herrschaft	Dru5, Geo4, Hex(Dru)2, Mag(Dru)2, Srl(Geo)2
+Harmlose Gestalt	KL/CH/GE	C	Einfluss, Illusion	Hex7, Ach3, Dru3, Mag3, Sch3, Srl3, Elf2
+Haselbusch und Ginsterkraut	CH/FF/KO	D	Eigenschaften, Elementar (Humus), Form	Elf5, Geo3, Dru(Elf)2, Hex(Elf)2, Mag(Elf)2
+Heilkraft bannen	KL/CH/FF	C	Antimagie, Heilung	Bor2, Mag2, Hex(Mag)2
+Hellsicht trüben	KL/IN/CH	C	Antimagie, Hellsicht	Dru6, Geo6, Mag5, Sch5, Ach4, Elf4, Hex4, Srl3
+Herbeirufung vereiteln	MU/IN/CH	C	Antimagie, Herbeirufung	Dru3, Mag3, Hex2
+Herr über das Tierreich	MU/MU/CH	D	Herrschaft	Dru7, Geo6, Elf3, Hex3, Ach2, Mag2
+Hexenblick	IN/IN/CH	B	Verständigung	Hex7, Bor3
+Hexengalle	MU/IN/CH	C	Schaden	Ach3, Hex3
+Hexenholz	KL/FF/KK	B	Telekinese	Hex7
+Hexenknoten	KL/IN/CH	C	Einfluss, Illusion	Hex7, Dru(Hex)2, Mag(Hex)2, Srl(Hex)2
+Hexenkrallen	MU/IN/KO	C	Eigenschaften, Form	Hex3
+Hexenspeichel	IN/CH/FF	C	Heilung	Hex7, Geo5, Mag(Hex)2
+Horriphobus Schreckgestalt	MU/IN/CH	C	Einfluss	Mag6, Bor4, Dru3, Hex(Dru)2, Srl1
+Illusion auflösen	KL/IN/CH	B	Antimagie, Illusion	Mag5, Srl4, Hex3, Sch3
+Invocatio maior	MU/MU/CH	E	Beschwörung, Dämonisch (allgemein)	Bor5, Mag5, Hex3, Dru2
+Invocatio minor	MU/MU/CH	D	Beschwörung, Dämonisch (allgemein)	Mag5, Ach4, Bor4, Hex4, Dru2
+Katzenaugen	KL/FF/KO	C	Eigenschaften	Hex4, Elf3
+Klarum Purum	KL/KL/CH	D	Form, Heilung	Mag6, Ach3, Dru3, Elf3, Geo3, Hex3
+Klickeradomms	KL/FF/KK	A	Telekinese	Sch7, Hex3, Mag3, Srl3
+Koboldovision	MU/CH/CH	D	Hellsicht, Limbus	Sch5, Ach2, Elf(Sch)1, Hex(Sch)1
+Körperlose Reise	MU/KL/IN	E	Limbus, Verständigung	Dru3, Ach2, Geo2, Hex2, Mag2
+Krabbelnder Schrecken	MU/MU/CH	C	Herbeirufung, Dämonisch (Mishkara)	Hex3, Bor2, Mag2
+Krähenruf	MU/CH/CH	C	Einfluss, Herbeirufung, Limbus	Hex6
+Krötensprung	IN/GE/KK	B	Eigenschaften	Hex4, Ach3, Elf3
+Leib des Feuers	MU/MU/GE	E	Form, Elementar (Feuer)	Hex4, Elf2, Mag2, Dru(Hex)2
+Leidensbund	MU/IN/KO	C	Heilung, Verständigung	Ach3, Hex2, Bor2, Mag(Ach)2
+Levthans Feuer	IN/CH/CH	D	Einfluss, Verständigung	Hex4, Mag(Hex)2
+Lunge des Leviatan	IN/CH/KO	C	Heilung	Ach5, Mag2, Hex(Ach)2
+Madas Spiegel	MU/KL/IN	D	Verständigung, Hellsicht	Hex3, Dru(Hex)2, Srl(Hex)2
+Magischer Raub	MU/KL/KO	D	Kraft, Verständigung	Dru6, Geo4, Mag3, Ach2, Bor2, Hex2
+Manifesto Element	KL/IN/CH	A	Elementar (allgemein)	Ach7, Dru5, Geo5, Mag5, Hex3, Srl3, Elf2
+Memorabia Falsifir	KL/IN/CH	E	Herrschaft	Elf3, Mag3, Ach2, Dru2, Hex2
+Motoricus	KL/FF/KK	C	Telekinese	Mag6, Sch5, Ach4, Elf4, Hex4, Srl4
+Movimento Dauerlauf	IN/GE/KO	A	Eigenschaften	Elf7, Dru(Elf)3, Hex(Elf)3, Mag(Elf)3
+Nebelwand und Morgendunst	KL/FF/KO	C	Umwelt, Elementar (Luft), Elementar (Wasser)	Elf6, Ach4, Dru3, Geo3, Mag2, Hex(Elf)2, Srl(Mag)2, Mag(Dru)2
+Nekropathia Seelenreise	MU/KL/CH	E	Geisterwesen, Verständigung	Mag3, Dru2, Hex(Mag)2
+Nuntiovolo Botenvogel	MU/KL/CH	C	Beschwörung, Dämonisch (Lolgramoth)	Mag3, Ach2, Bor2, Hex2
+Objectovoco	KL/IN/CH	C	Verständigung	Mag5, Dru4, Elf4, Geo3, Hex2, Srl(Mag)2
+Objekt entzaubern	KL/IN/FF	C	Antimagie, Objekt	Mag5, Ach4, Hex3, Srl(Mag)2
+Odem Arcanum	KL/IN/IN	A	Hellsicht, Kraft	Ach7, Elf7, Mag7, Geo6, Dru5, Hex5, Sch4, Srl4
+Pandaemonium	MU/MU/CH	D	Beschwörung, Dämonisch (allgemein)	Bor4, Hex3, Mag2
+Pectetondo Zauberhaar	KL/CH/FF	B	Form	Mag5, Srl5, Hex(Mag)3, Sch(Mag)2
+Pentagramma Sphärenbann	MU/MU/CH	D	Antimagie, Beschwörung, Dämonisch (allgemein), Geisterwesen	Mag5, Hex3, Dru2, Geo2
+Pestilenz erspüren	KL/IN/CH	C	Hellsicht	Dru6, Hex5, Elf3
+Plumbumbarum schwerer Arm	CH/GE/KK	B	Einfluss	Mag7, Dru5, Geo5, Hex5, Ach4, Elf4, Sch4, Srl3
+Psychostabilis	MU/KL/KO	C	Antimagie, Eigenschaften	Mag6, Dru5, Geo5, Hex5, Ach3, Srl3, Elf(Mag)3
+Radau	MU/CH/KO	C	Elementar (Luft), Telekinese	Hex6
+Respondami Wahrheitszwang	MU/IN/CH	B	Herrschaft	Mag7, Dru5, Geo5, Elf4, Hex4
+Reversalis Revidum	KL/IN/CH	E	Metamagie	Ach3, Mag3, Dru(Mag)2, Hex(Mag)2
+Ruhe Körper, ruhe Geist	KL/CH/KO	B	Heilung	Elf5, Ach4, Mag4, Dru3, Hex3
+Salander Mutander	KL/CH/KO	E	Form	Mag5, Ach3, Hex3, Dru2
+Sanftmut	MU/CH/CH	B	Einfluss	Geo6, Hex6, Dru4, Elf4, Ach2
+Sapefacta Zauberschwamm	KL/CH/FF	C	Telekinese, Elementar (Luft), Elementar (Wasser)	Mag5, Srl4, Hex(Mag)2
+Satuarias Herrlichkeit	IN/CH/CH	B	Eigenschaften, Illusion	Hex5
+Schleier der Unwissenheit	KL/KL/FF	D	Eigenschaften, Metamagie	Hex6, Mag4, Bor2, Dru2
+Schwarz und Rot	MU/CH/KO	D	Eigenschaften, Schaden	Bor4, Mag3, Hex(Mag)2
+Seelentier erkennen	IN/IN/CH	C	Hellsicht	Hex3, Elf1
+Seelenwanderung	MU/CH/KO	F	Eigenschaften, Verständigung	Ach2, Dru2, Geo2, Hex2, Mag1
+Sensibar Empathicus	KL/IN/CH	C	Hellsicht	Elf7, Mag6, Dru5, Hex5, Geo5, Ach4, Sch4, Srl4
+Serpentialis Schlangenleib	MU/CH/GE	D	Form	Ach4, Hex2, Mag(Ach)2
+Silentium	KL/IN/CH	B	Umwelt	Elf7, Mag5, Sch5, Geo4, Srl4, Dru2, Hex2
+Somnigravis tiefer Schlaf	KL/CH/CH	B	Einfluss	Elf6, Mag5, Ach3, Dru3, Geo3, Hex3, Sch3, Srl3
+Spinnenlauf	IN/GE/KK	C	Eigenschaften	Hex4, Ach3, Elf2
+Spurlos Trittlos	IN/GE/GE	C	Umwelt	Elf6, Dru3, Geo3, Hex2
+Sumus Elixiere	IN/CH/FF	C	Elementar (Humus)	Geo5, Dru4, Hex3, Mag(Dru)2
+Tiere besprechen	MU/IN/CH	C	Heilung, Form	Hex6, Dru2, Geo2, Elf(Hex)2
+Tiergedanken	MU/IN/CH	C	Hellsicht, Verständigung	Elf5, Geo5, Ach4, Dru4, Hex4, Mag3
+Tlalucs Odem Pestgestank	MU/IN/GE	C	Beschwörung, Dämonisch (allgemein), Schaden	Mag3, Bor2, Dru2, Hex2
+Traumgestalt	IN/CH/CH	D	Verständigung	Hex5, Dru3, Elf3, Mag2
+Unitatio Geistesbund	IN/CH/KO	B	Verständigung, Kraft	Elf7, Hex6, Mag6, Ach4, Dru4, Geo4
+Unsichtbarer Jäger	IN/FF/GE	E	Illusion	Elf2, Hex(Elf)1
+Verständigung stören	KL/KL/IN	C	Antimagie, Verständigung	Elf6, Ach5, Dru5, Mag5, Geo4, Hex3
+Verwandlung beenden	KL/CH/FF	D	Antimagie, Form	Dru5, Hex5, Mag5, Geo4
+Vipernblick	MU/MU/CH	B	Einfluss	Ach3, Hex3
+Weisheit der Bäume	MU/IN/KO	D	Form, Elementar (Humus)	Geo4, Dru4, Elf2, Mag(Dru)2, Hex(Geo)1
+Wettermeisterschaft	MU/CH/GE	E	Elementar (Luft), Umwelt	Dru5, Geo4, Ach3, Hex2, Mag2
+Zauberklinge Geisterspeer	KL/FF/KO	D	Objekt, Kraft	Mag3, Elf2, Hex2, Geo2, Dru(Mag)2, Dru(Geo)2, Dru(Hex)2, Ach1
+Zauberwesen der Natur	MU/IN/CH	B	Herbeirufung, Verständigung	Dru3, Hex3, Sch3, Elf2
+Zauberzwang	MU/CH/CH	E	Herrschaft, Schaden	Hex5, Dru3, Geo3, Ach1, Mag1
+Zunge lähmen	MU/CH/FF	B	Eigenschaften	Dru5, Geo4, Hex3, Sch3
