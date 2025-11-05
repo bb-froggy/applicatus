@@ -211,7 +211,33 @@ object InitialSpells {
             Spell(name = "Windstille", attribute1 = "KL", attribute2 = "CH", attribute3 = "KK"),
             Spell(name = "Xenographus Schriftenkunde", attribute1 = "KL", attribute2 = "KL", attribute3 = "IN"),
             Spell(name = "Zagibu Ubigaz", attribute1 = "IN", attribute2 = "CH", attribute3 = "FF"),
-            Spell(name = "Zauberklinge Geisterspeer", attribute1 = "KL", attribute2 = "FF", attribute3 = "KO")
+            Spell(name = "Zauberklinge Geisterspeer", attribute1 = "KL", attribute2 = "FF", attribute3 = "KO"),
+            
+            // Hexenzauber
+            Spell(name = "Große Gier", attribute1 = "KL", attribute2 = "KL", attribute3 = "CH"),
+            Spell(name = "Hexenblick", attribute1 = "IN", attribute2 = "IN", attribute3 = "CH"),
+            Spell(name = "Hexengalle", attribute1 = "MU", attribute2 = "IN", attribute3 = "CH"),
+            Spell(name = "Hexenholz", attribute1 = "KL", attribute2 = "FF", attribute3 = "KK"),
+            Spell(name = "Hexenkrallen", attribute1 = "MU", attribute2 = "IN", attribute3 = "KO"),
+            Spell(name = "Katzenaugen", attribute1 = "KL", attribute2 = "FF", attribute3 = "KO"),
+            Spell(name = "Koboldovision", attribute1 = "MU", attribute2 = "CH", attribute3 = "CH"),
+            Spell(name = "Krähenruf", attribute1 = "MU", attribute2 = "CH", attribute3 = "CH"),
+            Spell(name = "Krötensprung", attribute1 = "IN", attribute2 = "GE", attribute3 = "KK"),
+            Spell(name = "Madas Spiegel", attribute1 = "MU", attribute2 = "KL", attribute3 = "IN"),
+            Spell(name = "Pestilenz erspüren", attribute1 = "KL", attribute2 = "IN", attribute3 = "CH"),
+            Spell(name = "Radau", attribute1 = "MU", attribute2 = "CH", attribute3 = "KO"),
+            Spell(name = "Sanftmut", attribute1 = "MU", attribute2 = "CH", attribute3 = "CH"),
+            Spell(name = "Satuarias Herrlichkeit", attribute1 = "IN", attribute2 = "CH", attribute3 = "CH"),
+            Spell(name = "Seelentier erkennen", attribute1 = "IN", attribute2 = "IN", attribute3 = "CH"),
+            Spell(name = "Seelenwanderung", attribute1 = "MU", attribute2 = "CH", attribute3 = "KO"),
+            Spell(name = "Spinnenlauf", attribute1 = "IN", attribute2 = "GE", attribute3 = "KK"),
+            Spell(name = "Spurlos Trittlos", attribute1 = "IN", attribute2 = "GE", attribute3 = "GE"),
+            Spell(name = "Tiere besprechen", attribute1 = "MU", attribute2 = "IN", attribute3 = "CH"),
+            Spell(name = "Unsichtbarer Jäger", attribute1 = "IN", attribute2 = "FF", attribute3 = "GE"),
+            Spell(name = "Vipernblick", attribute1 = "MU", attribute2 = "MU", attribute3 = "CH"),
+            Spell(name = "Zauberwesen der Natur", attribute1 = "MU", attribute2 = "IN", attribute3 = "CH"),
+            Spell(name = "Zauberzwang", attribute1 = "MU", attribute2 = "CH", attribute3 = "CH"),
+            Spell(name = "Zunge lähmen", attribute1 = "MU", attribute2 = "CH", attribute3 = "FF")
         )
     }
 }
