@@ -79,15 +79,28 @@ fun PotionScreen(
         }
     }
     
-    if (showAddDialog && recipes.isNotEmpty()) {
-        AddPotionDialog(
-            recipes = recipes,
-            onDismiss = { showAddDialog = false },
-            onAdd = { recipeId, quality, expiryDate ->
-                viewModel.addPotion(recipeId, quality, expiryDate)
-                showAddDialog = false
-            }
-        )
+    if (showAddDialog) {
+        if (recipes.isEmpty()) {
+            AlertDialog(
+                onDismissRequest = { showAddDialog = false },
+                title = { Text(stringResource(R.string.no_recipes)) },
+                text = { Text(stringResource(R.string.no_recipes_message)) },
+                confirmButton = {
+                    TextButton(onClick = { showAddDialog = false }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                }
+            )
+        } else {
+            AddPotionDialog(
+                recipes = recipes,
+                onDismiss = { showAddDialog = false },
+                onAdd = { recipeId, quality, expiryDate ->
+                    viewModel.addPotion(recipeId, quality, expiryDate)
+                    showAddDialog = false
+                }
+            )
+        }
     }
     
     showDeleteDialog?.let { potionWithRecipe ->
