@@ -26,7 +26,7 @@ data class RegenerationResult(
         if (keDetails.isNotEmpty()) {
             parts.add("KE +$keGain ($keDetails)")
         }
-        return if (parts.isEmpty()) "Keine Regeneration" else parts.joinToString(", ")
+        return if (parts.isEmpty()) "Keine Regeneration" else parts.joinToString("\n")
     }
 }
 
