@@ -10,7 +10,9 @@ class ApplicatusApplication : Application() {
         ApplicatusRepository(
             database.spellDao(),
             database.characterDao(),
-            database.spellSlotDao()
+            database.spellSlotDao(),
+            database.recipeDao(),
+            database.potionDao()
         )
     }
 }

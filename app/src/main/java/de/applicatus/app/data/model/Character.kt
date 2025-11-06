@@ -20,5 +20,19 @@ data class Character(
     val kk: Int = 8,  // Körperkraft
     val hasApplicatus: Boolean = false,  // Hat der Charakter Applicatus?
     val applicatusZfw: Int = 0,          // Applicatus-Zauberfertigkeit
-    val applicatusModifier: Int = 0      // Applicatus-Modifikator
+    val applicatusModifier: Int = 0,     // Applicatus-Modifikator
+    // Lebensenergie (alle Charaktere haben LE)
+    val currentLe: Int = 30,             // Aktuelle Lebensenergie
+    val maxLe: Int = 30,                 // Maximale Lebensenergie
+    val leRegenBonus: Int = 0,           // Zusätzlicher LE-Regenerationsbonus (-3 bis +3)
+    // Astralenergie (nur für Zauberer)
+    val hasAe: Boolean = false,          // Hat der Charakter AE?
+    val currentAe: Int = 0,              // Aktuelle Astralenergie
+    val maxAe: Int = 0,                  // Maximale Astralenergie
+    val aeRegenBonus: Int = 0,           // Zusätzlicher AE-Regenerationsbonus (-3 bis +3)
+    val hasMasteryRegeneration: Boolean = false,  // Hat Meisterliche Regeneration?
+    // Karmaenergie (nur für Geweihte)
+    val hasKe: Boolean = false,          // Hat der Charakter KE?
+    val currentKe: Int = 0,              // Aktuelle Karmaenergie
+    val maxKe: Int = 0                   // Maximale Karmaenergie
 )

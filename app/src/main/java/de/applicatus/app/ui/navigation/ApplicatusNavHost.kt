@@ -10,14 +10,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.screen.CharacterDetailScreen
+import de.applicatus.app.ui.screen.CharacterHomeScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
 import de.applicatus.app.ui.screen.NearbySyncScreen
+import de.applicatus.app.ui.screen.PotionScreen
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModelFactory
+import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
+import de.applicatus.app.ui.viewmodel.CharacterHomeViewModelFactory
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 import de.applicatus.app.ui.viewmodel.CharacterListViewModelFactory
 import de.applicatus.app.ui.viewmodel.NearbySyncViewModel
 import de.applicatus.app.ui.viewmodel.NearbySyncViewModelFactory
+import de.applicatus.app.ui.viewmodel.PotionViewModel
+import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 import java.net.URLDecoder
 
 @Composable
@@ -38,10 +44,30 @@ fun ApplicatusNavHost(
             CharacterListScreen(
                 viewModel = viewModel,
                 onCharacterClick = { characterId ->
-                    navController.navigate(Screen.CharacterDetail.createRoute(characterId))
+                    navController.navigate(Screen.CharacterHome.createRoute(characterId))
                 },
                 onNearbySyncClick = {
                     navController.navigate(Screen.NearbySync.createRouteForReceive())
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.CharacterHome.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            CharacterHomeScreen(
+                characterId = characterId,
+                viewModelFactory = CharacterHomeViewModelFactory(repository, characterId),
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSpells = { charId ->
+                    navController.navigate(Screen.CharacterDetail.createRoute(charId))
+                },
+                onNavigateToPotions = { charId ->
+                    navController.navigate(Screen.PotionScreen.createRoute(charId))
                 }
             )
         }
@@ -62,6 +88,20 @@ fun ApplicatusNavHost(
                 onNavigateToNearbySync = { charId, charName ->
                     navController.navigate(Screen.NearbySync.createRoute(charId, charName))
                 }
+            )
+        }
+        
+        composable(
+            route = Screen.PotionScreen.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            PotionScreen(
+                characterId = characterId,
+                viewModelFactory = PotionViewModelFactory(repository, characterId),
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

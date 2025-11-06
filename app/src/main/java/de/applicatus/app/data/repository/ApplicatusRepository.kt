@@ -2,9 +2,14 @@ package de.applicatus.app.data.repository
 
 import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.dao.CharacterDao
+import de.applicatus.app.data.dao.PotionDao
+import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.Potion
+import de.applicatus.app.data.model.PotionWithRecipe
+import de.applicatus.app.data.model.Recipe
 import de.applicatus.app.data.model.Spell
 import de.applicatus.app.data.model.SpellSlot
 import de.applicatus.app.data.model.SpellSlotWithSpell
@@ -14,7 +19,9 @@ import kotlinx.coroutines.flow.combine
 class ApplicatusRepository(
     private val spellDao: SpellDao,
     private val characterDao: CharacterDao,
-    private val spellSlotDao: SpellSlotDao
+    private val spellSlotDao: SpellSlotDao,
+    private val recipeDao: RecipeDao,
+    private val potionDao: PotionDao
 ) {
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
@@ -88,4 +95,23 @@ class ApplicatusRepository(
         }
         insertSlots(slots)
     }
+    
+    // Recipes
+    val allRecipes: Flow<List<Recipe>> = recipeDao.getAllRecipes()
+    
+    suspend fun insertRecipe(recipe: Recipe): Long = recipeDao.insertRecipe(recipe)
+    suspend fun insertRecipes(recipes: List<Recipe>) = recipeDao.insertRecipes(recipes)
+    suspend fun deleteRecipe(recipe: Recipe) = recipeDao.deleteRecipe(recipe)
+    suspend fun getRecipeById(id: Long) = recipeDao.getRecipeById(id)
+    suspend fun getRecipeCount() = recipeDao.getRecipeCount()
+    
+    // Potions
+    fun getPotionsForCharacter(characterId: Long): Flow<List<PotionWithRecipe>> =
+        potionDao.getPotionsForCharacter(characterId)
+    
+    suspend fun insertPotion(potion: Potion): Long = potionDao.insertPotion(potion)
+    suspend fun updatePotion(potion: Potion) = potionDao.updatePotion(potion)
+    suspend fun deletePotion(potion: Potion) = potionDao.deletePotion(potion)
+    suspend fun getPotionById(id: Long) = potionDao.getPotionById(id)
+    suspend fun deletePotionsForCharacter(characterId: Long) = potionDao.deletePotionsForCharacter(characterId)
 }

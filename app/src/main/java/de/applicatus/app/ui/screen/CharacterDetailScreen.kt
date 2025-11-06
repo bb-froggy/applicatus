@@ -730,6 +730,15 @@ fun EditCharacterDialog(
     var applicatusZfw by remember { mutableStateOf(character.applicatusZfw.toString()) }
     var applicatusModifier by remember { mutableStateOf(character.applicatusModifier.toString()) }
     
+    var maxLe by remember { mutableStateOf(character.maxLe.toString()) }
+    var hasAe by remember { mutableStateOf(character.hasAe) }
+    var maxAe by remember { mutableStateOf(character.maxAe.toString()) }
+    var hasKe by remember { mutableStateOf(character.hasKe) }
+    var maxKe by remember { mutableStateOf(character.maxKe.toString()) }
+    var leRegenBonus by remember { mutableStateOf(character.leRegenBonus.toString()) }
+    var aeRegenBonus by remember { mutableStateOf(character.aeRegenBonus.toString()) }
+    var hasMasteryRegeneration by remember { mutableStateOf(character.hasMasteryRegeneration) }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Charakter bearbeiten") },
@@ -806,6 +815,96 @@ fun EditCharacterDialog(
                 }
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
+                    Text("Energien:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    OutlinedTextField(
+                        value = maxLe,
+                        onValueChange = { maxLe = it.filter { c -> c.isDigit() } },
+                        label = { Text("Max LE") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = leRegenBonus,
+                        onValueChange = { 
+                            val num = it.filter { c -> c.isDigit() || c == '-' }
+                            leRegenBonus = num
+                        },
+                        label = { Text("LE-Regenerationsbonus (-3 bis +3)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = hasAe,
+                            onCheckedChange = { hasAe = it }
+                        )
+                        Text("Hat Astralenergie")
+                    }
+                }
+                if (hasAe) {
+                    item {
+                        OutlinedTextField(
+                            value = maxAe,
+                            onValueChange = { maxAe = it.filter { c -> c.isDigit() } },
+                            label = { Text("Max AE") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    item {
+                        OutlinedTextField(
+                            value = aeRegenBonus,
+                            onValueChange = { 
+                                val num = it.filter { c -> c.isDigit() || c == '-' }
+                                aeRegenBonus = num
+                            },
+                            label = { Text("AE-Regenerationsbonus (-3 bis +3)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = hasMasteryRegeneration,
+                                onCheckedChange = { hasMasteryRegeneration = it }
+                            )
+                            Text("Meisterliche Regeneration")
+                        }
+                    }
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = hasKe,
+                            onCheckedChange = { hasKe = it }
+                        )
+                        Text("Hat Karmaenergie")
+                    }
+                }
+                if (hasKe) {
+                    item {
+                        OutlinedTextField(
+                            value = maxKe,
+                            onValueChange = { maxKe = it.filter { c -> c.isDigit() } },
+                            label = { Text("Max KE") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text("Applicatus:", style = MaterialTheme.typography.titleSmall)
                 }
                 item {
@@ -843,6 +942,10 @@ fun EditCharacterDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    val newMaxLe = maxLe.toIntOrNull() ?: character.maxLe
+                    val newMaxAe = if (hasAe) maxAe.toIntOrNull() ?: character.maxAe else 0
+                    val newMaxKe = if (hasKe) maxKe.toIntOrNull() ?: character.maxKe else 0
+                    
                     val updatedCharacter = character.copy(
                         mu = mu.toIntOrNull() ?: 8,
                         kl = kl.toIntOrNull() ?: 8,
@@ -852,6 +955,17 @@ fun EditCharacterDialog(
                         ge = ge.toIntOrNull() ?: 8,
                         ko = ko.toIntOrNull() ?: 8,
                         kk = kk.toIntOrNull() ?: 8,
+                        maxLe = newMaxLe,
+                        currentLe = character.currentLe.coerceAtMost(newMaxLe),
+                        leRegenBonus = (leRegenBonus.toIntOrNull() ?: 0).coerceIn(-3, 3),
+                        hasAe = hasAe,
+                        maxAe = newMaxAe,
+                        currentAe = if (hasAe) character.currentAe.coerceAtMost(newMaxAe) else 0,
+                        aeRegenBonus = if (hasAe) (aeRegenBonus.toIntOrNull() ?: 0).coerceIn(-3, 3) else 0,
+                        hasMasteryRegeneration = if (hasAe) hasMasteryRegeneration else false,
+                        hasKe = hasKe,
+                        maxKe = newMaxKe,
+                        currentKe = if (hasKe) character.currentKe.coerceAtMost(newMaxKe) else 0,
                         hasApplicatus = hasApplicatus,
                         applicatusZfw = applicatusZfw.toIntOrNull() ?: 0,
                         applicatusModifier = applicatusModifier.toIntOrNull() ?: 0

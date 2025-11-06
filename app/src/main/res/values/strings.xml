@@ -33,4 +33,55 @@
     <string name="sync_success_none">Alle Zauber sind bereits aktuell. Es wurden keine neuen Zauber hinzugefügt.</string>
     <string name="sync_success_count" formatted="false">%d neue%s Zauber wurde%s zur Datenbank hinzugefügt.</string>
     <string name="sync_error_title">Synchronisation fehlgeschlagen</string>
+    
+    <!-- Energies -->
+    <string name="life_energy">Lebensenergie (LE)</string>
+    <string name="astral_energy">Astralenergie (AE)</string>
+    <string name="karma_energy">Karmaenergie (KE)</string>
+    <string name="le_short">LE</string>
+    <string name="ae_short">AE</string>
+    <string name="ke_short">KE</string>
+    <string name="current">Aktuell</string>
+    <string name="maximum">Maximum</string>
+    <string name="has_ae">Hat Astralenergie</string>
+    <string name="has_ke">Hat Karmaenergie</string>
+    <string name="regeneration">Regeneration</string>
+    <string name="regen_modifier">Regen-Mod</string>
+    <string name="le_regen_bonus">LE-Regenerationsbonus</string>
+    <string name="ae_regen_bonus">AE-Regenerationsbonus</string>
+    <string name="has_mastery_regeneration">Meisterliche Regeneration (AE)</string>
+    <string name="regeneration_result">Regeneration: %s</string>
+    
+    <!-- Character Home -->
+    <string name="character_home">Charakter</string>
+    <string name="properties">Eigenschaften</string>
+    <string name="energies">Energien</string>
+    <string name="spell_storage">Zauberspeicher</string>
+    <string name="witch_kitchen">Hexenküche</string>
+    <string name="edit_mode">Bearbeiten</string>
+    <string name="use_mode">Nutzen</string>
+    <string name="edit_character">Charakter bearbeiten</string>
+    
+    <!-- Potions / Hexenküche -->
+    <string name="potions">Tränke</string>
+    <string name="add_potion">Trank hinzufügen</string>
+    <string name="recipe">Rezept</string>
+    <string name="quality">Qualität</string>
+    <string name="expiry_date">Haltbarkeit</string>
+    <string name="select_recipe">Rezept auswählen</string>
+    <string name="select_quality">Qualität auswählen</string>
+    <string name="enter_expiry_date">Ablaufdatum eingeben</string>
+    <string name="expiry_date_hint">z.B. 1. Praios 1040 BF</string>
+    <string name="no_potions">Keine Tränke vorhanden</string>
+    <string name="delete_potion">Trank löschen</string>
+    <string name="delete_potion_confirm">Möchten Sie diesen Trank wirklich löschen?</string>
+    
+    <!-- Quality Levels -->
+    <string name="quality_a">A - Sehr gut</string>
+    <string name="quality_b">B - Gut</string>
+    <string name="quality_c">C - Durchschnittlich</string>
+    <string name="quality_d">D - Unterdurchschnittlich</string>
+    <string name="quality_e">E - Schlecht</string>
+    <string name="quality_f">F - Sehr schlecht</string>
+    <string name="quality_m">M - Misslungen</string>
 </resources>
