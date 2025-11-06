@@ -38,8 +38,10 @@ fun CharacterListScreen(
 ) {
     val context = LocalContext.current
     val characters by viewModel.characters.collectAsState()
+    val globalSettings by viewModel.globalSettings.collectAsState()
     val importState = viewModel.importState
     val spellSyncState = viewModel.spellSyncState
+    val isDateEditMode by remember { derivedStateOf { viewModel.isDateEditMode } }
     
     var showAddDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
@@ -105,6 +107,19 @@ fun CharacterListScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Derisches Datum anzeigen
+            item {
+                DerianDateCard(
+                    currentDate = globalSettings?.currentDerianDate ?: "1 Praios 1040 BF",
+                    isEditMode = isDateEditMode,
+                    onToggleEditMode = { viewModel.toggleDateEditMode() },
+                    onUpdateDate = { viewModel.updateDerianDate(it) },
+                    onIncrement = { viewModel.incrementDerianDate() },
+                    onDecrement = { viewModel.decrementDerianDate() }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             items(characters, key = { it.id }) { character ->
                 CharacterListItem(
                     character = character,
@@ -522,4 +537,91 @@ fun AddCharacterDialog(
             }
         }
     )
+}
+
+@Composable
+fun DerianDateCard(
+    currentDate: String,
+    isEditMode: Boolean,
+    onToggleEditMode: () -> Unit,
+    onUpdateDate: (String) -> Unit,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
+) {
+    var editingDate by remember(currentDate) { mutableStateOf(currentDate) }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Derisches Datum",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                
+                TextButton(onClick = onToggleEditMode) {
+                    Text(if (isEditMode) "Fertig" else "Bearbeiten")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (isEditMode) {
+                // Bearbeitungsmodus: Vollständige Datumsbearbeitung
+                OutlinedTextField(
+                    value = editingDate,
+                    onValueChange = { editingDate = it },
+                    label = { Text("Datum (z.B. 15 Praios 1040 BF)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = {
+                        onUpdateDate(editingDate)
+                        onToggleEditMode()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Datum speichern")
+                }
+            } else {
+                // Nutzungsmodus: +/- Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onDecrement) {
+                        Text("-", style = MaterialTheme.typography.headlineMedium)
+                    }
+                    
+                    Text(
+                        text = currentDate,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    
+                    IconButton(onClick = onIncrement) {
+                        Text("+", style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            }
+        }
+    }
 }

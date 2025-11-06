@@ -11,7 +11,9 @@ import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.GlobalSettings
 import de.applicatus.app.data.repository.ApplicatusRepository
+import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -29,6 +31,10 @@ class CharacterListViewModel(
     
     // Spell Sync State
     var spellSyncState by mutableStateOf<SpellSyncState>(SpellSyncState.Idle)
+        private set
+    
+    // Edit Mode für derisches Datum
+    var isDateEditMode by mutableStateOf(false)
         private set
     
     sealed class SpellSyncState {
@@ -50,6 +56,13 @@ class CharacterListViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
+        )
+    
+    val globalSettings: StateFlow<GlobalSettings?> = repository.globalSettings
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
         )
     
     fun addCharacter(
@@ -151,7 +164,73 @@ class CharacterListViewModel(
     fun resetSpellSyncState() {
         spellSyncState = SpellSyncState.Idle
     }
+    
+    // Derisches Datum verwalten
+    fun toggleDateEditMode() {
+        isDateEditMode = !isDateEditMode
+    }
+    
+    fun updateDerianDate(newDate: String) {
+        viewModelScope.launch {
+            repository.updateCurrentDerianDate(newDate)
+        }
+    }
+    
+    fun incrementDerianDate() {
+        viewModelScope.launch {
+            val settings = globalSettings.value ?: return@launch
+            val currentDate = settings.currentDerianDate
+            val newDate = DerianDateCalculator.calculateExpiryDate(currentDate, "1 Tag")
+            repository.updateCurrentDerianDate(newDate)
+        }
+    }
+    
+    fun decrementDerianDate() {
+        viewModelScope.launch {
+            val settings = globalSettings.value ?: return@launch
+            val currentDate = settings.currentDerianDate
+            
+            // Parse aktuelles Datum
+            val parts = currentDate.split(" ")
+            if (parts.size < 3) return@launch
+            
+            var day = parts[0].toIntOrNull() ?: 1
+            
+            // Behandle "Namenlose Tage" als zwei Wörter
+            val (monthName, year, era) = if (parts.size >= 5 && parts[1] == "Namenlose" && parts[2] == "Tage") {
+                Triple("Namenlose Tage", parts[3].toIntOrNull() ?: 1040, parts.getOrNull(4) ?: "BF")
+            } else {
+                Triple(parts[1], parts[2].toIntOrNull() ?: 1040, parts.getOrNull(3) ?: "BF")
+            }
+            
+            val months = DerianDateCalculator.getMonths()
+            var monthIndex = months.indexOf(monthName)
+            if (monthIndex == -1) return@launch
+            
+            var currentYear = year
+            
+            // Tag decrementieren
+            day--
+            if (day < 1) {
+                // Zum vorherigen Monat wechseln
+                monthIndex--
+                if (monthIndex < 0) {
+                    // Zum letzten Monat (Namenlose Tage) des vorherigen Jahres
+                    monthIndex = 12 // Namenlose Tage
+                    currentYear--
+                }
+                
+                // Letzter Tag des neuen Monats
+                day = if (monthIndex == 12) 5 else 30
+            }
+            
+            val newMonthName = months[monthIndex]
+            val newDate = "$day $newMonthName $currentYear $era"
+            repository.updateCurrentDerianDate(newDate)
+        }
+    }
 }
+
 
 class CharacterListViewModelFactory(
     private val repository: ApplicatusRepository

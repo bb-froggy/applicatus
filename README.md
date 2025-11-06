@@ -1,6 +1,6 @@
 # Applicatus - DSA Zauberspeicher App
 
-Eine Android-App zur Verwaltung von Zauberspeichern für das Pen-and-Paper-Rollenspiel Das Schwarze Auge (DSA) 4.1.
+Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-and-Paper-Rollenspiel Das Schwarze Auge (DSA) 4.1.
 
 ## Features
 

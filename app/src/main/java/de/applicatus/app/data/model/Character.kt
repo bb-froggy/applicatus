@@ -21,6 +21,16 @@ data class Character(
     val hasApplicatus: Boolean = false,  // Hat der Charakter Applicatus?
     val applicatusZfw: Int = 0,          // Applicatus-Zauberfertigkeit
     val applicatusModifier: Int = 0,     // Applicatus-Modifikator
+    // Talente für Alchimie
+    val hasAlchemy: Boolean = false,     // Beherrscht der Charakter Alchimie?
+    val alchemySkill: Int = 0,           // Alchimie-Talentwert (0-18)
+    val hasCookingPotions: Boolean = false, // Beherrscht der Charakter Kochen (Tränke)?
+    val cookingPotionsSkill: Int = 0,    // Kochen (Tränke)-Talentwert (0-18)
+    // Zauber für Alchimie (nur mit AE)
+    val hasOdem: Boolean = false,        // Beherrscht der Charakter ODEM ARCANUM?
+    val odemZfw: Int = 0,                // ODEM ARCANUM-Zauberfertigkeit (0-18)
+    val hasAnalys: Boolean = false,      // Beherrscht der Charakter ANALYS ARKANSTRUKTUR?
+    val analysZfw: Int = 0,              // ANALYS ARKANSTRUKTUR-Zauberfertigkeit (0-18)
     // Lebensenergie (alle Charaktere haben LE)
     val currentLe: Int = 30,             // Aktuelle Lebensenergie
     val maxLe: Int = 30,                 // Maximale Lebensenergie

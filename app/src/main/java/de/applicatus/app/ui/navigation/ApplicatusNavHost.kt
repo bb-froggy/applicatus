@@ -14,6 +14,7 @@ import de.applicatus.app.ui.screen.CharacterHomeScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
 import de.applicatus.app.ui.screen.NearbySyncScreen
 import de.applicatus.app.ui.screen.PotionScreen
+import de.applicatus.app.ui.screen.RecipeKnowledgeScreen
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModelFactory
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
@@ -24,6 +25,8 @@ import de.applicatus.app.ui.viewmodel.NearbySyncViewModel
 import de.applicatus.app.ui.viewmodel.NearbySyncViewModelFactory
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
+import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModel
+import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModelFactory
 import java.net.URLDecoder
 
 @Composable
@@ -101,6 +104,23 @@ fun ApplicatusNavHost(
             PotionScreen(
                 characterId = characterId,
                 viewModelFactory = PotionViewModelFactory(repository, characterId),
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToRecipeKnowledge = {
+                    navController.navigate(Screen.RecipeKnowledgeScreen.createRoute(characterId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.RecipeKnowledgeScreen.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            RecipeKnowledgeScreen(
+                characterId = characterId,
+                viewModelFactory = RecipeKnowledgeViewModelFactory(repository, characterId),
                 onNavigateBack = { navController.popBackStack() }
             )
         }

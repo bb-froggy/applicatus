@@ -8,13 +8,17 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import de.applicatus.app.data.dao.CharacterDao
+import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
+import de.applicatus.app.data.dao.RecipeKnowledgeDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.GlobalSettings
 import de.applicatus.app.data.model.Potion
 import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.RecipeKnowledge
 import de.applicatus.app.data.model.Spell
 import de.applicatus.app.data.model.SpellSlot
 import kotlinx.coroutines.CoroutineScope
@@ -22,8 +26,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class],
-    version = 5,
+    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class],
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,6 +37,8 @@ abstract class ApplicatusDatabase : RoomDatabase() {
     abstract fun spellSlotDao(): SpellSlotDao
     abstract fun recipeDao(): RecipeDao
     abstract fun potionDao(): PotionDao
+    abstract fun globalSettingsDao(): GlobalSettingsDao
+    abstract fun recipeKnowledgeDao(): RecipeKnowledgeDao
     
     companion object {
         @Volatile
@@ -120,6 +126,70 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Recipe-Tabelle erweitern
+                database.execSQL("ALTER TABLE recipes ADD COLUMN brewingDifficulty INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN analysisDifficulty INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN appearance TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN shelfLife TEXT NOT NULL DEFAULT '1 Mond'")
+                
+                // Potion-Tabelle erweitern
+                database.execSQL("ALTER TABLE potions ADD COLUMN appearance TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE potions ADD COLUMN analysisStatus TEXT NOT NULL DEFAULT 'NOT_ANALYZED'")
+                
+                // Character-Tabelle erweitern (Alchemie-Talente)
+                database.execSQL("ALTER TABLE characters ADD COLUMN alchemySkill INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN cookingPotionsSkill INTEGER NOT NULL DEFAULT 0")
+                
+                // GlobalSettings-Tabelle erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS global_settings (
+                        id INTEGER PRIMARY KEY NOT NULL,
+                        currentDerianDate TEXT NOT NULL DEFAULT '1 Praios 1040 BF'
+                    )
+                """.trimIndent())
+                
+                // Standard-Settings einfügen
+                database.execSQL("INSERT INTO global_settings (id, currentDerianDate) VALUES (1, '1 Praios 1040 BF')")
+            }
+        }
+        
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Character-Tabelle erweitern (Zauber für Alchemie)
+                database.execSQL("ALTER TABLE characters ADD COLUMN odemZfw INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN analysZfw INTEGER NOT NULL DEFAULT 0")
+                
+                // RecipeKnowledge-Tabelle erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS recipe_knowledge (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        recipeId INTEGER NOT NULL,
+                        knowledgeLevel TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
+                        FOREIGN KEY(recipeId) REFERENCES recipes(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // Indices für RecipeKnowledge erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_recipe_knowledge_characterId ON recipe_knowledge(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_recipe_knowledge_recipeId ON recipe_knowledge(recipeId)")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_recipe_knowledge_characterId_recipeId ON recipe_knowledge(characterId, recipeId)")
+            }
+        }
+        
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Boolean-Felder hinzufügen, um zu tracken ob Talente/Zauber überhaupt beherrscht werden
+                database.execSQL("ALTER TABLE characters ADD COLUMN hasAlchemy INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN hasCookingPotions INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN hasOdem INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN hasAnalys INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -127,7 +197,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

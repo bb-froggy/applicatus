@@ -739,6 +739,16 @@ fun EditCharacterDialog(
     var aeRegenBonus by remember { mutableStateOf(character.aeRegenBonus.toString()) }
     var hasMasteryRegeneration by remember { mutableStateOf(character.hasMasteryRegeneration) }
     
+    // Alchimie & Zauber
+    var hasAlchemy by remember { mutableStateOf(character.hasAlchemy) }
+    var alchemySkill by remember { mutableStateOf(character.alchemySkill.toString()) }
+    var hasCookingPotions by remember { mutableStateOf(character.hasCookingPotions) }
+    var cookingPotionsSkill by remember { mutableStateOf(character.cookingPotionsSkill.toString()) }
+    var hasOdem by remember { mutableStateOf(character.hasOdem) }
+    var odemZfw by remember { mutableStateOf(character.odemZfw.toString()) }
+    var hasAnalys by remember { mutableStateOf(character.hasAnalys) }
+    var analysZfw by remember { mutableStateOf(character.analysZfw.toString()) }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Charakter bearbeiten") },
@@ -937,6 +947,108 @@ fun EditCharacterDialog(
                         }
                     }
                 }
+                
+                // Alchimie & Kochkunst
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Alchimie:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = hasAlchemy,
+                            onCheckedChange = { hasAlchemy = it }
+                        )
+                        Text("Beherrscht Alchimie")
+                    }
+                }
+                if (hasAlchemy) {
+                    item {
+                        OutlinedTextField(
+                            value = alchemySkill,
+                            onValueChange = { alchemySkill = it.filter { c -> c.isDigit() } },
+                            label = { Text("Alchimie TaW (0-18)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = hasCookingPotions,
+                            onCheckedChange = { hasCookingPotions = it }
+                        )
+                        Text("Beherrscht Kochen (Tränke)")
+                    }
+                }
+                if (hasCookingPotions) {
+                    item {
+                        OutlinedTextField(
+                            value = cookingPotionsSkill,
+                            onValueChange = { cookingPotionsSkill = it.filter { c -> c.isDigit() } },
+                            label = { Text("Kochen (Tränke) TaW (0-18)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                
+                // Analyse-Zauber (nur für magisch Begabte)
+                if (hasAe) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Analyse-Zauber:", style = MaterialTheme.typography.titleSmall)
+                    }
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = hasOdem,
+                                onCheckedChange = { hasOdem = it }
+                            )
+                            Text("Beherrscht ODEM ARCANUM")
+                        }
+                    }
+                    if (hasOdem) {
+                        item {
+                            OutlinedTextField(
+                                value = odemZfw,
+                                onValueChange = { odemZfw = it.filter { c -> c.isDigit() } },
+                                label = { Text("ODEM ARCANUM ZfW (0-18)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = hasAnalys,
+                                onCheckedChange = { hasAnalys = it }
+                            )
+                            Text("Beherrscht ANALYS ARKANSTRUKTUR")
+                        }
+                    }
+                    if (hasAnalys) {
+                        item {
+                            OutlinedTextField(
+                                value = analysZfw,
+                                onValueChange = { analysZfw = it.filter { c -> c.isDigit() } },
+                                label = { Text("ANALYS ZfW (0-18)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -968,7 +1080,15 @@ fun EditCharacterDialog(
                         currentKe = if (hasKe) character.currentKe.coerceAtMost(newMaxKe) else 0,
                         hasApplicatus = hasApplicatus,
                         applicatusZfw = applicatusZfw.toIntOrNull() ?: 0,
-                        applicatusModifier = applicatusModifier.toIntOrNull() ?: 0
+                        applicatusModifier = applicatusModifier.toIntOrNull() ?: 0,
+                        hasAlchemy = hasAlchemy,
+                        alchemySkill = if (hasAlchemy) (alchemySkill.toIntOrNull() ?: 0) else 0,
+                        hasCookingPotions = hasCookingPotions,
+                        cookingPotionsSkill = if (hasCookingPotions) (cookingPotionsSkill.toIntOrNull() ?: 0) else 0,
+                        hasOdem = if (hasAe) hasOdem else false,
+                        odemZfw = if (hasAe && hasOdem) (odemZfw.toIntOrNull() ?: 0) else 0,
+                        hasAnalys = if (hasAe) hasAnalys else false,
+                        analysZfw = if (hasAe && hasAnalys) (analysZfw.toIntOrNull() ?: 0) else 0
                     )
                     onConfirm(updatedCharacter)
                 }

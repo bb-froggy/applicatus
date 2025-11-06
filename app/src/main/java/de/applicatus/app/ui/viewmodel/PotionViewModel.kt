@@ -3,14 +3,19 @@ package de.applicatus.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.data.model.Character
 import de.applicatus.app.data.model.Potion
 import de.applicatus.app.data.model.PotionQuality
 import de.applicatus.app.data.model.PotionWithRecipe
 import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.RecipeKnowledge
+import de.applicatus.app.data.model.RecipeKnowledgeLevel
 import de.applicatus.app.data.repository.ApplicatusRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class PotionViewModel(
@@ -24,9 +29,13 @@ class PotionViewModel(
     private val _recipes = MutableStateFlow<List<Recipe>>(emptyList())
     val recipes: StateFlow<List<Recipe>> = _recipes.asStateFlow()
     
+    private val _character = MutableStateFlow<Character?>(null)
+    val character: StateFlow<Character?> = _character.asStateFlow()
+    
     init {
         loadPotions()
         loadRecipes()
+        loadCharacter()
     }
     
     private fun loadPotions() {
@@ -41,6 +50,14 @@ class PotionViewModel(
         viewModelScope.launch {
             repository.allRecipes.collect { recipeList ->
                 _recipes.value = recipeList
+            }
+        }
+    }
+    
+    private fun loadCharacter() {
+        viewModelScope.launch {
+            repository.getCharacterByIdFlow(characterId).collect { char ->
+                _character.value = char
             }
         }
     }
@@ -60,6 +77,25 @@ class PotionViewModel(
     fun deletePotion(potion: Potion) {
         viewModelScope.launch {
             repository.deletePotion(potion)
+        }
+    }
+    
+    fun updatePotion(potion: Potion) {
+        viewModelScope.launch {
+            repository.updatePotion(potion)
+        }
+    }
+    
+    fun getRecipeKnowledge(recipeId: Long): Flow<RecipeKnowledge?> {
+        return repository.getRecipeKnowledgeForCharacter(characterId)
+            .combine(repository.allRecipes) { knowledgeList, _ ->
+                knowledgeList.firstOrNull { it.recipeId == recipeId }
+            }
+    }
+    
+    fun setRecipeKnowledge(characterId: Long, recipeId: Long, knowledgeLevel: RecipeKnowledgeLevel) {
+        viewModelScope.launch {
+            repository.updateRecipeKnowledgeLevel(characterId, recipeId, knowledgeLevel)
         }
     }
 }

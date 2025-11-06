@@ -29,8 +29,10 @@ import androidx.room.PrimaryKey
 data class Potion(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val characterId: Long,          // Zugehöriger Charakter
-    val recipeId: Long,             // Zugehöriges Rezept
-    val quality: PotionQuality,     // Qualität (A-F, M)
-    val expiryDate: String          // Haltbarkeit (derisches Datum als String)
+    val characterId: Long,                              // Zugehöriger Charakter
+    val recipeId: Long,                                 // Zugehöriges Rezept
+    val quality: PotionQuality,                         // Qualität (A-F, M)
+    val appearance: String = "",                        // Aussehen (vom Rezept übernommen, aber änderbar)
+    val analysisStatus: AnalysisStatus = AnalysisStatus.NOT_ANALYZED,  // Analysestatus
+    val expiryDate: String                              // Haltbarkeit (derisches Datum als String)
 )

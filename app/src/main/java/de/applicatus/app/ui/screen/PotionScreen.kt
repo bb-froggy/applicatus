@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +27,8 @@ import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 fun PotionScreen(
     characterId: Long,
     viewModelFactory: PotionViewModelFactory,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToRecipeKnowledge: () -> Unit = {}
 ) {
     val viewModel: PotionViewModel = viewModel(factory = viewModelFactory)
     val potions by viewModel.potions.collectAsState()
@@ -34,6 +36,7 @@ fun PotionScreen(
     
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
+    var showAnalysisDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     
     Scaffold(
         topBar = {
@@ -42,6 +45,11 @@ fun PotionScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cancel))
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onNavigateToRecipeKnowledge) {
+                        Text("Rezepte")
                     }
                 }
             )
@@ -72,11 +80,26 @@ fun PotionScreen(
                 items(potions) { potionWithRecipe ->
                     PotionCard(
                         potionWithRecipe = potionWithRecipe,
-                        onDelete = { showDeleteDialog = potionWithRecipe }
+                        onDelete = { showDeleteDialog = potionWithRecipe },
+                        onAnalyze = { showAnalysisDialog = potionWithRecipe }
                     )
                 }
             }
         }
+    }
+    
+    // Analysis Dialog
+    showAnalysisDialog?.let { potionWithRecipe ->
+        PotionAnalysisDialog(
+            potionWithRecipe = potionWithRecipe,
+            characterId = characterId,
+            viewModelFactory = viewModelFactory,
+            onDismiss = { showAnalysisDialog = null },
+            onAnalysisComplete = { 
+                showAnalysisDialog = null
+                // Optional: Refresh potions
+            }
+        )
     }
     
     if (showAddDialog) {
@@ -130,43 +153,76 @@ fun PotionScreen(
 @Composable
 private fun PotionCard(
     potionWithRecipe: PotionWithRecipe,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onAnalyze: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = potionWithRecipe.recipe.name,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "${stringResource(R.string.quality)}: ${getQualityLabel(potionWithRecipe.potion.quality)}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "${stringResource(R.string.expiry_date)}: ${potionWithRecipe.potion.expiryDate}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = potionWithRecipe.recipe.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "${stringResource(R.string.quality)}: ${getQualityLabel(potionWithRecipe.potion.quality)}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "${stringResource(R.string.expiry_date)}: ${potionWithRecipe.potion.expiryDate}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    // Analysestatus
+                    val analysisStatusText = when (potionWithRecipe.potion.analysisStatus) {
+                        de.applicatus.app.data.model.AnalysisStatus.NOT_ANALYZED -> "Nicht analysiert"
+                        de.applicatus.app.data.model.AnalysisStatus.ROUGH_ANALYZED -> "Grob analysiert"
+                        de.applicatus.app.data.model.AnalysisStatus.PRECISE_ANALYZED -> "Genau analysiert"
+                    }
+                    Text(
+                        text = "Status: $analysisStatusText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete_potion),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
             
-            IconButton(onClick = onDelete) {
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Analyse-Button
+            OutlinedButton(
+                onClick = onAnalyze,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Icon(
-                    Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.delete_potion),
-                    tint = MaterialTheme.colorScheme.error
+                    Icons.Default.Search,
+                    contentDescription = "Analysieren",
+                    modifier = Modifier.size(18.dp)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Trank analysieren")
             }
         }
     }

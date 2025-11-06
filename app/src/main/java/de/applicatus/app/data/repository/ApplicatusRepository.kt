@@ -2,14 +2,19 @@ package de.applicatus.app.data.repository
 
 import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.dao.CharacterDao
+import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
+import de.applicatus.app.data.dao.RecipeKnowledgeDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.GlobalSettings
 import de.applicatus.app.data.model.Potion
 import de.applicatus.app.data.model.PotionWithRecipe
 import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.RecipeKnowledge
+import de.applicatus.app.data.model.RecipeKnowledgeLevel
 import de.applicatus.app.data.model.Spell
 import de.applicatus.app.data.model.SpellSlot
 import de.applicatus.app.data.model.SpellSlotWithSpell
@@ -21,7 +26,9 @@ class ApplicatusRepository(
     private val characterDao: CharacterDao,
     private val spellSlotDao: SpellSlotDao,
     private val recipeDao: RecipeDao,
-    private val potionDao: PotionDao
+    private val potionDao: PotionDao,
+    private val globalSettingsDao: GlobalSettingsDao,
+    private val recipeKnowledgeDao: RecipeKnowledgeDao
 ) {
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
@@ -114,4 +121,45 @@ class ApplicatusRepository(
     suspend fun deletePotion(potion: Potion) = potionDao.deletePotion(potion)
     suspend fun getPotionById(id: Long) = potionDao.getPotionById(id)
     suspend fun deletePotionsForCharacter(characterId: Long) = potionDao.deletePotionsForCharacter(characterId)
+    
+    // Global Settings
+    val globalSettings: Flow<GlobalSettings?> = globalSettingsDao.getSettings()
+    
+    suspend fun getGlobalSettingsOnce(): GlobalSettings? = globalSettingsDao.getSettingsOnce()
+    
+    suspend fun updateGlobalSettings(settings: GlobalSettings) = globalSettingsDao.updateSettings(settings)
+    
+    suspend fun updateCurrentDerianDate(date: String) = globalSettingsDao.updateCurrentDate(date)
+    
+    /**
+     * Stellt sicher, dass GlobalSettings existieren.
+     * Falls nicht, wird ein Standard-Eintrag erstellt.
+     */
+    suspend fun ensureGlobalSettingsExist() {
+        if (getGlobalSettingsOnce() == null) {
+            globalSettingsDao.insertSettings(GlobalSettings())
+        }
+    }
+    
+    // Recipe Knowledge
+    fun getRecipeKnowledgeForCharacter(characterId: Long): Flow<List<RecipeKnowledge>> =
+        recipeKnowledgeDao.getKnowledgeForCharacter(characterId)
+    
+    suspend fun getRecipeKnowledge(characterId: Long, recipeId: Long): RecipeKnowledge? =
+        recipeKnowledgeDao.getKnowledge(characterId, recipeId)
+    
+    fun getRecipeKnowledgeByLevel(characterId: Long, level: RecipeKnowledgeLevel): Flow<List<RecipeKnowledge>> =
+        recipeKnowledgeDao.getKnowledgeByLevel(characterId, level)
+    
+    suspend fun insertRecipeKnowledge(knowledge: RecipeKnowledge) =
+        recipeKnowledgeDao.insertKnowledge(knowledge)
+    
+    suspend fun updateRecipeKnowledge(knowledge: RecipeKnowledge) =
+        recipeKnowledgeDao.updateKnowledge(knowledge)
+    
+    suspend fun deleteRecipeKnowledge(knowledge: RecipeKnowledge) =
+        recipeKnowledgeDao.deleteKnowledge(knowledge)
+    
+    suspend fun updateRecipeKnowledgeLevel(characterId: Long, recipeId: Long, level: RecipeKnowledgeLevel) =
+        recipeKnowledgeDao.updateKnowledgeLevel(characterId, recipeId, level)
 }
