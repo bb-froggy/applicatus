@@ -1,4 +1,4 @@
-package de.applicatus.app.data.model
+package de.applicatus.app.data.model.potion
 
 import androidx.room.Embedded
 import androidx.room.Relation

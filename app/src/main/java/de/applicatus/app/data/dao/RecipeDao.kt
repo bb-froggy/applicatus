@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
-import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.potion.Recipe
 import kotlinx.coroutines.flow.Flow
 
 @Dao

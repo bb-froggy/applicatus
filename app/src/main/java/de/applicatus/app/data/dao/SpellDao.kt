@@ -1,7 +1,7 @@
 package de.applicatus.app.data.dao
 
 import androidx.room.*
-import de.applicatus.app.data.model.Spell
+import de.applicatus.app.data.model.spell.Spell
 import kotlinx.coroutines.flow.Flow
 
 @Dao

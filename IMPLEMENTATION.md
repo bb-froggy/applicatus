@@ -99,7 +99,7 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 - ✅ **TypeConverters**: SlotType-Converter
 - ✅ **ApplicatusDatabase**: Room-Datenbank mit automatischer Initialisierung
   - ✅ Migration von Version 1 zu 2 (neue Felder)
-- ✅ **ApplicatusRepository**: Repository-Pattern für Datenzugriff
+- ✅ **ApplicatusRepository**: Repository-Pattern für Datenzugriff (inkl. Bereinigung von Rezeptwissen beim Import)
 - ✅ **InitialSpells**: 190+ vordefinierte Zauber aus magierzauber.txt
 
 ### 4. Geschäftslogik (logic/)
@@ -323,7 +323,7 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 
 ### Charakter-Export/Import
 - ✅ **JSON-Export**: Charaktere als JSON-Datei exportieren
-  - Enthält alle Charakterdaten, Slots und Zauber
+  - Enthält alle Charakterdaten, Slots, Tränke (inklusive Analyse-Status) und bekannte Rezepte
   - Mit Datenmodell-Versionsnummer
   - Zeitstempel des Exports
 - ✅ **JSON-Import**: Charaktere aus JSON-Dateien importieren
@@ -340,7 +340,7 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 - ✅ **Berechtigungsverwaltung**: Automatische Anfrage erforderlicher Permissions
 
 ### Datenmodell-Versionierung
-- ✅ **Versionsnummer**: Aktuelle Version 2 des Datenmodells
+- ✅ **Versionsnummer**: Aktuelle Version 3 des Datenmodells
 - ✅ **Kompatibilitätscheck**: Prüfung bei Import/Sync
 - ✅ **Warnungen**: 
   - Bei älteren Versionen (Import möglich mit Warnung)
@@ -350,9 +350,9 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 ### Implementierte Komponenten
 
 #### Backend
+- ✅ `CharacterExportManager.kt`: Export/Import-Logik mit Dateiverwaltung (bereinigt Tränke & Rezeptwissen vor Import)
 - ✅ `DataModelVersion.kt`: Versionsverwaltung und Kompatibilitätsprüfung
-- ✅ `CharacterExportDto.kt`: DTOs für Serialisierung (Character, SpellSlot)
-- ✅ `CharacterExportManager.kt`: Export/Import-Logik mit Dateiverwaltung
+- ✅ `CharacterExportDto.kt`: DTOs für Serialisierung (Character, SpellSlot, Potion, RecipeKnowledge)
 - ✅ `NearbyConnectionsService.kt`: Wrapper für Google Nearby Connections API
   - Advertising (als Empfänger bereitstellen)
   - Discovery (nach Geräten suchen)

@@ -3,9 +3,9 @@ package de.applicatus.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import de.applicatus.app.data.model.Recipe
-import de.applicatus.app.data.model.RecipeKnowledge
-import de.applicatus.app.data.model.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.potion.Recipe
+import de.applicatus.app.data.model.potion.RecipeKnowledge
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.repository.ApplicatusRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

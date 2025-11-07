@@ -9,12 +9,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.applicatus.app.data.repository.ApplicatusRepository
-import de.applicatus.app.ui.screen.CharacterDetailScreen
+import de.applicatus.app.ui.screen.spell.SpellStorageScreen
 import de.applicatus.app.ui.screen.CharacterHomeScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
 import de.applicatus.app.ui.screen.NearbySyncScreen
-import de.applicatus.app.ui.screen.PotionScreen
-import de.applicatus.app.ui.screen.RecipeKnowledgeScreen
+import de.applicatus.app.ui.screen.potion.PotionScreen
+import de.applicatus.app.ui.screen.potion.RecipeKnowledgeScreen
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModelFactory
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
@@ -66,8 +66,8 @@ fun ApplicatusNavHost(
                 characterId = characterId,
                 viewModelFactory = CharacterHomeViewModelFactory(repository, characterId),
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToSpells = { charId ->
-                    navController.navigate(Screen.CharacterDetail.createRoute(charId))
+                onNavigateToSpellStorage = { charId ->
+                    navController.navigate(Screen.SpellStorage.createRoute(charId))
                 },
                 onNavigateToPotions = { charId ->
                     navController.navigate(Screen.PotionScreen.createRoute(charId))
@@ -76,7 +76,7 @@ fun ApplicatusNavHost(
         }
         
         composable(
-            route = Screen.CharacterDetail.route,
+            route = Screen.SpellStorage.route,
             arguments = listOf(
                 navArgument("characterId") { type = NavType.LongType }
             )
@@ -85,7 +85,7 @@ fun ApplicatusNavHost(
             val viewModel: CharacterDetailViewModel = viewModel(
                 factory = CharacterDetailViewModelFactory(repository, characterId)
             )
-            CharacterDetailScreen(
+            SpellStorageScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToNearbySync = { charId, charName ->

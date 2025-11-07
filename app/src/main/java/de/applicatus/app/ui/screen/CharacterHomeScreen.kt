@@ -14,7 +14,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
-import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.ui.screen.spell.EditCharacterDialog
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModelFactory
 
@@ -24,7 +25,7 @@ fun CharacterHomeScreen(
     characterId: Long,
     viewModelFactory: CharacterHomeViewModelFactory,
     onNavigateBack: () -> Unit,
-    onNavigateToSpells: (Long) -> Unit,
+    onNavigateToSpellStorage: (Long) -> Unit,
     onNavigateToPotions: (Long) -> Unit
 ) {
     val viewModel: CharacterHomeViewModel = viewModel(factory = viewModelFactory)
@@ -76,7 +77,7 @@ fun CharacterHomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Button(
-                    onClick = { onNavigateToSpells(characterId) },
+                    onClick = { onNavigateToSpellStorage(characterId) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.spell_storage))

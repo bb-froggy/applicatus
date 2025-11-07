@@ -3,7 +3,7 @@ package de.applicatus.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.RegenerationCalculator
 import de.applicatus.app.logic.RegenerationResult

@@ -1,9 +1,10 @@
-package de.applicatus.app.data.model
+package de.applicatus.app.data.model.potion
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import de.applicatus.app.data.model.character.Character
 
 /**
  * Wissen eines Charakters über ein Rezept

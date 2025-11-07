@@ -10,8 +10,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
-import de.applicatus.app.data.model.Character
-import de.applicatus.app.data.model.GlobalSettings
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.flow.SharingStarted

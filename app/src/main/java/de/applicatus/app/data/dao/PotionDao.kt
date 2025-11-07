@@ -6,8 +6,8 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import de.applicatus.app.data.model.Potion
-import de.applicatus.app.data.model.PotionWithRecipe
+import de.applicatus.app.data.model.potion.Potion
+import de.applicatus.app.data.model.potion.PotionWithRecipe
 import kotlinx.coroutines.flow.Flow
 
 @Dao

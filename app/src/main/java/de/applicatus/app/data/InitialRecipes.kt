@@ -1,6 +1,6 @@
 package de.applicatus.app.data
 
-import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.potion.Recipe
 
 /**
  * Initiale Rezepte für die Datenbank

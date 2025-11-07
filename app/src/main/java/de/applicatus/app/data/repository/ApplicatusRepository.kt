@@ -8,16 +8,16 @@ import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
-import de.applicatus.app.data.model.Character
-import de.applicatus.app.data.model.GlobalSettings
-import de.applicatus.app.data.model.Potion
-import de.applicatus.app.data.model.PotionWithRecipe
-import de.applicatus.app.data.model.Recipe
-import de.applicatus.app.data.model.RecipeKnowledge
-import de.applicatus.app.data.model.RecipeKnowledgeLevel
-import de.applicatus.app.data.model.Spell
-import de.applicatus.app.data.model.SpellSlot
-import de.applicatus.app.data.model.SpellSlotWithSpell
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.GlobalSettings
+import de.applicatus.app.data.model.potion.Potion
+import de.applicatus.app.data.model.potion.PotionWithRecipe
+import de.applicatus.app.data.model.potion.Recipe
+import de.applicatus.app.data.model.potion.RecipeKnowledge
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.spell.Spell
+import de.applicatus.app.data.model.spell.SpellSlot
+import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -162,4 +162,7 @@ class ApplicatusRepository(
     
     suspend fun updateRecipeKnowledgeLevel(characterId: Long, recipeId: Long, level: RecipeKnowledgeLevel) =
         recipeKnowledgeDao.updateKnowledgeLevel(characterId, recipeId, level)
+
+    suspend fun deleteRecipeKnowledgeForCharacter(characterId: Long) =
+        recipeKnowledgeDao.deleteKnowledgeForCharacter(characterId)
 }

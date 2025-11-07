@@ -1,9 +1,10 @@
-package de.applicatus.app.data.model
+package de.applicatus.app.data.model.spell
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import de.applicatus.app.data.model.character.Character
 
 @Entity(
     tableName = "spell_slots",

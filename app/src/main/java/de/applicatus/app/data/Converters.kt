@@ -1,10 +1,10 @@
 package de.applicatus.app.data
 
 import androidx.room.TypeConverter
-import de.applicatus.app.data.model.AnalysisStatus
-import de.applicatus.app.data.model.PotionQuality
-import de.applicatus.app.data.model.RecipeKnowledgeLevel
-import de.applicatus.app.data.model.SlotType
+import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.potion.PotionQuality
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.spell.SlotType
 
 class Converters {
     @TypeConverter

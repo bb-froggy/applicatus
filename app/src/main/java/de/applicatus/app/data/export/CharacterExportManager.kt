@@ -37,10 +37,25 @@ class CharacterExportManager(
                 SpellSlotDto.fromSpellSlot(slotWithSpell.slot, slotWithSpell.spell?.name)
             }
             
+            // Sammle Tränke und Rezepte
+            val potionsWithRecipes = repository.getPotionsForCharacter(characterId).first()
+            val potions = potionsWithRecipes.map { potionWithRecipe ->
+                PotionDto.fromPotion(potionWithRecipe.potion, potionWithRecipe.recipe.name)
+            }
+            
+            // Sammle Rezeptwissen
+            val allRecipes = repository.allRecipes.first()
+            val recipeNamesById = allRecipes.associateBy { it.id }
+            val recipeKnowledge = repository.getRecipeKnowledgeForCharacter(characterId).first().map { knowledge ->
+                RecipeKnowledgeDto.fromModel(knowledge, recipeNamesById[knowledge.recipeId]?.name)
+            }
+            
             val exportDto = CharacterExportDto(
                 version = DataModelVersion.CURRENT_VERSION,
                 character = CharacterDto.fromCharacter(character),
                 spellSlots = slots,
+                potions = potions,
+                recipeKnowledge = recipeKnowledge,
                 exportTimestamp = System.currentTimeMillis()  // Explizit setzen
             )
             
@@ -142,7 +157,43 @@ class CharacterExportManager(
             
             repository.insertSlots(newSlots)
             
-            val finalWarning = listOfNotNull(warning, overwriteWarning).joinToString("\n\n")
+            // Rezepte für spätere Zuordnung cachen
+            val allRecipes = repository.allRecipes.first()
+            val recipesById = allRecipes.associateBy { it.id }
+            val recipesByName = allRecipes.associateBy { it.name }
+            val additionalWarnings = mutableListOf<String>()
+            
+            // Bestehende Tränke und Wissenseinträge zurücksetzen
+            repository.deletePotionsForCharacter(characterId)
+            repository.deleteRecipeKnowledgeForCharacter(characterId)
+            
+            exportDto.potions.forEach { potionDto ->
+                val resolvedRecipeId = potionDto.recipeId?.let { recipesById[it]?.id }
+                    ?: potionDto.recipeName?.let { recipesByName[it]?.id }
+                if (resolvedRecipeId == null) {
+                    val identifier = potionDto.recipeName ?: potionDto.recipeId?.toString() ?: "Unbekanntes Rezept"
+                    additionalWarnings += "Trank für Rezept '$identifier' konnte nicht importiert werden, da das Rezept nicht gefunden wurde."
+                } else {
+                    repository.insertPotion(potionDto.toPotion(characterId, resolvedRecipeId))
+                }
+            }
+            
+            exportDto.recipeKnowledge.forEach { knowledgeDto ->
+                val resolvedRecipeId = knowledgeDto.recipeId?.let { recipesById[it]?.id }
+                    ?: knowledgeDto.recipeName?.let { recipesByName[it]?.id }
+                if (resolvedRecipeId == null) {
+                    val identifier = knowledgeDto.recipeName ?: knowledgeDto.recipeId?.toString() ?: "Unbekanntes Rezept"
+                    additionalWarnings += "Rezeptwissen für '$identifier' konnte nicht importiert werden, da das Rezept nicht gefunden wurde."
+                } else {
+                    repository.insertRecipeKnowledge(knowledgeDto.toModel(characterId, resolvedRecipeId))
+                }
+            }
+            
+            val finalWarning = listOfNotNull(
+                warning,
+                overwriteWarning,
+                additionalWarnings.takeIf { it.isNotEmpty() }?.joinToString("\n")
+            ).joinToString("\n\n")
             Result.success(Pair(characterId, finalWarning.ifEmpty { null }))
         } catch (e: Exception) {
             Result.failure(e)

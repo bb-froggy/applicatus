@@ -1,6 +1,17 @@
-package de.applicatus.app.ui.screen
+package de.applicatus.app.ui.screen.potion
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -9,16 +20,23 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
-import de.applicatus.app.data.model.PotionQuality
-import de.applicatus.app.data.model.PotionWithRecipe
-import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.potion.PotionQuality
+import de.applicatus.app.data.model.potion.PotionWithRecipe
+import de.applicatus.app.data.model.potion.Recipe
+import de.applicatus.app.ui.screen.potion.PotionAnalysisDialog
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 
@@ -33,11 +51,11 @@ fun PotionScreen(
     val viewModel: PotionViewModel = viewModel(factory = viewModelFactory)
     val potions by viewModel.potions.collectAsState()
     val recipes by viewModel.recipes.collectAsState()
-    
+
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showAnalysisDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -87,21 +105,19 @@ fun PotionScreen(
             }
         }
     }
-    
-    // Analysis Dialog
+
     showAnalysisDialog?.let { potionWithRecipe ->
         PotionAnalysisDialog(
             potionWithRecipe = potionWithRecipe,
             characterId = characterId,
             viewModelFactory = viewModelFactory,
             onDismiss = { showAnalysisDialog = null },
-            onAnalysisComplete = { 
+            onAnalysisComplete = {
                 showAnalysisDialog = null
-                // Optional: Refresh potions
             }
         )
     }
-    
+
     if (showAddDialog) {
         if (recipes.isEmpty()) {
             AlertDialog(
@@ -125,7 +141,7 @@ fun PotionScreen(
             )
         }
     }
-    
+
     showDeleteDialog?.let { potionWithRecipe ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
@@ -186,12 +202,11 @@ private fun PotionCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
-                    // Analysestatus
+
                     val analysisStatusText = when (potionWithRecipe.potion.analysisStatus) {
-                        de.applicatus.app.data.model.AnalysisStatus.NOT_ANALYZED -> "Nicht analysiert"
-                        de.applicatus.app.data.model.AnalysisStatus.ROUGH_ANALYZED -> "Grob analysiert"
-                        de.applicatus.app.data.model.AnalysisStatus.PRECISE_ANALYZED -> "Genau analysiert"
+                        AnalysisStatus.NOT_ANALYZED -> "Nicht analysiert"
+                        AnalysisStatus.ROUGH_ANALYZED -> "Grob analysiert"
+                        AnalysisStatus.PRECISE_ANALYZED -> "Genau analysiert"
                     }
                     Text(
                         text = "Status: $analysisStatusText",
@@ -199,7 +214,7 @@ private fun PotionCard(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
@@ -208,10 +223,9 @@ private fun PotionCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
-            // Analyse-Button
+
             OutlinedButton(
                 onClick = onAnalyze,
                 modifier = Modifier.fillMaxWidth()
@@ -251,10 +265,10 @@ private fun AddPotionDialog(
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var selectedQuality by remember { mutableStateOf(PotionQuality.C) }
     var expiryDate by remember { mutableStateOf("") }
-    
+
     var expandedRecipe by remember { mutableStateOf(false) }
     var expandedQuality by remember { mutableStateOf(false) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.add_potion)) },
@@ -263,7 +277,6 @@ private fun AddPotionDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Rezept-Auswahl
                 ExposedDropdownMenuBox(
                     expanded = expandedRecipe,
                     onExpandedChange = { expandedRecipe = it }
@@ -278,7 +291,7 @@ private fun AddPotionDialog(
                             .menuAnchor()
                             .fillMaxWidth()
                     )
-                    
+
                     ExposedDropdownMenu(
                         expanded = expandedRecipe,
                         onDismissRequest = { expandedRecipe = false }
@@ -294,8 +307,7 @@ private fun AddPotionDialog(
                         }
                     }
                 }
-                
-                // Qualitäts-Auswahl
+
                 ExposedDropdownMenuBox(
                     expanded = expandedQuality,
                     onExpandedChange = { expandedQuality = it }
@@ -310,7 +322,7 @@ private fun AddPotionDialog(
                             .menuAnchor()
                             .fillMaxWidth()
                     )
-                    
+
                     ExposedDropdownMenu(
                         expanded = expandedQuality,
                         onDismissRequest = { expandedQuality = false }
@@ -326,8 +338,7 @@ private fun AddPotionDialog(
                         }
                     }
                 }
-                
-                // Ablaufdatum
+
                 OutlinedTextField(
                     value = expiryDate,
                     onValueChange = { expiryDate = it },

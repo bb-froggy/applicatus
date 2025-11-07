@@ -1,9 +1,9 @@
 package de.applicatus.app.logic
 
-import de.applicatus.app.data.model.AnalysisMethod
-import de.applicatus.app.data.model.AnalysisStatus
-import de.applicatus.app.data.model.Character
-import de.applicatus.app.data.model.Recipe
+import de.applicatus.app.data.model.potion.AnalysisMethod
+import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.potion.Recipe
 import kotlin.random.Random
 
 /**

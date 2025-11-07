@@ -34,13 +34,11 @@ object SpellChecker {
         modifier: Int,
         attribute1: Int,
         attribute2: Int,
-        attribute3: Int
+        attribute3: Int,
+        diceRoll: () -> Int = { Random.nextInt(1, 21) }
     ): SpellCheckResult {
         // Würfle 3x W20
-        val roll1 = rollD20()
-        val roll2 = rollD20()
-        val roll3 = rollD20()
-        val rolls = listOf(roll1, roll2, roll3)
+        val rolls = List(3) { diceRoll() }
         
         // Prüfe auf besondere Fälle
         val countOnes = rolls.count { it == 1 }
@@ -158,7 +156,8 @@ object SpellChecker {
         applicatusModifier: Int,
         characterKl: Int,
         characterIn: Int,
-        characterCh: Int
+        characterCh: Int,
+        diceRoll: () -> Int = { Random.nextInt(1, 21) }
     ): ApplicatusCheckResult {
         // Erst Applicatus-Probe
         val applicatusResult = performSpellCheck(
@@ -166,7 +165,8 @@ object SpellChecker {
             modifier = applicatusModifier,
             attribute1 = characterKl,
             attribute2 = characterIn,
-            attribute3 = characterCh
+            attribute3 = characterCh,
+            diceRoll = diceRoll
         )
         
         // Applicatus fehlgeschlagen → Gesamtergebnis ist Misserfolg
@@ -189,7 +189,8 @@ object SpellChecker {
             modifier = spellModifier,
             attribute1 = spellAttribute1,
             attribute2 = spellAttribute2,
-            attribute3 = spellAttribute3
+            attribute3 = spellAttribute3,
+            diceRoll = diceRoll
         )
         
         return ApplicatusCheckResult(
@@ -199,7 +200,4 @@ object SpellChecker {
         )
     }
     
-    private fun rollD20(): Int {
-        return Random.nextInt(1, 21)
-    }
 }

@@ -1,7 +1,7 @@
 package de.applicatus.app.data.dao
 
 import androidx.room.*
-import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.character.Character
 import kotlinx.coroutines.flow.Flow
 
 @Dao

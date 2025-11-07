@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import de.applicatus.app.data.model.GlobalSettings
+import de.applicatus.app.data.model.character.GlobalSettings
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

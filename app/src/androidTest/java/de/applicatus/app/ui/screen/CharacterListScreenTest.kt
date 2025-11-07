@@ -11,7 +11,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
-import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 import java.util.concurrent.atomic.AtomicLong
@@ -43,7 +43,11 @@ class CharacterListScreenTest {
         repository = ApplicatusRepository(
             database.spellDao(),
             database.characterDao(),
-            database.spellSlotDao()
+            database.spellSlotDao(),
+            database.recipeDao(),
+            database.potionDao(),
+            database.globalSettingsDao(),
+            database.recipeKnowledgeDao()
         )
 
         runBlocking {

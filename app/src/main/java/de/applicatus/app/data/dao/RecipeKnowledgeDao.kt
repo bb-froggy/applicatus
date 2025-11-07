@@ -6,8 +6,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import de.applicatus.app.data.model.RecipeKnowledge
-import de.applicatus.app.data.model.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.potion.RecipeKnowledge
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import kotlinx.coroutines.flow.Flow
 
 @Dao

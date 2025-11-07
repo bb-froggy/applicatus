@@ -10,11 +10,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
-import de.applicatus.app.data.model.Character
-import de.applicatus.app.data.model.Spell
-import de.applicatus.app.data.model.SpellSlot
-import de.applicatus.app.data.model.SpellSlotWithSpell
-import de.applicatus.app.data.model.SlotType
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.spell.Spell
+import de.applicatus.app.data.model.spell.SpellSlot
+import de.applicatus.app.data.model.spell.SpellSlotWithSpell
+import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.SpellChecker
 import kotlinx.coroutines.flow.*

@@ -1,4 +1,4 @@
-package de.applicatus.app.ui.screen
+package de.applicatus.app.ui.screen.spell
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,16 +22,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import de.applicatus.app.data.model.Character
-import de.applicatus.app.data.model.Spell
-import de.applicatus.app.data.model.SpellSlot
-import de.applicatus.app.data.model.SpellSlotWithSpell
-import de.applicatus.app.data.model.SlotType
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.spell.Spell
+import de.applicatus.app.data.model.spell.SpellSlot
+import de.applicatus.app.data.model.spell.SpellSlotWithSpell
+import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharacterDetailScreen(
+fun SpellStorageScreen(
     viewModel: CharacterDetailViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToNearbySync: (Long, String) -> Unit = { _, _ -> }

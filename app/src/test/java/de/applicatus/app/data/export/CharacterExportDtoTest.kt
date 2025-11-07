@@ -1,7 +1,10 @@
 package de.applicatus.app.data.export
 
 import de.applicatus.app.data.DataModelVersion
-import de.applicatus.app.data.model.SlotType
+import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.potion.PotionQuality
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.spell.SlotType
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
@@ -33,7 +36,26 @@ class CharacterExportDtoTest {
             kk = 10,
             hasApplicatus = true,
             applicatusZfw = 10,
-            applicatusModifier = -2
+            applicatusModifier = -2,
+            hasAlchemy = true,
+            alchemySkill = 7,
+            hasCookingPotions = true,
+            cookingPotionsSkill = 6,
+            hasOdem = true,
+            odemZfw = 8,
+            hasAnalys = true,
+            analysZfw = 9,
+            currentLe = 28,
+            maxLe = 35,
+            leRegenBonus = 2,
+            hasAe = true,
+            currentAe = 25,
+            maxAe = 35,
+            aeRegenBonus = 1,
+            hasMasteryRegeneration = true,
+            hasKe = true,
+            currentKe = 5,
+            maxKe = 10
         )
         
         val jsonString = json.encodeToString(characterDto)
@@ -43,6 +65,8 @@ class CharacterExportDtoTest {
         assertTrue(jsonString.contains("\"mu\": 12"))
         assertTrue(jsonString.contains("\"hasApplicatus\": true"))
         assertTrue(jsonString.contains("\"applicatusZfw\": 10"))
+        assertTrue(jsonString.contains("\"alchemySkill\": 7"))
+        assertTrue(jsonString.contains("\"currentAe\": 25"))
         
         val decoded = json.decodeFromString<CharacterDto>(jsonString)
         assertEquals(characterDto, decoded)
@@ -142,7 +166,7 @@ class CharacterExportDtoTest {
     @Test
     fun `CharacterExportDto with slots serializes correctly`() {
         val exportDto = CharacterExportDto(
-            version = 2,
+            version = DataModelVersion.CURRENT_VERSION,
             character = CharacterDto(
                 guid = "gandalf-guid-456",
                 name = "Gandalf",
@@ -182,6 +206,23 @@ class CharacterExportDtoTest {
                     applicatusRollResult = null
                 )
             ),
+            potions = listOf(
+                PotionDto(
+                    recipeId = 42,
+                    recipeName = "Heiltrank",
+                    quality = PotionQuality.B.name,
+                    appearance = "klar",
+                    analysisStatus = AnalysisStatus.PRECISE_ANALYZED.name,
+                    expiryDate = "1 Efferd 1041 BF"
+                )
+            ),
+            recipeKnowledge = listOf(
+                RecipeKnowledgeDto(
+                    recipeId = 42,
+                    recipeName = "Heiltrank",
+                    knowledgeLevel = RecipeKnowledgeLevel.UNDERSTOOD.name
+                )
+            ),
             exportTimestamp = System.currentTimeMillis()
         )
         
@@ -193,6 +234,8 @@ class CharacterExportDtoTest {
         assertTrue(jsonString.contains("APPLICATUS"))
         assertTrue(jsonString.contains("SPELL_STORAGE"))
         assertTrue(jsonString.contains("\"volumePoints\": 50"))
+        assertTrue(jsonString.contains("Heiltrank"))
+        assertTrue(jsonString.contains(AnalysisStatus.PRECISE_ANALYZED.name))
         
         val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
         assertEquals(2, decoded.spellSlots.size)
@@ -200,6 +243,10 @@ class CharacterExportDtoTest {
         assertEquals("Ignifaxius", decoded.spellSlots[0].spellName)
         assertEquals("Fulminictus", decoded.spellSlots[1].spellName)
         assertEquals(50, decoded.spellSlots[1].volumePoints)
+        assertEquals(1, decoded.potions.size)
+        assertEquals("Heiltrank", decoded.potions.first().recipeName)
+        assertEquals(1, decoded.recipeKnowledge.size)
+        assertEquals(RecipeKnowledgeLevel.UNDERSTOOD.name, decoded.recipeKnowledge.first().knowledgeLevel)
     }
     
     @Test
@@ -219,6 +266,8 @@ class CharacterExportDtoTest {
                     "unknownField": "should be ignored"
                 },
                 "spellSlots": [],
+                "potions": [],
+                "recipeKnowledge": [],
                 "exportTimestamp": 1234567890,
                 "futureField": "from version 3"
             }
@@ -253,7 +302,7 @@ class CharacterExportDtoTest {
     fun `GUID is preserved in round-trip serialization`() {
         val originalGuid = "preserved-guid-999"
         val exportDto = CharacterExportDto(
-            version = 2,
+            version = DataModelVersion.CURRENT_VERSION,
             character = CharacterDto(
                 guid = originalGuid,
                 name = "RoundTrip",
@@ -319,5 +368,40 @@ class CharacterExportDtoTest {
         
         // Sollte auf APPLICATUS zurückfallen
         assertEquals(SlotType.APPLICATUS, model.slotType)
+    }
+
+    @Test
+    fun `PotionDto converts to Potion model`() {
+        val dto = PotionDto(
+            recipeId = 7,
+            recipeName = "Zaubertrank",
+            quality = PotionQuality.A.name,
+            appearance = "funkelnd",
+            analysisStatus = AnalysisStatus.ROUGH_ANALYZED.name,
+            expiryDate = "1 Rondra 1042 BF"
+        )
+
+        val model = dto.toPotion(characterId = 3, resolvedRecipeId = 9)
+
+        assertEquals(3, model.characterId)
+        assertEquals(9, model.recipeId)
+        assertEquals(PotionQuality.A, model.quality)
+        assertEquals(AnalysisStatus.ROUGH_ANALYZED, model.analysisStatus)
+        assertEquals("funkelnd", model.appearance)
+    }
+
+    @Test
+    fun `RecipeKnowledgeDto converts to model`() {
+        val dto = RecipeKnowledgeDto(
+            recipeId = 11,
+            recipeName = "Heiltrank",
+            knowledgeLevel = RecipeKnowledgeLevel.UNDERSTOOD.name
+        )
+
+        val model = dto.toModel(characterId = 5, resolvedRecipeId = 11)
+
+        assertEquals(5, model.characterId)
+        assertEquals(11, model.recipeId)
+        assertEquals(RecipeKnowledgeLevel.UNDERSTOOD, model.knowledgeLevel)
     }
 }

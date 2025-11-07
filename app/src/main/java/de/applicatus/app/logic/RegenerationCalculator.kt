@@ -1,6 +1,6 @@
 package de.applicatus.app.logic
 
-import de.applicatus.app.data.model.Character
+import de.applicatus.app.data.model.character.Character
 import kotlin.random.Random
 
 /**

@@ -11,9 +11,11 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 - **Zauberprobe**: Automatische Würfelprobe beim Einspeichern von Zaubern mit W20-Würfeln
 - **Besondere Würfelergebnisse**: Erkennung von Doppel-1, Dreifach-1, Doppel-20 und Dreifach-20
 - **Zauberliste**: Über 190 vordefinierte Zauber aus DSA
+- **Trankverwaltung**: Hexenküche mit Rezeptverwaltung, Analyse-Status und Qualitätsstufen
 - **Bearbeitungs- und Nutzungsmodus**: Getrennte Modi für Vorbereitung und Spielen
 - **Export/Import**: 
   - JSON-Export und -Import von Charakteren
+  - Enthält Tränke inklusive Analyse-Status sowie bekannte Rezepte
   - Nearby Connections für direkten Transfer zwischen Geräten
   - Versionskontrolle mit Warnungen bei Versionsunterschieden
 - **Persistente Speicherung**: Alle Daten werden lokal gespeichert
@@ -53,7 +55,7 @@ app/
 ├── logic/
 │   └── SpellChecker.kt  # Zauberprobe-Logik mit W20-Würfeln
 ├── ui/
-│   ├── screen/          # Composable Screens
+│   ├── screen/          # Composable Screens (z.B. potion/ für Hexenküche)
 │   ├── viewmodel/       # ViewModels
 │   └── navigation/      # Navigation
 └── MainActivity.kt

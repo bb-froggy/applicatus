@@ -1,6 +1,6 @@
 package de.applicatus.app.data
 
-import de.applicatus.app.data.model.Spell
+import de.applicatus.app.data.model.spell.Spell
 
 object InitialSpells {
     fun getDefaultSpells(): List<Spell> {

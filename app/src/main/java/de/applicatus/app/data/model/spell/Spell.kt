@@ -1,4 +1,4 @@
-package de.applicatus.app.data.model
+package de.applicatus.app.data.model.spell
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

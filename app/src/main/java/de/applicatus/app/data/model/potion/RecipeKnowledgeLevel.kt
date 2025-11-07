@@ -1,4 +1,4 @@
-package de.applicatus.app.data.model
+package de.applicatus.app.data.model.potion
 
 /**
  * Wissensgrad eines Charakters über ein Rezept

@@ -6,7 +6,7 @@
 2. Tippen Sie auf das Drei-Punkte-Menü (⋮) oben rechts
 3. Wählen Sie "Als JSON exportieren"
 4. Wählen Sie einen Speicherort und Dateinamen
-5. Die Datei wird mit allen Charakterdaten, Slots und Zaubern gespeichert
+5. Die Datei enthält sämtliche Charakterdaten inklusive Slots, Tränken (Analyse-Status) und bekanntem Rezeptwissen
 
 ## JSON-Import
 
@@ -18,6 +18,7 @@
    - Wenn der Name bereits existiert, wird eine Warnung angezeigt
    - Bei Versionsunterschieden werden Sie informiert
    - Zauber werden nach Namen automatisch zugeordnet
+   - Vorhandene Tränke und Rezeptwissen des Charakters werden vor dem Import bereinigt
 
 ## Nearby Sync (Geräte-zu-Gerät Übertragung)
 

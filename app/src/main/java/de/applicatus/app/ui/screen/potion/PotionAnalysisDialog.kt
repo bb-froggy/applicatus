@@ -1,19 +1,41 @@
-package de.applicatus.app.ui.screen
+package de.applicatus.app.ui.screen.potion
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import de.applicatus.app.data.model.AnalysisMethod
-import de.applicatus.app.data.model.AnalysisStatus
-import de.applicatus.app.data.model.PotionWithRecipe
-import de.applicatus.app.data.model.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.potion.AnalysisMethod
+import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.potion.PotionQuality
+import de.applicatus.app.data.model.potion.PotionWithRecipe
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.logic.AnalysisResult
 import de.applicatus.app.logic.PotionAnalyzer
 import de.applicatus.app.ui.viewmodel.PotionViewModel
@@ -32,8 +54,7 @@ fun PotionAnalysisDialog(
     val viewModel: PotionViewModel = viewModel(factory = viewModelFactory)
     val character by viewModel.character.collectAsState()
     val recipeKnowledge by viewModel.getRecipeKnowledge(potionWithRecipe.recipe.id).collectAsState(null)
-    
-    // Bestimme erste verfügbare Methode als Standard
+
     val defaultMethod = remember(character) {
         character?.let { char ->
             when {
@@ -44,13 +65,13 @@ fun PotionAnalysisDialog(
             }
         } ?: AnalysisMethod.BY_SIGHT
     }
-    
+
     var selectedMethod by remember(defaultMethod) { mutableStateOf(defaultMethod) }
     var analysisResult by remember { mutableStateOf<AnalysisResult?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
-    
+
     val scope = rememberCoroutineScope()
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -68,40 +89,36 @@ fun PotionAnalysisDialog(
                     text = "Trank analysieren",
                     style = MaterialTheme.typography.headlineSmall
                 )
-                
+
                 Divider()
-                
-                // Trank-Info
+
                 Text(
                     text = potionWithRecipe.recipe.name,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Qualität: ${getQualityLabel(potionWithRecipe.potion.quality)}",
+                    text = "Qualität: ${'$'}{getQualityLabel(potionWithRecipe.potion.quality)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
-                // Aktueller Analysestatus
+
                 val currentStatusText = when (potionWithRecipe.potion.analysisStatus) {
                     AnalysisStatus.NOT_ANALYZED -> "Noch nicht analysiert"
                     AnalysisStatus.ROUGH_ANALYZED -> "Bereits grob analysiert"
                     AnalysisStatus.PRECISE_ANALYZED -> "Bereits genau analysiert"
                 }
                 Text(
-                    text = "Status: $currentStatusText",
+                    text = "Status: ${'$'}currentStatusText",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 Divider()
-                
-                // Analysemethode auswählen
+
                 Text(
                     text = "Analysemethode",
                     style = MaterialTheme.typography.titleSmall
                 )
-                
-                // Liste verfügbarer Methoden basierend auf Charakterfähigkeiten
+
                 val availableMethods = character?.let { char ->
                     AnalysisMethod.entries.filter { method ->
                         when (method) {
@@ -111,7 +128,7 @@ fun PotionAnalysisDialog(
                         }
                     }
                 } ?: emptyList()
-                
+
                 if (availableMethods.isEmpty()) {
                     Text(
                         text = "Charakter beherrscht keine Analysemethode",
@@ -127,7 +144,7 @@ fun PotionAnalysisDialog(
                             AnalysisMethod.ODEM_SPELL -> "ODEM ARCANUM (Zauberei)"
                             AnalysisMethod.ANALYS_SPELL -> "ANALYS ARKANSTRUKTUR (Zauberei)"
                         }
-                        
+
                         val skillValue = character?.let {
                             when (method) {
                                 AnalysisMethod.BY_SIGHT, AnalysisMethod.LABORATORY -> it.alchemySkill
@@ -135,7 +152,7 @@ fun PotionAnalysisDialog(
                                 AnalysisMethod.ANALYS_SPELL -> it.analysZfw
                             }
                         } ?: 0
-                        
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -148,15 +165,14 @@ fun PotionAnalysisDialog(
                                 enabled = !isAnalyzing && analysisResult == null
                             )
                             Text(
-                                text = "$methodText (TaW/ZfW: $skillValue)",
+                                text = "${'$'}methodText (TaW/ZfW: ${'$'}skillValue)",
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
                     }
                 }
-                
-                // Analysieren-Button
+
                 if (analysisResult == null && availableMethods.isNotEmpty()) {
                     Button(
                         onClick = {
@@ -185,11 +201,10 @@ fun PotionAnalysisDialog(
                         }
                     }
                 }
-                
-                // Analyse-Ergebnis
+
                 analysisResult?.let { result ->
                     Divider()
-                    
+
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -215,22 +230,22 @@ fun PotionAnalysisDialog(
                                     MaterialTheme.colorScheme.onErrorContainer
                                 }
                             )
-                            
+
                             Text(
                                 text = "Würfe: ${result.rolls.joinToString(", ")}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
+
                             Text(
                                 text = "TaP*: ${result.tap}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
+
                             Text(
                                 text = result.message,
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
+
                             if (result.recipeUnderstood) {
                                 Text(
                                     text = "🎓 Rezept verstanden! (TaP* ≥ 19)",
@@ -240,18 +255,15 @@ fun PotionAnalysisDialog(
                             }
                         }
                     }
-                    
-                    // Ergebnis speichern
+
                     Button(
                         onClick = {
                             scope.launch {
-                                // Potion aktualisieren
                                 val updatedPotion = potionWithRecipe.potion.copy(
                                     analysisStatus = result.newAnalysisStatus
                                 )
                                 viewModel.updatePotion(updatedPotion)
-                                
-                                // Recipe Knowledge aktualisieren wenn verstanden
+
                                 if (result.recipeUnderstood) {
                                     viewModel.setRecipeKnowledge(
                                         characterId = characterId,
@@ -259,7 +271,7 @@ fun PotionAnalysisDialog(
                                         knowledgeLevel = RecipeKnowledgeLevel.UNDERSTOOD
                                     )
                                 }
-                                
+
                                 onAnalysisComplete()
                             }
                         },
@@ -268,8 +280,7 @@ fun PotionAnalysisDialog(
                         Text("Ergebnis speichern")
                     }
                 }
-                
-                // Abbrechen/Schließen
+
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
@@ -281,14 +292,14 @@ fun PotionAnalysisDialog(
     }
 }
 
-private fun getQualityLabel(quality: de.applicatus.app.data.model.PotionQuality): String {
+private fun getQualityLabel(quality: PotionQuality): String {
     return when (quality) {
-        de.applicatus.app.data.model.PotionQuality.A -> "A"
-        de.applicatus.app.data.model.PotionQuality.B -> "B"
-        de.applicatus.app.data.model.PotionQuality.C -> "C"
-        de.applicatus.app.data.model.PotionQuality.D -> "D"
-        de.applicatus.app.data.model.PotionQuality.E -> "E"
-        de.applicatus.app.data.model.PotionQuality.F -> "F"
-        de.applicatus.app.data.model.PotionQuality.M -> "M"
+        PotionQuality.A -> "A"
+        PotionQuality.B -> "B"
+        PotionQuality.C -> "C"
+        PotionQuality.D -> "D"
+        PotionQuality.E -> "E"
+        PotionQuality.F -> "F"
+        PotionQuality.M -> "M"
     }
 }

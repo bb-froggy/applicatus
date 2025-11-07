@@ -5,8 +5,8 @@ sealed class Screen(val route: String) {
     object CharacterHome : Screen("character_home/{characterId}") {
         fun createRoute(characterId: Long) = "character_home/$characterId"
     }
-    object CharacterDetail : Screen("character_detail/{characterId}") {
-        fun createRoute(characterId: Long) = "character_detail/$characterId"
+    object SpellStorage : Screen("spell_storage/{characterId}") {
+        fun createRoute(characterId: Long) = "spell_storage/$characterId"
     }
     object PotionScreen : Screen("potions/{characterId}") {
         fun createRoute(characterId: Long) = "potions/$characterId"
