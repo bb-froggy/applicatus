@@ -397,8 +397,8 @@ class PotionScreenTest {
         composeRule.waitForIdle()
         
         // Überprüfe verschiedene Qualitäten (vollständige Strings mit Beschreibung)
-        composeRule.onNodeWithText("C - Durchschnittlich", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("A - Sehr gut", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("B - Gut", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("C - Unterdurchschnittlich", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("A - Sehr schlecht", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("B - Schlecht", substring = true).assertIsDisplayed()
     }
 }

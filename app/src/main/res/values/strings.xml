@@ -80,11 +80,11 @@
     <string name="ok">OK</string>
     
     <!-- Quality Levels -->
-    <string name="quality_a">A - Sehr gut</string>
-    <string name="quality_b">B - Gut</string>
-    <string name="quality_c">C - Durchschnittlich</string>
-    <string name="quality_d">D - Unterdurchschnittlich</string>
-    <string name="quality_e">E - Schlecht</string>
-    <string name="quality_f">F - Sehr schlecht</string>
+    <string name="quality_a">A - Sehr schlecht</string>
+    <string name="quality_b">B - Schlecht</string>
+    <string name="quality_c">C - Unterdurchschnittlich</string>
+    <string name="quality_d">D - Durchschnittlich</string>
+    <string name="quality_e">E - Gut</string>
+    <string name="quality_f">F - Sehr gut</string>
     <string name="quality_m">M - Misslungen</string>
 </resources>
