@@ -665,8 +665,16 @@ fun AddSlotDialog(
                         },
                         label = { Text("Volumenpunkte") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        isError = (volumePointsText.toIntOrNull() ?: 0) < 1
                     )
+                    if ((volumePointsText.toIntOrNull() ?: 0) < 1) {
+                        Text(
+                            text = "Mindestens 1 VP erforderlich",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                     Text(
                         text = "Verbleibend: $remainingVolumePoints VP",
                         style = MaterialTheme.typography.bodySmall,
