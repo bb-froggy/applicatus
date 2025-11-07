@@ -2,6 +2,7 @@ package de.applicatus.app.data
 
 import androidx.room.TypeConverter
 import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.potion.Laboratory
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.model.spell.SlotType
@@ -45,5 +46,15 @@ class Converters {
     @TypeConverter
     fun toRecipeKnowledgeLevel(value: String): RecipeKnowledgeLevel {
         return RecipeKnowledgeLevel.valueOf(value)
+    }
+    
+    @TypeConverter
+    fun fromLaboratory(value: Laboratory?): String? {
+        return value?.name
+    }
+    
+    @TypeConverter
+    fun toLaboratory(value: String?): Laboratory? {
+        return value?.let { Laboratory.valueOf(it) }
     }
 }
