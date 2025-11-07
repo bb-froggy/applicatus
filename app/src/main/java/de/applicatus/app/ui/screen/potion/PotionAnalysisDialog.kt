@@ -97,7 +97,7 @@ fun PotionAnalysisDialog(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Qualität: ${'$'}{getQualityLabel(potionWithRecipe.potion.quality)}",
+                    text = "Qualität: ${getQualityLabel(potionWithRecipe.potion.quality)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
@@ -107,7 +107,7 @@ fun PotionAnalysisDialog(
                     AnalysisStatus.PRECISE_ANALYZED -> "Bereits genau analysiert"
                 }
                 Text(
-                    text = "Status: ${'$'}currentStatusText",
+                    text = "Status: $currentStatusText",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -165,7 +165,7 @@ fun PotionAnalysisDialog(
                                 enabled = !isAnalyzing && analysisResult == null
                             )
                             Text(
-                                text = "${'$'}methodText (TaW/ZfW: ${'$'}skillValue)",
+                                text = "$methodText (TaW/ZfW: $skillValue)",
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(start = 8.dp)
                             )

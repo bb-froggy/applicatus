@@ -50,7 +50,18 @@ fun RecipeKnowledgeScreen(
                         onDismissRequest = { showFilterMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Alle anzeigen") },
+                            text = { 
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Alle anzeigen")
+                                    if (filterLevel == null) {
+                                        Text("✓", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            },
                             onClick = {
                                 filterLevel = null
                                 showFilterMenu = false
@@ -58,21 +69,54 @@ fun RecipeKnowledgeScreen(
                         )
                         Divider()
                         DropdownMenuItem(
-                            text = { Text("Nur Bekannte") },
+                            text = { 
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Nur Bekannte")
+                                    if (filterLevel == RecipeKnowledgeLevel.KNOWN) {
+                                        Text("✓", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            },
                             onClick = {
                                 filterLevel = RecipeKnowledgeLevel.KNOWN
                                 showFilterMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Nur Verstandene") },
+                            text = { 
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Nur Verstandene")
+                                    if (filterLevel == RecipeKnowledgeLevel.UNDERSTOOD) {
+                                        Text("✓", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            },
                             onClick = {
                                 filterLevel = RecipeKnowledgeLevel.UNDERSTOOD
                                 showFilterMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Nur Unbekannte") },
+                            text = { 
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Nur Unbekannte")
+                                    if (filterLevel == RecipeKnowledgeLevel.UNKNOWN) {
+                                        Text("✓", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            },
                             onClick = {
                                 filterLevel = RecipeKnowledgeLevel.UNKNOWN
                                 showFilterMenu = false
@@ -154,15 +198,15 @@ fun RecipeKnowledgeCard(
             ) {
                 Column {
                     Text(
-                        text = "Brauschwierigkeit: +${'$'}{recipeWithKnowledge.recipe.brewingDifficulty}",
+                        text = "Brauschwierigkeit: +${recipeWithKnowledge.recipe.brewingDifficulty}",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "Analyse: +${'$'}{recipeWithKnowledge.recipe.analysisDifficulty}",
+                        text = "Analyse: +${recipeWithKnowledge.recipe.analysisDifficulty}",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "Haltbarkeit: ${'$'}{recipeWithKnowledge.recipe.shelfLife}",
+                        text = "Haltbarkeit: ${recipeWithKnowledge.recipe.shelfLife}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
