@@ -158,12 +158,6 @@ private fun PropertiesCard(character: Character) {
                 PropertyItem("KL", character.kl)
                 PropertyItem("IN", character.inValue)
                 PropertyItem("CH", character.ch)
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
                 PropertyItem("FF", character.ff)
                 PropertyItem("GE", character.ge)
                 PropertyItem("KO", character.ko)
@@ -198,73 +192,115 @@ private fun EnergiesCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Lebensenergie (immer vorhanden)
-            EnergyRow(
-                label = stringResource(R.string.le_short),
-                current = character.currentLe,
-                max = character.maxLe,
-                onAdjust = onAdjustLe
-            )
-            
-            // Astralenergie (optional)
-            if (character.hasAe) {
-                EnergyRow(
-                    label = stringResource(R.string.ae_short),
-                    current = character.currentAe,
-                    max = character.maxAe,
-                    onAdjust = onAdjustAe
-                )
-            }
-            
-            // Karmaenergie (optional)
-            if (character.hasKe) {
-                EnergyRow(
-                    label = stringResource(R.string.ke_short),
-                    current = character.currentKe,
-                    max = character.maxKe,
-                    onAdjust = onAdjustKe
-                )
-            }
-            
-            // Regeneration Button
-            Button(
-                onClick = onRegeneration,
-                modifier = Modifier.fillMaxWidth()
+            // Erste Zeile: Überschriften und Regeneration Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.regeneration))
+                // LE Überschrift
+                Text(
+                    text = stringResource(R.string.le_short),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // AE Überschrift (nur wenn vorhanden)
+                if (character.hasAe) {
+                    Text(
+                        text = stringResource(R.string.ae_short),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // KE Überschrift (nur wenn vorhanden)
+                if (character.hasKe) {
+                    Text(
+                        text = stringResource(R.string.ke_short),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // Regeneration Button
+                Button(
+                    onClick = onRegeneration,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.regeneration))
+                }
+            }
+            
+            // Zweite Zeile: Werte und Anpassungs-Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // LE Werte
+                EnergyValueRow(
+                    current = character.currentLe,
+                    max = character.maxLe,
+                    onAdjust = onAdjustLe,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // AE Werte (nur wenn vorhanden)
+                if (character.hasAe) {
+                    EnergyValueRow(
+                        current = character.currentAe,
+                        max = character.maxAe,
+                        onAdjust = onAdjustAe,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // KE Werte (nur wenn vorhanden)
+                if (character.hasKe) {
+                    EnergyValueRow(
+                        current = character.currentKe,
+                        max = character.maxKe,
+                        onAdjust = onAdjustKe,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // Platzhalter für Button-Spalte
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun EnergyRow(
-    label: String,
+private fun EnergyValueRow(
     current: Int,
     max: Int,
-    onAdjust: (Int) -> Unit
+    onAdjust: (Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        // Wert-Anzeige
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(0.15f)
+            text = "$current / $max",
+            style = MaterialTheme.typography.bodyMedium
         )
         
+        // Anpassungs-Buttons
         Row(
-            modifier = Modifier.weight(0.85f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // -5 Button
             IconButton(
                 onClick = { onAdjust(-5) },
                 enabled = current > 0,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Text("-5", style = MaterialTheme.typography.labelSmall)
             }
@@ -273,22 +309,16 @@ private fun EnergyRow(
             IconButton(
                 onClick = { onAdjust(-1) },
                 enabled = current > 0,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Text("-", style = MaterialTheme.typography.titleMedium)
             }
-            
-            Text(
-                text = "$current / $max",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
             
             // +1 Button
             IconButton(
                 onClick = { onAdjust(1) },
                 enabled = current < max,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Text("+", style = MaterialTheme.typography.titleMedium)
             }
@@ -297,7 +327,7 @@ private fun EnergyRow(
             IconButton(
                 onClick = { onAdjust(5) },
                 enabled = current < max,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Text("+5", style = MaterialTheme.typography.labelSmall)
             }

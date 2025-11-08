@@ -15,6 +15,7 @@ import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModel
 import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModelFactory
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -73,6 +74,11 @@ class RecipeKnowledgeScreenTest {
         )
 
         runBlocking {
+            // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
+            repository.getAllRecipes().first().forEach { recipe ->
+                repository.deleteRecipe(recipe)
+            }
+            
             testCharacterId = repository.insertCharacter(
                 Character(
                     name = "Rezeptkenner",

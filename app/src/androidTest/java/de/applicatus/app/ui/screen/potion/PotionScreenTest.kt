@@ -13,6 +13,7 @@ import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -50,6 +51,11 @@ class PotionScreenTest {
         )
 
         runBlocking {
+            // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
+            repository.getAllRecipes().first().forEach { recipe ->
+                repository.deleteRecipe(recipe)
+            }
+            
             testCharacterId = repository.insertCharacter(
                 Character(
                     name = "Alchemist",
@@ -90,7 +96,8 @@ class PotionScreenTest {
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
                     actualQuality = PotionQuality.C,
-                    expiryDate = "1050 BF, Praios"
+                    expiryDate = "1050 BF, Praios",
+                    shelfLifeKnown = true  // Haltbarkeit ist bekannt, damit sie angezeigt wird
                 )
             )
         }
@@ -146,8 +153,8 @@ class PotionScreenTest {
         }
 
         composeRule.waitForIdle()
-        // Quality wird als "C - Durchschnittlich" angezeigt (vollständiger String aus strings.xml)
-        composeRule.onNodeWithText("C - Durchschnittlich", substring = true).assertIsDisplayed()
+        // Qualität ist unbekannt, da kein Analysewissen gesetzt ist
+        composeRule.onNodeWithText("Qualität: Unbekannt", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -305,8 +312,8 @@ class PotionScreenTest {
 
         composeRule.waitForIdle()
         
-        // Überprüfe, dass Ablaufdatum angezeigt wird (mit dem gesetzten Datum)
-        composeRule.onNodeWithText("1050 BF, Praios", substring = true).assertIsDisplayed()
+        // Überprüfe, dass Haltbarkeit angezeigt wird (aus dem Rezept, da shelfLifeKnown=true)
+        composeRule.onNodeWithText("Haltbarkeit: 6 Monde", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -393,9 +400,12 @@ class PotionScreenTest {
 
         composeRule.waitForIdle()
         
-        // Überprüfe verschiedene Qualitäten (vollständige Strings mit Beschreibung)
-        composeRule.onNodeWithText("C - Unterdurchschnittlich", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("A - Sehr schlecht", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("B - Schlecht", substring = true).assertIsDisplayed()
+        // Alle drei Tränke sollten angezeigt werden (mit dem Rezeptnamen)
+        // Da kein Analysewissen gesetzt ist, zeigen alle "Qualität: Unbekannt"
+        val potionCards = composeRule.onAllNodesWithText("Heiltrank", substring = true)
+        potionCards.assertCountEquals(3)
+        
+        // Überprüfe, dass die Qualität unbekannt angezeigt wird
+        composeRule.onNodeWithText("Qualität: Unbekannt", substring = true).assertIsDisplayed()
     }
 }
