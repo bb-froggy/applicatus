@@ -75,7 +75,7 @@ class RecipeKnowledgeScreenTest {
 
         runBlocking {
             // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
-            repository.getAllRecipes().first().forEach { recipe ->
+            repository.allRecipes.first().forEach { recipe ->
                 repository.deleteRecipe(recipe)
             }
             

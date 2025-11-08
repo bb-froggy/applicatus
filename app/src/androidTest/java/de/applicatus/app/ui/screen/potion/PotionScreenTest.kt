@@ -52,7 +52,7 @@ class PotionScreenTest {
 
         runBlocking {
             // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
-            repository.getAllRecipes().first().forEach { recipe ->
+            repository.allRecipes.first().forEach { recipe ->
                 repository.deleteRecipe(recipe)
             }
             
@@ -405,7 +405,8 @@ class PotionScreenTest {
         val potionCards = composeRule.onAllNodesWithText("Heiltrank", substring = true)
         potionCards.assertCountEquals(3)
         
-        // Überprüfe, dass die Qualität unbekannt angezeigt wird
-        composeRule.onNodeWithText("Qualität: Unbekannt", substring = true).assertIsDisplayed()
+        // Überprüfe, dass die Qualität unbekannt angezeigt wird (3x)
+        val qualityNodes = composeRule.onAllNodesWithText("Qualität: Unbekannt", substring = true)
+        qualityNodes.assertCountEquals(3)
     }
 }
