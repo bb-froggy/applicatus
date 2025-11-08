@@ -42,6 +42,7 @@ fun StructureAnalysisDialog(
     var accumulatedTap by remember { mutableStateOf(potion.accumulatedStructureAnalysisTap) }
     var probeNumber by remember { mutableStateOf(1) }
     var currentProbeResult by remember { mutableStateOf<StructureAnalysisProbeResult?>(null) }
+    var selfControlResult by remember { mutableStateOf<StructureAnalysisSelfControlResult?>(null) }
     var finalResult by remember { mutableStateOf<StructureAnalysisFinalResult?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
     
@@ -158,11 +159,49 @@ fun StructureAnalysisDialog(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             
+                            Divider()
+                            
+                            // Probenerschwernis-Breakdown
+                            Text(
+                                text = "Probenerschwernis:",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Text(
+                                text = "• Basis-Analyseerschwernis: +${probeResult.baseDifficulty}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            if (probeResult.facilitation > 0) {
+                                Text(
+                                    text = "• Erleichterung aus vorheriger Analyse: -${probeResult.facilitation}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            if (probeResult.methodBonus > 0) {
+                                val methodBonusText = when (selectedMethod) {
+                                    StructureAnalysisMethod.ANALYS_SPELL -> "• Magiekunde-Bonus: -${probeResult.methodBonus}"
+                                    StructureAnalysisMethod.BY_SIGHT -> "• Sinnenschärfe-Bonus: -${probeResult.methodBonus}"
+                                    StructureAnalysisMethod.LABORATORY -> "• Wissenstalent-Bonus: -${probeResult.methodBonus}"
+                                }
+                                Text(
+                                    text = methodBonusText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            if (acceptHarderProbe && selectedMethod == StructureAnalysisMethod.LABORATORY) {
+                                Text(
+                                    text = "• Trank nicht verbrauchen: +3",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            
                             // Modifikator
                             val modText = when {
-                                probeResult.difficulty > 0 -> "Erschwernis: +${probeResult.difficulty}"
-                                probeResult.difficulty < 0 -> "Erleichterung: ${probeResult.difficulty}"
-                                else -> "Modifikator: ±0"
+                                probeResult.difficulty > 0 -> "Gesamt: +${probeResult.difficulty}"
+                                probeResult.difficulty < 0 -> "Gesamt: ${probeResult.difficulty}"
+                                else -> "Gesamt: ±0"
                             }
                             Text(
                                 text = modText,
@@ -188,7 +227,7 @@ fun StructureAnalysisDialog(
                             
                             if (selectedMethod == StructureAnalysisMethod.BY_SIGHT && probeResult.success) {
                                 Text(
-                                    text = "Effektiv: ${probeResult.effectiveTap} TaP* (halbiert)",
+                                    text = "Effektiv: ${probeResult.effectiveTap} TaP* (aufgerundet)",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.secondary
                                 )
@@ -204,18 +243,111 @@ fun StructureAnalysisDialog(
                     }
                 }
                 
+                // Zeige Selbstbeherrschungsprobe an
+                selfControlResult?.let { scResult ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (scResult.success) {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.errorContainer
+                            }
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = if (scResult.success) "Selbstbeherrschung erfolgreich!" else "Selbstbeherrschung fehlgeschlagen",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            
+                            Divider()
+                            
+                            Text(
+                                text = "Probe: ${scResult.attributes.first.first}/${scResult.attributes.second.first}/${scResult.attributes.third.first} " +
+                                      "(${scResult.attributes.first.second}/${scResult.attributes.second.second}/${scResult.attributes.third.second})",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            Text(
+                                text = "Fertigkeitswert: ${scResult.fertigkeitswert}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            val scModText = when {
+                                scResult.difficulty > 0 -> "Erschwernis: +${scResult.difficulty}"
+                                else -> "Modifikator: ±0"
+                            }
+                            Text(
+                                text = scModText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (scResult.difficulty > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            Divider()
+                            
+                            Text(
+                                text = "Würfe: ${scResult.rolls.joinToString(", ")}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            Divider()
+                            
+                            Text(
+                                text = scResult.message,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+                
                 if (finalResult == null) {
                     // Buttons für weitere Proben (nur wenn Analyse noch nicht abgeschlossen)
                     currentProbeResult?.let { probeResult ->
-                        if (probeResult.canContinue && probeResult.success) {
+                        if (probeResult.success && selfControlResult == null) {
+                            // Noch keine SK-Probe durchgeführt - Nutzer kann fortsetzen wählen
                             Button(
                                 onClick = {
-                                    probeNumber++
-                                    currentProbeResult = null
+                                    // Führe Selbstbeherrschungsprobe durch
+                                    val scResult = ElixirAnalyzer.performSelfControlProbeWithDetails(
+                                        character = character,
+                                        probeNumber = probeNumber
+                                    )
+                                    selfControlResult = scResult
+                                    
+                                    // Wenn SK fehlschlägt, beende die Analyse
+                                    if (!scResult.success) {
+                                        val final = ElixirAnalyzer.calculateFinalStructureAnalysisResult(
+                                            totalAccumulatedTap = accumulatedTap,
+                                            actualQuality = potion.actualQuality,
+                                            currentIntensity = potion.intensityQuality,
+                                            isRecipeKnown = isRecipeKnown,
+                                            method = selectedMethod,
+                                            acceptHarderProbe = acceptHarderProbe
+                                        )
+                                        finalResult = final
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Weitere Probe durchführen")
+                            }
+                        } else if (probeResult.success && selfControlResult?.success == true) {
+                            // SK-Probe war erfolgreich - nächste Probe durchführen
+                            Button(
+                                onClick = {
+                                    probeNumber++
+                                    currentProbeResult = null
+                                    selfControlResult = null
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Nächste Probe durchführen")
                             }
                         }
                         
@@ -331,9 +463,8 @@ fun StructureAnalysisDialog(
                                 
                                 if (probeResult.success) {
                                     accumulatedTap += probeResult.effectiveTap
-                                }
-                                
-                                if (!probeResult.canContinue || !probeResult.success) {
+                                } else {
+                                    // Bei fehlgeschlagener Probe direkt abschließen
                                     val final = ElixirAnalyzer.calculateFinalStructureAnalysisResult(
                                         totalAccumulatedTap = accumulatedTap,
                                         actualQuality = potion.actualQuality,

@@ -30,7 +30,22 @@ data class StructureAnalysisProbeResult(
     val probeRolls: List<Int>,         // Die drei Würfelwürfe der Hauptprobe
     val message: String,               // Beschreibung des Ergebnisses
     val fertigkeitswert: Int,          // Talentwert/ZfW
-    val difficulty: Int,               // Erschwernis/Erleichterung
+    val difficulty: Int,               // Erschwernis/Erleichterung (gesamt)
+    val baseDifficulty: Int,           // Basis-Analyseerschwernis
+    val facilitation: Int,             // Erleichterung aus vorheriger Analyse
+    val methodBonus: Int,              // Bonus durch Methode (Sinnenschärfe, Magiekunde, etc.)
+    val attributes: Triple<Pair<String, Int>, Pair<String, Int>, Pair<String, Int>>  // Eigenschaftsnamen und -werte
+)
+
+/**
+ * Ergebnis einer Selbstbeherrschungsprobe bei Strukturanalyse
+ */
+data class StructureAnalysisSelfControlResult(
+    val success: Boolean,              // War die Probe erfolgreich?
+    val rolls: List<Int>,              // Die drei Würfelwürfe
+    val difficulty: Int,               // Erschwernis (probeNumber - 1)
+    val fertigkeitswert: Int,          // Selbstbeherrschungs-Talentwert
+    val message: String,               // Beschreibung des Ergebnisses
     val attributes: Triple<Pair<String, Int>, Pair<String, Int>, Pair<String, Int>>  // Eigenschaftsnamen und -werte
 )
 
@@ -176,30 +191,37 @@ object ElixirAnalyzer {
             StructureAnalysisMethod.LABORATORY -> character.alchemySkill
         }
         
+        // Basis-Analyseerschwernis
+        val baseDifficulty = recipe.analysisDifficulty
+        
+        // Erleichterung aus vorheriger Analyse
+        val facilitation = currentFacilitation
+        
         // Erschwernisse und Erleichterungen
-        var difficulty = recipe.analysisDifficulty - currentFacilitation
+        var difficulty = baseDifficulty - facilitation
         
         // Zusätzliche Erleichterungen basierend auf Methode
+        var methodBonus = 0
         when (method) {
             StructureAnalysisMethod.ANALYS_SPELL -> {
                 // Je 3 TaP in Magiekunde über 7 → 1 Punkt Erleichterung
-                val magickundeBonus = if (character.magicalLoreSkill > 7) {
+                methodBonus = if (character.magicalLoreSkill > 7) {
                     (character.magicalLoreSkill - 7) / 3
                 } else 0
-                difficulty -= magickundeBonus
+                difficulty -= methodBonus
             }
             StructureAnalysisMethod.BY_SIGHT -> {
                 // Je 3 TaP in Sinnenschärfe → 1 Punkt Erleichterung
-                val sensoryBonus = character.sensoryAcuitySkill / 3
-                difficulty -= sensoryBonus
+                methodBonus = character.sensoryAcuitySkill / 3
+                difficulty -= methodBonus
             }
             StructureAnalysisMethod.LABORATORY -> {
                 // Magiekunde oder Pflanzenkunde (höherer Wert)
                 val loreSkill = maxOf(character.magicalLoreSkill, character.herbalLoreSkill)
-                val loreBonus = if (loreSkill > 7) {
+                methodBonus = if (loreSkill > 7) {
                     (loreSkill - 7) / 3
                 } else 0
-                difficulty -= loreBonus
+                difficulty -= methodBonus
                 
                 // Optional: +3 Erschwernis statt Trank zu verbrauchen
                 if (acceptHarderProbe) {
@@ -258,19 +280,18 @@ object ElixirAnalyzer {
                 message = "Strukturanalyse-Probe fehlgeschlagen (${probeResult.qualityPoints} TaP*)",
                 fertigkeitswert = baseTaw,
                 difficulty = difficulty,
+                baseDifficulty = baseDifficulty,
+                facilitation = facilitation,
+                methodBonus = methodBonus,
                 attributes = attributeNames
             )
         }
         
-        // Effektive TaP* (bei Augenschein nur die Hälfte, max 8)
+        // Effektive TaP* (bei Augenschein nur die Hälfte aufgerundet, max 8)
         val effectiveTap = when (method) {
-            StructureAnalysisMethod.BY_SIGHT -> minOf(probeResult.qualityPoints / 2, 8)
+            StructureAnalysisMethod.BY_SIGHT -> minOf((probeResult.qualityPoints + 1) / 2, 8)
             else -> probeResult.qualityPoints
         }
-        
-        // Selbstbeherrschungsprobe: Erschwernis ist n-1 (bei Probe n)
-        val selfControlDifficulty = probeNumber - 1
-        val selfControlResult = performSelfControlProbe(character, selfControlDifficulty)
         
         val message = buildString {
             if (probeResult.isTripleOne) {
@@ -280,27 +301,25 @@ object ElixirAnalyzer {
             }
             append("Strukturanalyse-Probe erfolgreich mit ${probeResult.qualityPoints} TaP*")
             if (method == StructureAnalysisMethod.BY_SIGHT) {
-                append(" (effektiv $effectiveTap TaP* nach Halbierung)")
+                append(" (effektiv $effectiveTap TaP* aufgerundet)")
             }
-            append(".\n")
-            if (selfControlResult) {
-                append("Selbstbeherrschung erfolgreich. Sie können weitere Proben ablegen.")
-            } else {
-                append("Selbstbeherrschung fehlgeschlagen. Die Analyse ist abgeschlossen.")
-            }
+            append(".")
         }
         
         return StructureAnalysisProbeResult(
             success = true,
             tap = probeResult.qualityPoints,
             effectiveTap = effectiveTap,
-            selfControlSuccess = selfControlResult,
-            selfControlRolls = emptyList(),  // TODO: Würfe speichern wenn gewünscht
-            canContinue = selfControlResult,
+            selfControlSuccess = false,  // Wird später gesetzt
+            selfControlRolls = emptyList(),
+            canContinue = true,  // Zunächst immer true, wird durch SK-Probe bestimmt
             probeRolls = probeResult.rolls,
             message = message,
             fertigkeitswert = baseTaw,
             difficulty = difficulty,
+            baseDifficulty = baseDifficulty,
+            facilitation = facilitation,
+            methodBonus = methodBonus,
             attributes = attributeNames
         )
     }
@@ -317,6 +336,39 @@ object ElixirAnalyzer {
             difficulty = difficulty
         )
         return probeResult.success
+    }
+    
+    /**
+     * Führt eine Selbstbeherrschungsprobe durch und gibt das Ergebnis mit Details zurück
+     * Selbstbeherrschung: MU/MU/KO
+     */
+    fun performSelfControlProbeWithDetails(character: Character, probeNumber: Int): StructureAnalysisSelfControlResult {
+        val difficulty = probeNumber - 1
+        val probeResult = ProbeChecker.performTalentProbe(
+            talent = Talent.SELF_CONTROL,
+            character = character,
+            talentwert = character.selfControlSkill,
+            difficulty = difficulty
+        )
+        
+        val message = if (probeResult.success) {
+            "Selbstbeherrschungsprobe erfolgreich! Sie können weitere Proben ablegen."
+        } else {
+            "Selbstbeherrschungsprobe fehlgeschlagen. Die Analyse ist abgeschlossen."
+        }
+        
+        return StructureAnalysisSelfControlResult(
+            success = probeResult.success,
+            rolls = probeResult.rolls,
+            difficulty = difficulty,
+            fertigkeitswert = character.selfControlSkill,
+            message = message,
+            attributes = Triple(
+                Pair("MU", character.mu),
+                Pair("MU", character.mu),
+                Pair("KO", character.ko)
+            )
+        )
     }
     
     /**
