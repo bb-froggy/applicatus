@@ -39,6 +39,7 @@ class PotionScreenTest {
         context = ApplicationProvider.getApplicationContext()
         database = Room.inMemoryDatabaseBuilder(context, ApplicatusDatabase::class.java)
             .allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
             .build()
         repository = ApplicatusRepository(
             database.spellDao(),
@@ -51,6 +52,9 @@ class PotionScreenTest {
         )
 
         runBlocking {
+            // Warte kurz, damit onCreate-Callback abgeschlossen ist
+            kotlinx.coroutines.delay(100)
+            
             // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
             repository.allRecipes.first().forEach { recipe ->
                 repository.deleteRecipe(recipe)

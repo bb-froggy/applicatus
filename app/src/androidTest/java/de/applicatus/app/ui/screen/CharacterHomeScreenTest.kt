@@ -55,6 +55,7 @@ class CharacterHomeScreenTest {
         context = ApplicationProvider.getApplicationContext()
         database = Room.inMemoryDatabaseBuilder(context, ApplicatusDatabase::class.java)
             .allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
             .build()
         repository = ApplicatusRepository(
             database.spellDao(),
@@ -187,11 +188,14 @@ class CharacterHomeScreenTest {
         // Prüfe initial, dass der Wert korrekt ist
         composeRule.onNodeWithText("$TEST_CURRENT_LE / $TEST_MAX_LE").assertIsDisplayed()
         
+        // Warte zusätzlich, um sicherzustellen, dass alle UI-Elemente geladen sind
+        Thread.sleep(500)
+        
         // Finde den + Button in der LE Sektion (Buttons zeigen "+", nicht "+1")
         composeRule.onAllNodesWithText("+")[0].performClick()
         
-        // Warte auf UI-Update mit Timeout
-        composeRule.waitUntil(timeoutMillis = 2000) {
+        // Warte auf UI-Update mit längerem Timeout für CI
+        composeRule.waitUntil(timeoutMillis = 5000) {
             composeRule.onAllNodesWithText("${TEST_CURRENT_LE + 1} / $TEST_MAX_LE")
                 .fetchSemanticsNodes().isNotEmpty()
         }

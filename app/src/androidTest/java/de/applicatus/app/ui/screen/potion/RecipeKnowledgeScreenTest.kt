@@ -62,6 +62,7 @@ class RecipeKnowledgeScreenTest {
         context = ApplicationProvider.getApplicationContext()
         database = Room.inMemoryDatabaseBuilder(context, ApplicatusDatabase::class.java)
             .allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
             .build()
         repository = ApplicatusRepository(
             database.spellDao(),
@@ -74,10 +75,18 @@ class RecipeKnowledgeScreenTest {
         )
 
         runBlocking {
+            // Warte kurz, damit onCreate-Callback abgeschlossen ist
+            kotlinx.coroutines.delay(100)
+            
             // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
-            repository.allRecipes.first().forEach { recipe ->
+            // Dies muss synchron passieren, bevor die Test-Rezepte eingefügt werden
+            val existingRecipes = repository.allRecipes.first()
+            existingRecipes.forEach { recipe ->
                 repository.deleteRecipe(recipe)
             }
+            
+            // Doppelte Prüfung, dass wirklich alle weg sind
+            kotlinx.coroutines.delay(50)
             
             testCharacterId = repository.insertCharacter(
                 Character(

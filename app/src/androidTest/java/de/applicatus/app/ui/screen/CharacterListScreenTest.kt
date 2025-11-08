@@ -39,6 +39,7 @@ class CharacterListScreenTest {
         context = ApplicationProvider.getApplicationContext()
         database = Room.inMemoryDatabaseBuilder(context, ApplicatusDatabase::class.java)
             .allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
             .build()
         repository = ApplicatusRepository(
             database.spellDao(),
