@@ -2,6 +2,8 @@ package de.applicatus.app.data.export
 
 import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.model.potion.AnalysisStatus
+import de.applicatus.app.data.model.potion.IntensityQuality
+import de.applicatus.app.data.model.potion.KnownQualityLevel
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.model.spell.SlotType
@@ -210,10 +212,12 @@ class CharacterExportDtoTest {
                 PotionDto(
                     recipeId = 42,
                     recipeName = "Heiltrank",
-                    quality = PotionQuality.B.name,
+                    actualQuality = PotionQuality.B.name,
                     appearance = "klar",
-                    analysisStatus = AnalysisStatus.PRECISE_ANALYZED.name,
-                    expiryDate = "1 Efferd 1041 BF"
+                    expiryDate = "1 Efferd 1041 BF",
+                    categoryKnown = true,
+                    knownQualityLevel = KnownQualityLevel.EXACT.name,
+                    knownExactQuality = PotionQuality.B.name
                 )
             ),
             recipeKnowledge = listOf(
@@ -235,7 +239,7 @@ class CharacterExportDtoTest {
         assertTrue(jsonString.contains("SPELL_STORAGE"))
         assertTrue(jsonString.contains("\"volumePoints\": 50"))
         assertTrue(jsonString.contains("Heiltrank"))
-        assertTrue(jsonString.contains(AnalysisStatus.PRECISE_ANALYZED.name))
+        assertTrue(jsonString.contains(PotionQuality.B.name))
         
         val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
         assertEquals(2, decoded.spellSlots.size)
@@ -375,18 +379,21 @@ class CharacterExportDtoTest {
         val dto = PotionDto(
             recipeId = 7,
             recipeName = "Zaubertrank",
-            quality = PotionQuality.A.name,
+            actualQuality = PotionQuality.A.name,
             appearance = "funkelnd",
-            analysisStatus = AnalysisStatus.ROUGH_ANALYZED.name,
-            expiryDate = "1 Rondra 1042 BF"
+            expiryDate = "1 Rondra 1042 BF",
+            categoryKnown = true,
+            knownQualityLevel = KnownQualityLevel.WEAK_OR_STRONG.name,
+            intensityQuality = IntensityQuality.STRONG.name
         )
 
         val model = dto.toPotion(characterId = 3, resolvedRecipeId = 9)
 
         assertEquals(3, model.characterId)
         assertEquals(9, model.recipeId)
-        assertEquals(PotionQuality.A, model.quality)
-        assertEquals(AnalysisStatus.ROUGH_ANALYZED, model.analysisStatus)
+        assertEquals(PotionQuality.A, model.actualQuality)
+        assertEquals(KnownQualityLevel.WEAK_OR_STRONG, model.knownQualityLevel)
+        assertEquals(IntensityQuality.STRONG, model.intensityQuality)
         assertEquals("funkelnd", model.appearance)
     }
 

@@ -44,6 +44,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    lint {
+        // Disable checks due to known bugs in lint
+        disable += listOf("AutoboxingStateCreation", "MutableCollectionMutableState")
+    }
 }
 
 dependencies {
