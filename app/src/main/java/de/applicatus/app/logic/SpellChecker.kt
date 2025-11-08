@@ -19,6 +19,11 @@ data class ApplicatusCheckResult(
     val overallSuccess: Boolean
 )
 
+/**
+ * Zauberproben-Logik für Applicatus
+ * 
+ * Verwendet die zentrale ProbeChecker-Klasse für die eigentliche Proben-Durchführung.
+ */
 object SpellChecker {
     /**
      * Führt eine Zauberprobe durch (ohne Applicatus)
@@ -37,108 +42,27 @@ object SpellChecker {
         attribute3: Int,
         diceRoll: () -> Int = { Random.nextInt(1, 21) }
     ): SpellCheckResult {
-        // Würfle 3x W20
-        val rolls = List(3) { diceRoll() }
+        // Nutze zentrale ProbeChecker-Logik
+        val probeResult = ProbeChecker.performThreeAttributeProbe(
+            fertigkeitswert = zfw,
+            difficulty = modifier,
+            attribute1 = attribute1,
+            attribute2 = attribute2,
+            attribute3 = attribute3,
+            diceRoll = diceRoll,
+            qualityPointName = "ZfP*"
+        )
         
-        // Prüfe auf besondere Fälle
-        val countOnes = rolls.count { it == 1 }
-        val countTwenties = rolls.count { it == 20 }
-        
-        // Dreifach-1
-        if (countOnes >= 3) {
-            return SpellCheckResult(
-                success = true,
-                zfpStar = zfw, // Maximum
-                rolls = rolls,
-                message = "Dreifach-1! Legendär!",
-                isTripleOne = true
-            )
-        }
-        
-        // Doppel-1
-        if (countOnes >= 2) {
-            return SpellCheckResult(
-                success = true,
-                zfpStar = zfw, // Maximum
-                rolls = rolls,
-                message = "Doppel-1! Meisterwerk!",
-                isDoubleOne = true
-            )
-        }
-        
-        // Dreifach-20
-        if (countTwenties >= 3) {
-            return SpellCheckResult(
-                success = false,
-                zfpStar = 0,
-                rolls = rolls,
-                message = "Dreifach-20! Katastrophaler Patzer!",
-                isTripleTwenty = true
-            )
-        }
-        
-        // Doppel-20
-        if (countTwenties >= 2) {
-            return SpellCheckResult(
-                success = false,
-                zfpStar = 0,
-                rolls = rolls,
-                message = "Doppel-20! Patzer!",
-                isDoubleTwenty = true
-            )
-        }
-        
-        // ZfP* = ZfW - Modifikator
-        var zfpStar = zfw - modifier
-        
-        val attributes = listOf(attribute1, attribute2, attribute3)
-        var success : Boolean
-        if (zfw > modifier) {
-            // Normale Probe
-            
-            // Prüfe jeden Würfelwurf gegen die Eigenschaft
-            rolls.forEachIndexed { index, roll ->
-                val attribute = attributes[index]
-                if (roll > attribute) {
-                    // Überwurf: Differenz von ZfP* abziehen
-                    val difference = roll - attribute
-                    zfpStar -= difference
-                }
-            }
-            
-            // Prüfe Erfolg/Misserfolg
-            success = zfpStar >= 0
-            
-            // ZfP* wird auf ZfW gedeckelt (kann nicht höher sein als ZfW)
-            if (success) {
-                zfpStar = minOf(zfpStar, zfw)
-            } else {
-                zfpStar = 0
-            }
-        } else {
-            // Erschwerte Probe: Jede Eigenschaft muss um die Erschwernis unterwürfelt werden
-            var difficulty = modifier - zfw
-            zfpStar = 0 // Besser kann es nicht werden
-            success = true  // Grundannahme ... kann sich aber gleich noch ändern
-
-            // Prüfe jeden Würfelwurf gegen die Eigenschaft
-            rolls.forEachIndexed { index, roll ->
-                val attribute = attributes[index]
-                if (roll + difficulty > attribute) {
-                    success = false
-                }
-            }
-        }
-
-        if (success && zfpStar == 0) {
-            zfpStar = 1 // Ein Erfolg hat immer mindestens 1 ZfP*
-        }
-        
+        // Konvertiere zu SpellCheckResult
         return SpellCheckResult(
-            success = success,
-            zfpStar = zfpStar,
-            rolls = rolls,
-            message = if (success) "Zauber erfolgreich!" else "Zauber fehlgeschlagen!"
+            success = probeResult.success,
+            zfpStar = probeResult.qualityPoints,
+            rolls = probeResult.rolls,
+            message = if (probeResult.success) "Zauber erfolgreich!" else "Zauber fehlgeschlagen!",
+            isDoubleOne = probeResult.isDoubleOne,
+            isTripleOne = probeResult.isTripleOne,
+            isDoubleTwenty = probeResult.isDoubleTwenty,
+            isTripleTwenty = probeResult.isTripleTwenty
         )
     }
     

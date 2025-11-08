@@ -32,6 +32,8 @@ data class RegenerationResult(
 
 /**
  * Berechnet die Regeneration für einen Charakter
+ * 
+ * Verwendet die zentrale ProbeChecker-Klasse für Würfelwürfe und Attributsproben.
  */
 object RegenerationCalculator {
     
@@ -52,7 +54,7 @@ object RegenerationCalculator {
         val keDetailsParts = mutableListOf<String>()
         
         // LE-Regeneration
-        val leDice = rollD6()
+        val leDice = ProbeChecker.rollD6()
         leDetailsParts.add("W6=$leDice")
         leGain += leDice
         
@@ -71,12 +73,12 @@ object RegenerationCalculator {
         leGain = leGain.coerceAtLeast(0)
         
         // KO-Probe für LE
-        val koRoll = rollD20()
-        if (koRoll <= character.ko) {
+        val koProbe = ProbeChecker.performAttributeProbe(character.ko)
+        if (koProbe.success) {
             leGain += 1
-            leDetailsParts.add("KO-Probe: $koRoll≤${character.ko} ✓")
+            leDetailsParts.add("KO-Probe: ${koProbe.roll}≤${koProbe.attribute} ✓")
         } else {
-            leDetailsParts.add("KO-Probe: $koRoll>${character.ko} ✗")
+            leDetailsParts.add("KO-Probe: ${koProbe.roll}>${koProbe.attribute} ✗")
         }
         
         // AE-Regeneration (wenn vorhanden)
@@ -90,7 +92,7 @@ object RegenerationCalculator {
                 aeDetailsParts.add("Meisterlich=${masteryRegen}")
             } else {
                 // Normale Regeneration: 1W6
-                val aeDice = rollD6()
+                val aeDice = ProbeChecker.rollD6()
                 aeDetailsParts.add("W6=$aeDice")
                 aeGain += aeDice
                 
@@ -110,12 +112,12 @@ object RegenerationCalculator {
             aeGain = aeGain.coerceAtLeast(0)
             
             // IN-Probe für AE
-            val inRoll = rollD20()
-            if (inRoll <= character.inValue) {
+            val inProbe = ProbeChecker.performAttributeProbe(character.inValue)
+            if (inProbe.success) {
                 aeGain += 1
-                aeDetailsParts.add("IN-Probe: $inRoll≤${character.inValue} ✓")
+                aeDetailsParts.add("IN-Probe: ${inProbe.roll}≤${inProbe.attribute} ✓")
             } else {
-                aeDetailsParts.add("IN-Probe: $inRoll>${character.inValue} ✗")
+                aeDetailsParts.add("IN-Probe: ${inProbe.roll}>${inProbe.attribute} ✗")
             }
         }
         
@@ -139,7 +141,4 @@ object RegenerationCalculator {
             keDetails = if (keDetailsParts.isEmpty()) "" else keDetailsParts.joinToString(", ")
         )
     }
-    
-    private fun rollD6(): Int = Random.nextInt(1, 7)
-    private fun rollD20(): Int = Random.nextInt(1, 21)
 }

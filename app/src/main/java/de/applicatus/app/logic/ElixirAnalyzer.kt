@@ -48,6 +48,8 @@ data class StructureAnalysisFinalResult(
 
 /**
  * Logik für Elixier-Analysen nach DSA-Regeln
+ * 
+ * Verwendet die zentrale ProbeChecker-Klasse für Proben-Durchführung.
  */
 object ElixirAnalyzer {
     
@@ -65,73 +67,42 @@ object ElixirAnalyzer {
         actualQuality: PotionQuality
     ): IntensityDeterminationResult {
         // Odem-Probe: KL/IN/CH
-        val zfw = character.odemZfw
-        val difficulty = recipe.analysisDifficulty
+        val probeResult = ProbeChecker.performThreeAttributeProbe(
+            fertigkeitswert = character.odemZfw,
+            difficulty = recipe.analysisDifficulty,
+            attribute1 = character.kl,
+            attribute2 = character.inValue,
+            attribute3 = character.ch,
+            qualityPointName = "ZfP*"
+        )
         
-        val attributes = listOf(character.kl, character.inValue, character.ch)
-        val rolls = List(3) { rollD20() }
+        if (!probeResult.success) {
+            return IntensityDeterminationResult(
+                success = false,
+                zfp = probeResult.qualityPoints,
+                intensityQuality = IntensityQuality.UNKNOWN,
+                rolls = probeResult.rolls,
+                message = "Intensitätsbestimmung fehlgeschlagen (${probeResult.qualityPoints} ZfP*)"
+            )
+        }
         
-        // Prüfe auf besondere Würfe
-        val ones = rolls.count { it == 1 }
-        val twenties = rolls.count { it == 20 }
-        
-        // Berechne ZfP*
-        var zfp = zfw - difficulty
-        
-        // Bei besonderen Würfen
-        if (ones >= 2) {
-            // Doppel-1 oder Dreifach-1: Automatischer Erfolg mit max ZfP*
+        // Bei Doppel-1 oder Dreifach-1: Perfekter Erfolg
+        if (probeResult.isDoubleOne || probeResult.isTripleOne) {
             val intensity = determineIntensityFromQuality(actualQuality, true)
             return IntensityDeterminationResult(
                 success = true,
-                zfp = zfw,
+                zfp = probeResult.qualityPoints,
                 intensityQuality = intensity,
-                rolls = rolls,
-                message = if (ones == 3) 
+                rolls = probeResult.rolls,
+                message = if (probeResult.isTripleOne) 
                     "Dreifach-1! Meisterhafte Intensitätsbestimmung! Intensität: ${intensityToString(intensity)}" 
                 else 
                     "Doppel-1! Hervorragende Intensitätsbestimmung! Intensität: ${intensityToString(intensity)}"
             )
         }
         
-        if (twenties >= 2) {
-            // Doppel-20 oder Dreifach-20: Automatischer Patzer
-            return IntensityDeterminationResult(
-                success = false,
-                zfp = zfp,
-                intensityQuality = IntensityQuality.UNKNOWN,
-                rolls = rolls,
-                message = if (twenties == 3) 
-                    "Dreifach-20! Katastrophaler Patzer!" 
-                else 
-                    "Doppel-20! Patzer!"
-            )
-        }
-        
-        // Normale Probe: Abzüge für Überwürfe
-        for (i in rolls.indices) {
-            val roll = rolls[i]
-            val attribute = attributes[i]
-            if (roll > attribute) {
-                zfp -= (roll - attribute)
-            }
-        }
-        
-        // Erfolg wenn ZfP* >= 0
-        val success = zfp >= 0
-        
-        if (!success) {
-            return IntensityDeterminationResult(
-                success = false,
-                zfp = zfp,
-                intensityQuality = IntensityQuality.UNKNOWN,
-                rolls = rolls,
-                message = "Intensitätsbestimmung fehlgeschlagen ($zfp ZfP*)"
-            )
-        }
-        
         // Kann ab 3 ZfP* schwach von stark unterscheiden
-        val canDifferentiate = zfp >= 3
+        val canDifferentiate = probeResult.qualityPoints >= 3
         val intensity = if (canDifferentiate) {
             determineIntensityFromQuality(actualQuality, false)
         } else {
@@ -139,16 +110,16 @@ object ElixirAnalyzer {
         }
         
         val message = if (canDifferentiate) {
-            "Intensitätsbestimmung erfolgreich mit $zfp ZfP*! Intensität: ${intensityToString(intensity)}"
+            "Intensitätsbestimmung erfolgreich mit ${probeResult.qualityPoints} ZfP*! Intensität: ${intensityToString(intensity)}"
         } else {
-            "Intensitätsbestimmung erfolgreich mit $zfp ZfP*, aber zu schwach um die Intensität zu bestimmen (benötigt 3+ ZfP*)"
+            "Intensitätsbestimmung erfolgreich mit ${probeResult.qualityPoints} ZfP*, aber zu schwach um die Intensität zu bestimmen (benötigt 3+ ZfP*)"
         }
         
         return IntensityDeterminationResult(
             success = true,
-            zfp = zfp,
+            zfp = probeResult.qualityPoints,
             intensityQuality = intensity,
-            rolls = rolls,
+            rolls = probeResult.rolls,
             message = message
         )
     }
@@ -237,59 +208,38 @@ object ElixirAnalyzer {
         // Eigenschaften für die Probe
         val attributes = when (method) {
             StructureAnalysisMethod.ANALYS_SPELL -> 
-                listOf(character.kl, character.inValue, character.ch)
+                Triple(character.kl, character.inValue, character.ch)
             StructureAnalysisMethod.BY_SIGHT, StructureAnalysisMethod.LABORATORY -> 
-                listOf(character.kl, character.inValue, character.inValue)
+                Triple(character.kl, character.inValue, character.inValue)
         }
         
-        // Drei W20-Würfe für die Hauptprobe
-        val probeRolls = List(3) { rollD20() }
+        // Führe Probe durch
+        val probeResult = ProbeChecker.performThreeAttributeProbe(
+            fertigkeitswert = baseTaw,
+            difficulty = difficulty,
+            attribute1 = attributes.first,
+            attribute2 = attributes.second,
+            attribute3 = attributes.third,
+            qualityPointName = "TaP*"
+        )
         
-        // Prüfe auf besondere Würfe
-        val ones = probeRolls.count { it == 1 }
-        val twenties = probeRolls.count { it == 20 }
-        
-        // Berechne TaP*
-        var tap = baseTaw - difficulty
-        
-        // Bei besonderen Würfen
-        val success: Boolean
-        if (ones >= 2) {
-            // Doppel-1 oder Dreifach-1: Automatischer Erfolg mit max TaP*
-            tap = baseTaw
-            success = true
-        } else if (twenties >= 2) {
-            // Doppel-20 oder Dreifach-20: Automatischer Patzer
-            success = false
-        } else {
-            // Normale Probe: Abzüge für Überwürfe
-            for (i in probeRolls.indices) {
-                val roll = probeRolls[i]
-                val attribute = attributes[i]
-                if (roll > attribute) {
-                    tap -= (roll - attribute)
-                }
-            }
-            success = tap >= 0
-        }
-        
-        // Effektive TaP* (bei Augenschein nur die Hälfte, max 8)
-        val effectiveTap = when (method) {
-            StructureAnalysisMethod.BY_SIGHT -> minOf(tap / 2, 8)
-            else -> tap
-        }
-        
-        if (!success) {
+        if (!probeResult.success) {
             return StructureAnalysisProbeResult(
                 success = false,
-                tap = tap,
+                tap = probeResult.qualityPoints,
                 effectiveTap = 0,
                 selfControlSuccess = false,
                 selfControlRolls = emptyList(),
                 canContinue = false,
-                probeRolls = probeRolls,
-                message = "Strukturanalyse-Probe fehlgeschlagen ($tap TaP*)"
+                probeRolls = probeResult.rolls,
+                message = "Strukturanalyse-Probe fehlgeschlagen (${probeResult.qualityPoints} TaP*)"
             )
+        }
+        
+        // Effektive TaP* (bei Augenschein nur die Hälfte, max 8)
+        val effectiveTap = when (method) {
+            StructureAnalysisMethod.BY_SIGHT -> minOf(probeResult.qualityPoints / 2, 8)
+            else -> probeResult.qualityPoints
         }
         
         // Selbstbeherrschungsprobe: Erschwernis ist n-1 (bei Probe n)
@@ -297,10 +247,12 @@ object ElixirAnalyzer {
         val selfControlResult = performSelfControlProbe(character, selfControlDifficulty)
         
         val message = buildString {
-            if (ones >= 2) {
-                append(if (ones == 3) "Dreifach-1! " else "Doppel-1! ")
+            if (probeResult.isTripleOne) {
+                append("Dreifach-1! ")
+            } else if (probeResult.isDoubleOne) {
+                append("Doppel-1! ")
             }
-            append("Strukturanalyse-Probe erfolgreich mit $tap TaP*")
+            append("Strukturanalyse-Probe erfolgreich mit ${probeResult.qualityPoints} TaP*")
             if (method == StructureAnalysisMethod.BY_SIGHT) {
                 append(" (effektiv $effectiveTap TaP* nach Halbierung)")
             }
@@ -314,12 +266,12 @@ object ElixirAnalyzer {
         
         return StructureAnalysisProbeResult(
             success = true,
-            tap = tap,
+            tap = probeResult.qualityPoints,
             effectiveTap = effectiveTap,
             selfControlSuccess = selfControlResult,
             selfControlRolls = emptyList(),  // TODO: Würfe speichern wenn gewünscht
             canContinue = selfControlResult,
-            probeRolls = probeRolls,
+            probeRolls = probeResult.rolls,
             message = message
         )
     }
@@ -328,20 +280,15 @@ object ElixirAnalyzer {
      * Führt eine Selbstbeherrschungsprobe durch
      */
     private fun performSelfControlProbe(character: Character, difficulty: Int): Boolean {
-        val taw = character.selfControlSkill
-        val attributes = listOf(character.mu, character.mu, character.ko)
-        val rolls = List(3) { rollD20() }
-        
-        var tap = taw - difficulty
-        for (i in rolls.indices) {
-            val roll = rolls[i]
-            val attribute = attributes[i]
-            if (roll > attribute) {
-                tap -= (roll - attribute)
-            }
-        }
-        
-        return tap >= 0
+        val probeResult = ProbeChecker.performThreeAttributeProbe(
+            fertigkeitswert = character.selfControlSkill,
+            difficulty = difficulty,
+            attribute1 = character.mu,
+            attribute2 = character.mu,
+            attribute3 = character.ko,
+            qualityPointName = "TaP*"
+        )
+        return probeResult.success
     }
     
     /**
@@ -468,9 +415,4 @@ object ElixirAnalyzer {
             RefinedQuality.UNKNOWN -> "Unbekannt"
         }
     }
-    
-    /**
-     * Würfelt einen W20
-     */
-    private fun rollD20(): Int = Random.nextInt(1, 21)
 }

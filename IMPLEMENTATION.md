@@ -103,13 +103,36 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 - ✅ **InitialSpells**: 190+ vordefinierte Zauber aus magierzauber.txt
 
 ### 4. Geschäftslogik (logic/)
-- ✅ **SpellChecker**: Komplette Zauberprobe-Implementierung
-  - ✅ 3x W20-Würfelwürfe
-  - ✅ Berechnung von ZfP* mit Modifikatoren
+
+- ✅ **ProbeChecker**: Zentrale Klasse für DSA-Proben
+  - ✅ Drei-Eigenschafts-Proben (Talente, Zauber, etc.)
+  - ✅ Einfache Attributsproben (KO, IN, etc.)
+  - ✅ W20 und W6 Würfelwürfe
   - ✅ Erkennung von Doppel-1, Dreifach-1, Doppel-20, Dreifach-20
-  - ✅ Deckelung auf ZfW
+  - ✅ Berechnung von Qualitätspunkten (TaP*, ZfP*, FP*)
+  - ✅ Unterstützung für Erschwernisse und Erleichterungen
+  
+- ✅ **SpellChecker**: Zauberprobe-Implementierung (nutzt ProbeChecker)
+  - ✅ Zauberproben mit ZfW und Modifikatoren
   - ✅ Formatierte Ergebnis-Strings
   - ✅ **Applicatus-Probe**: Doppelte Zauberprobe (Applicatus + eigentlicher Zauber)
+
+- ✅ **ElixirAnalyzer**: Elixier-Analyse-Implementierung (nutzt ProbeChecker)
+  - ✅ Intensitätsbestimmung (Odem-Zauber)
+  - ✅ Strukturanalyse mit mehreren Proben
+  - ✅ Selbstbeherrschungs-Proben
+  - ✅ Berechnung von Analyseergebnissen
+
+- ✅ **PotionAnalyzer**: Tranksanalyse-Implementierung (nutzt ProbeChecker)
+  - ✅ Analyse nach verschiedenen Methoden
+  - ✅ Bestimmung des Analysestatus
+  - ✅ Rezept-Verständnis bei 19+ TaP*
+
+- ✅ **RegenerationCalculator**: Regenerations-Berechnung (nutzt ProbeChecker)
+  - ✅ LE-Regeneration mit KO-Probe
+  - ✅ AE-Regeneration mit IN-Probe
+  - ✅ KE-Regeneration
+  - ✅ Unterstützung für Meisterliche Regeneration
 
 ### 5. ViewModels (ui/viewmodel/)
 - ✅ **CharacterListViewModel**: Verwaltung der Charakterliste
