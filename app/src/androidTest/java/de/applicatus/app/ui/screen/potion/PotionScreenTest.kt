@@ -89,9 +89,8 @@ class PotionScreenTest {
                 Potion(
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
-                    quality = PotionQuality.C,
-                    expiryDate = "1050 BF, Praios",
-                    analysisStatus = AnalysisStatus.NOT_ANALYZED
+                    actualQuality = PotionQuality.C,
+                    expiryDate = "1050 BF, Praios"
                 )
             )
         }
@@ -367,9 +366,8 @@ class PotionScreenTest {
                 Potion(
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
-                    quality = PotionQuality.A,
-                    expiryDate = "1050 BF, Praios",
-                    analysisStatus = AnalysisStatus.NOT_ANALYZED
+                    actualQuality = PotionQuality.A,
+                    expiryDate = "1050 BF, Praios"
                 )
             )
             
@@ -377,9 +375,8 @@ class PotionScreenTest {
                 Potion(
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
-                    quality = PotionQuality.B,
-                    expiryDate = "1050 BF, Praios",
-                    analysisStatus = AnalysisStatus.ROUGH_ANALYZED
+                    actualQuality = PotionQuality.B,
+                    expiryDate = "1050 BF, Praios"
                 )
             )
         }
