@@ -184,10 +184,17 @@ class CharacterHomeScreenTest {
 
         composeRule.waitForIdle()
         
+        // Prüfe initial, dass der Wert korrekt ist
+        composeRule.onNodeWithText("$TEST_CURRENT_LE / $TEST_MAX_LE").assertIsDisplayed()
+        
         // Finde den + Button in der LE Sektion (Buttons zeigen "+", nicht "+1")
         composeRule.onAllNodesWithText("+")[0].performClick()
         
-        composeRule.waitForIdle()
+        // Warte auf UI-Update mit Timeout
+        composeRule.waitUntil(timeoutMillis = 2000) {
+            composeRule.onAllNodesWithText("${TEST_CURRENT_LE + 1} / $TEST_MAX_LE")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         
         // Überprüfe, ob LE erhöht wurde (mit Konstanten)
         composeRule.onNodeWithText("${TEST_CURRENT_LE + 1} / $TEST_MAX_LE").assertIsDisplayed()

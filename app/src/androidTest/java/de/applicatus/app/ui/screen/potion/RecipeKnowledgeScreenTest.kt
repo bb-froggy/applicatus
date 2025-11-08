@@ -75,7 +75,7 @@ class RecipeKnowledgeScreenTest {
 
         runBlocking {
             // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
-            repository.allRecipes.first().forEach { recipe ->
+            repository.getAllRecipes().first().forEach { recipe ->
                 repository.deleteRecipe(recipe)
             }
             
@@ -243,7 +243,6 @@ class RecipeKnowledgeScreenTest {
         composeRule.onNodeWithText("Unbekannt").assertIsDisplayed()
     }
 
-    @Ignore("StateFlow timing issue - see class documentation")
     @Test
     fun recipeKnowledgeScreen_filterShowsOnlyKnownRecipes() {
         val viewModelFactory = RecipeKnowledgeViewModelFactory(repository, testCharacterId)
@@ -270,8 +269,8 @@ class RecipeKnowledgeScreenTest {
         composeRule.waitForIdle()
         waitForRecipes()
         
-        // Nur Heiltrank sollte angezeigt werden (kann mehrfach vorkommen, z.B. in Liste und Details)
-        composeRule.onAllNodesWithText("Heiltrank")[0].assertIsDisplayed()
+        // Nur Heiltrank sollte angezeigt werden
+        composeRule.onNodeWithText("Heiltrank").assertIsDisplayed()
         composeRule.onNodeWithText("Gifttrank").assertDoesNotExist()
         composeRule.onNodeWithText("Elixier der Weisheit").assertDoesNotExist()
     }
