@@ -15,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import de.applicatus.app.data.nearby.NearbyConnectionsService
+import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import de.applicatus.app.ui.viewmodel.NearbySyncViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,7 +120,7 @@ fun NearbySyncScreen(
                         Button(
                             onClick = { viewModel.sendCharacter(characterId) },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = viewModel.connectionState is NearbyConnectionsService.ConnectionState.Connected
+                            enabled = viewModel.connectionState is NearbyConnectionsInterface.ConnectionState.Connected
                         ) {
                             Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -139,7 +139,7 @@ fun NearbySyncScreen(
                     Button(
                         onClick = { viewModel.startAdvertising(deviceName) },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !viewModel.isAdvertising && viewModel.connectionState !is NearbyConnectionsService.ConnectionState.Connected
+                        enabled = !viewModel.isAdvertising && viewModel.connectionState !is NearbyConnectionsInterface.ConnectionState.Connected
                     ) {
                         Icon(Icons.Default.Settings, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -152,7 +152,7 @@ fun NearbySyncScreen(
                             viewModel.startDiscovery { _, _ -> }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !viewModel.isDiscovering && viewModel.connectionState !is NearbyConnectionsService.ConnectionState.Connected
+                        enabled = !viewModel.isDiscovering && viewModel.connectionState !is NearbyConnectionsInterface.ConnectionState.Connected
                     ) {
                         Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -160,7 +160,7 @@ fun NearbySyncScreen(
                     }
                     
                     // Disconnect Button
-                    if (viewModel.connectionState is NearbyConnectionsService.ConnectionState.Connected ||
+                    if (viewModel.connectionState is NearbyConnectionsInterface.ConnectionState.Connected ||
                         viewModel.isAdvertising || viewModel.isDiscovering) {
                         OutlinedButton(
                             onClick = { viewModel.stopAllConnections() },
@@ -245,12 +245,12 @@ fun NearbySyncScreen(
 }
 
 @Composable
-fun ConnectionStateCard(state: NearbyConnectionsService.ConnectionState) {
+fun ConnectionStateCard(state: NearbyConnectionsInterface.ConnectionState) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = when (state) {
-                is NearbyConnectionsService.ConnectionState.Connected -> MaterialTheme.colorScheme.primaryContainer
-                is NearbyConnectionsService.ConnectionState.Error -> MaterialTheme.colorScheme.errorContainer
+                is NearbyConnectionsInterface.ConnectionState.Connected -> MaterialTheme.colorScheme.primaryContainer
+                is NearbyConnectionsInterface.ConnectionState.Error -> MaterialTheme.colorScheme.errorContainer
                 else -> MaterialTheme.colorScheme.surfaceVariant
             }
         )
@@ -264,12 +264,12 @@ fun ConnectionStateCard(state: NearbyConnectionsService.ConnectionState) {
         ) {
             Icon(
                 when (state) {
-                    is NearbyConnectionsService.ConnectionState.Idle -> Icons.Default.Info
-                    is NearbyConnectionsService.ConnectionState.Advertising -> Icons.Default.Settings
-                    is NearbyConnectionsService.ConnectionState.Discovering -> Icons.Default.Search
-                    is NearbyConnectionsService.ConnectionState.Connected -> Icons.Default.Check
-                    is NearbyConnectionsService.ConnectionState.Disconnected -> Icons.Default.Info
-                    is NearbyConnectionsService.ConnectionState.Error -> Icons.Default.Warning
+                    is NearbyConnectionsInterface.ConnectionState.Idle -> Icons.Default.Info
+                    is NearbyConnectionsInterface.ConnectionState.Advertising -> Icons.Default.Settings
+                    is NearbyConnectionsInterface.ConnectionState.Discovering -> Icons.Default.Search
+                    is NearbyConnectionsInterface.ConnectionState.Connected -> Icons.Default.Check
+                    is NearbyConnectionsInterface.ConnectionState.Disconnected -> Icons.Default.Info
+                    is NearbyConnectionsInterface.ConnectionState.Error -> Icons.Default.Warning
                 },
                 contentDescription = null,
                 modifier = Modifier.size(24.dp)
@@ -278,17 +278,17 @@ fun ConnectionStateCard(state: NearbyConnectionsService.ConnectionState) {
             Column {
                 Text(
                     when (state) {
-                        is NearbyConnectionsService.ConnectionState.Idle -> "Bereit"
-                        is NearbyConnectionsService.ConnectionState.Advertising -> "Warte auf Verbindung..."
-                        is NearbyConnectionsService.ConnectionState.Discovering -> "Suche nach Geräten..."
-                        is NearbyConnectionsService.ConnectionState.Connected -> "Verbunden: ${state.endpointName}"
-                        is NearbyConnectionsService.ConnectionState.Disconnected -> "Getrennt: ${state.reason}"
-                        is NearbyConnectionsService.ConnectionState.Error -> "Fehler"
+                        is NearbyConnectionsInterface.ConnectionState.Idle -> "Bereit"
+                        is NearbyConnectionsInterface.ConnectionState.Advertising -> "Warte auf Verbindung..."
+                        is NearbyConnectionsInterface.ConnectionState.Discovering -> "Suche nach Geräten..."
+                        is NearbyConnectionsInterface.ConnectionState.Connected -> "Verbunden: ${state.endpointName}"
+                        is NearbyConnectionsInterface.ConnectionState.Disconnected -> "Getrennt: ${state.reason}"
+                        is NearbyConnectionsInterface.ConnectionState.Error -> "Fehler"
                     },
                     style = MaterialTheme.typography.titleSmall
                 )
                 
-                if (state is NearbyConnectionsService.ConnectionState.Error) {
+                if (state is NearbyConnectionsInterface.ConnectionState.Error) {
                     Text(
                         state.message,
                         style = MaterialTheme.typography.bodySmall
@@ -386,3 +386,4 @@ fun DeviceItem(
         }
     }
 }
+

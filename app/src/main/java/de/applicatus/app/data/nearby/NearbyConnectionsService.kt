@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 /**
  * Service für die Nearby Connections API zur Synchronisation von Charakteren.
  */
-class NearbyConnectionsService(private val context: Context) {
+class NearbyConnectionsService(private val context: Context) : NearbyConnectionsInterface {
     
     private val connectionsClient: ConnectionsClient = Nearby.getConnectionsClient(context)
     private val json = Json { 
@@ -27,28 +27,11 @@ class NearbyConnectionsService(private val context: Context) {
         private val STRATEGY = Strategy.P2P_STAR
     }
     
-    sealed class ConnectionState {
-        object Idle : ConnectionState()
-        object Advertising : ConnectionState()
-        object Discovering : ConnectionState()
-        data class Connected(val endpointId: String, val endpointName: String) : ConnectionState()
-        data class Disconnected(val reason: String) : ConnectionState()
-        data class Error(val message: String) : ConnectionState()
-    }
-    
-    sealed class TransferState {
-        object Idle : TransferState()
-        data class Sending(val progress: Int) : TransferState()
-        data class Receiving(val progress: Int) : TransferState()
-        data class Success(val data: CharacterExportDto) : TransferState()
-        data class Failed(val error: String) : TransferState()
-    }
-    
     /**
      * Startet die Werbung (Advertising) für eingehende Verbindungen.
      */
-    fun startAdvertising(deviceName: String): Flow<ConnectionState> = callbackFlow {
-        trySend(ConnectionState.Advertising)
+    override fun startAdvertising(deviceName: String): Flow<NearbyConnectionsInterface.ConnectionState> = callbackFlow {
+        trySend(NearbyConnectionsInterface.ConnectionState.Advertising)
         
         val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
             override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
@@ -59,19 +42,19 @@ class NearbyConnectionsService(private val context: Context) {
             override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
                 when (result.status.statusCode) {
                     ConnectionsStatusCodes.STATUS_OK -> {
-                        trySend(ConnectionState.Connected(endpointId, "Remote Device"))
+                        trySend(NearbyConnectionsInterface.ConnectionState.Connected(endpointId, "Remote Device"))
                     }
                     ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
-                        trySend(ConnectionState.Error("Verbindung abgelehnt"))
+                        trySend(NearbyConnectionsInterface.ConnectionState.Error("Verbindung abgelehnt"))
                     }
                     else -> {
-                        trySend(ConnectionState.Error("Verbindung fehlgeschlagen"))
+                        trySend(NearbyConnectionsInterface.ConnectionState.Error("Verbindung fehlgeschlagen"))
                     }
                 }
             }
             
             override fun onDisconnected(endpointId: String) {
-                trySend(ConnectionState.Disconnected("Verbindung getrennt"))
+                trySend(NearbyConnectionsInterface.ConnectionState.Disconnected("Verbindung getrennt"))
             }
         }
         
@@ -87,7 +70,7 @@ class NearbyConnectionsService(private val context: Context) {
         ).addOnSuccessListener {
             // Erfolgreich gestartet
         }.addOnFailureListener { e ->
-            trySend(ConnectionState.Error("Advertising fehlgeschlagen: ${e.message}"))
+            trySend(NearbyConnectionsInterface.ConnectionState.Error("Advertising fehlgeschlagen: ${e.message}"))
             close()
         }
         
@@ -99,8 +82,8 @@ class NearbyConnectionsService(private val context: Context) {
     /**
      * Startet die Suche (Discovery) nach anderen Geräten.
      */
-    fun startDiscovery(onDeviceFound: (String, String) -> Unit): Flow<ConnectionState> = callbackFlow {
-        trySend(ConnectionState.Discovering)
+    override fun startDiscovery(onDeviceFound: (String, String) -> Unit): Flow<NearbyConnectionsInterface.ConnectionState> = callbackFlow {
+        trySend(NearbyConnectionsInterface.ConnectionState.Discovering)
         
         val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
             override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
@@ -123,7 +106,7 @@ class NearbyConnectionsService(private val context: Context) {
         ).addOnSuccessListener {
             // Erfolgreich gestartet
         }.addOnFailureListener { e ->
-            trySend(ConnectionState.Error("Discovery fehlgeschlagen: ${e.message}"))
+            trySend(NearbyConnectionsInterface.ConnectionState.Error("Discovery fehlgeschlagen: ${e.message}"))
             close()
         }
         
@@ -135,10 +118,10 @@ class NearbyConnectionsService(private val context: Context) {
     /**
      * Stellt eine Verbindung zu einem entdeckten Gerät her.
      */
-    fun connectToEndpoint(
+    override fun connectToEndpoint(
         endpointId: String,
         deviceName: String
-    ): Flow<ConnectionState> = callbackFlow {
+    ): Flow<NearbyConnectionsInterface.ConnectionState> = callbackFlow {
         val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
             override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {
                 connectionsClient.acceptConnection(endpointId, payloadCallback)
@@ -147,19 +130,19 @@ class NearbyConnectionsService(private val context: Context) {
             override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
                 when (result.status.statusCode) {
                     ConnectionsStatusCodes.STATUS_OK -> {
-                        trySend(ConnectionState.Connected(endpointId, deviceName))
+                        trySend(NearbyConnectionsInterface.ConnectionState.Connected(endpointId, deviceName))
                     }
                     ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> {
-                        trySend(ConnectionState.Error("Verbindung abgelehnt"))
+                        trySend(NearbyConnectionsInterface.ConnectionState.Error("Verbindung abgelehnt"))
                     }
                     else -> {
-                        trySend(ConnectionState.Error("Verbindung fehlgeschlagen"))
+                        trySend(NearbyConnectionsInterface.ConnectionState.Error("Verbindung fehlgeschlagen"))
                     }
                 }
             }
             
             override fun onDisconnected(endpointId: String) {
-                trySend(ConnectionState.Disconnected("Verbindung getrennt"))
+                trySend(NearbyConnectionsInterface.ConnectionState.Disconnected("Verbindung getrennt"))
             }
         }
         
@@ -168,7 +151,7 @@ class NearbyConnectionsService(private val context: Context) {
             endpointId,
             connectionLifecycleCallback
         ).addOnFailureListener { e ->
-            trySend(ConnectionState.Error("Verbindungsanfrage fehlgeschlagen: ${e.message}"))
+            trySend(NearbyConnectionsInterface.ConnectionState.Error("Verbindungsanfrage fehlgeschlagen: ${e.message}"))
             close()
         }
         
@@ -203,7 +186,7 @@ class NearbyConnectionsService(private val context: Context) {
     /**
      * Sendet Charakterdaten an ein verbundenes Gerät.
      */
-    fun sendCharacterData(
+    override fun sendCharacterData(
         endpointId: String,
         characterData: CharacterExportDto,
         onSuccess: () -> Unit,
@@ -228,7 +211,7 @@ class NearbyConnectionsService(private val context: Context) {
     /**
      * Empfängt Charakterdaten von einem verbundenen Gerät.
      */
-    fun receiveCharacterData(
+    override fun receiveCharacterData(
         onDataReceived: (CharacterExportDto) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -254,7 +237,7 @@ class NearbyConnectionsService(private val context: Context) {
     /**
      * Trennt alle Verbindungen.
      */
-    fun stopAllConnections() {
+    override fun stopAllConnections() {
         connectionsClient.stopAdvertising()
         connectionsClient.stopDiscovery()
         connectionsClient.stopAllEndpoints()

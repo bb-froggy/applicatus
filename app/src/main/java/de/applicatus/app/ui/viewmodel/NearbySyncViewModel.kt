@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
+import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import de.applicatus.app.data.nearby.NearbyConnectionsService
 import de.applicatus.app.data.repository.ApplicatusRepository
 import kotlinx.coroutines.flow.first
@@ -17,14 +18,13 @@ import kotlinx.coroutines.launch
 
 class NearbySyncViewModel(
     private val repository: ApplicatusRepository,
-    context: Context
+    private val nearbyService: NearbyConnectionsInterface
 ) : ViewModel() {
     
-    private val nearbyService = NearbyConnectionsService(context)
     private val exportManager = CharacterExportManager(repository)
     
-    var connectionState by mutableStateOf<NearbyConnectionsService.ConnectionState>(
-        NearbyConnectionsService.ConnectionState.Idle
+    var connectionState by mutableStateOf<NearbyConnectionsInterface.ConnectionState>(
+        NearbyConnectionsInterface.ConnectionState.Idle
     )
         private set
     
@@ -58,9 +58,9 @@ class NearbySyncViewModel(
         viewModelScope.launch {
             nearbyService.startAdvertising(deviceName).collect { state ->
                 connectionState = state
-                isAdvertising = state is NearbyConnectionsService.ConnectionState.Advertising
+                isAdvertising = state is NearbyConnectionsInterface.ConnectionState.Advertising
                 
-                if (state is NearbyConnectionsService.ConnectionState.Connected) {
+                if (state is NearbyConnectionsInterface.ConnectionState.Connected) {
                     currentEndpointId = state.endpointId
                     // Bereit zum Empfangen
                     setupReceiver()
@@ -80,9 +80,9 @@ class NearbySyncViewModel(
                 onDeviceFound(endpointId, name)
             }.collect { state ->
                 connectionState = state
-                isDiscovering = state is NearbyConnectionsService.ConnectionState.Discovering
+                isDiscovering = state is NearbyConnectionsInterface.ConnectionState.Discovering
                 
-                if (state is NearbyConnectionsService.ConnectionState.Connected) {
+                if (state is NearbyConnectionsInterface.ConnectionState.Connected) {
                     currentEndpointId = state.endpointId
                     // Bereit zum Senden/Empfangen
                     setupReceiver()
@@ -96,7 +96,7 @@ class NearbySyncViewModel(
             nearbyService.connectToEndpoint(device.endpointId, deviceName).collect { state ->
                 connectionState = state
                 
-                if (state is NearbyConnectionsService.ConnectionState.Connected) {
+                if (state is NearbyConnectionsInterface.ConnectionState.Connected) {
                     currentEndpointId = state.endpointId
                     setupReceiver()
                 }
@@ -197,7 +197,7 @@ class NearbySyncViewModel(
     
     fun stopAllConnections() {
         nearbyService.stopAllConnections()
-        connectionState = NearbyConnectionsService.ConnectionState.Idle
+        connectionState = NearbyConnectionsInterface.ConnectionState.Idle
         isAdvertising = false
         isDiscovering = false
         currentEndpointId = null
@@ -221,7 +221,10 @@ class NearbySyncViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(NearbySyncViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return NearbySyncViewModel(repository, context) as T
+            return NearbySyncViewModel(
+                repository,
+                NearbyConnectionsService(context)
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -1,0 +1,77 @@
+Name,Gruppe,Lab,Preis,Zutaten,,V,Probe,
+Ewiges Öl,Inanimatica,HK,50,25,6,2,6,2
+Hexensalbe,Inanimatica,HK,–,?,,*,?,
+Hylailer Feuer,Inanimatica,L,30,15,8,4,6,5
+Magisches Brandöl,Inanimatica,L,–,50,7,2,12,18
+Sonnenlicht-Elixier,Inanimatica,L,100,50,5,1,7,4
+Stabilisatum,Inanimatica,HK,120,60,5,3,9,4
+Waffenbalsam,Inanimatica,HK,35,18,8,5,6,3
+Eulentränen,keine,HK,"0,1","0,05",12,7,1,3
+Geheimtinte,keine,HK,<1,"<0,5",13,5,var.,
+Kaltes Licht,keine,AR,1,"0,5",12,3,2,6
+Pyrophor,keine,AR,"<0,2","0,05",10,4,0,1
+Schattenkreide,keine,HK,5,"2,5",9,3 /5,2,2
+Schwadenbeutel,keine,AR,2,1,8,6,4,1
+Stinktöpfchen,keine,AR,"0,3","0,15",9,6,0,1
+Tränenkraut,keine,AR,1,"0,5",6,6,2,3
+Wundpulver,keine,AR,"<0,5","<0,25",10,7,0,2
+Bannpulver gg. Geister,Magika,AR,15,8,9,5,3,4
+Bannpulver gg. Unsichtbares,Magika,L,80,40,10,4,6,7
+Beschwörungskerzen,Magika,AR,5,"2,5",10,6,3,0
+Borbarads Hauch,Magika,L,25,13,3,3,7,18
+Geisterelixier,Magika,AR,30,15,7,3,3,4
+Retro-Elixier,Magika,L,>80,40,2,1,7,8
+Zauberkreide,Magika,AR,5,"2,5",13,7,2,1
+Zaubertrank,Magika,HK,>60,30,6,5,8,4
+Elixier gegen Verfall,Mutandica,L,400,200,4,1,15,8
+Hauch der Jugend,Mutandica,HK,60,30,7,3,7,4
+Ifirnstrunk,Mutandica,HK,35,18,7,4,4,4
+Levitationselixier,Mutandica,L,70,35,7,3/5,6,0
+Purpurwasser,Mutandica,AR,–,40,1,1,6,6
+Rethonikum,Mutandica,L,50,25,6,3,5,3
+Unsichtbarkeitselixier,Mutandica,L,60,30,6,4,10,6
+Unverwundbarkeitselixier,Mutandica,AR,35,18,8,5,5,2
+Verwandlungselixier,Mutandica,HK,70,35,8,5,8,5
+Zurbarans Tinktur,Mutandica,L,150,75,2,1,10,7
+Zwergentrunk,Mutandica,L,80,40,8,4,6,4
+Berserkerelixier,Narkotika,AR,40,20,8,5,6,3
+Bestinoid,Narkotika,L,100,50,4,3,7,9
+Friedenswasser,Narkotika,HK,50,25,9,3,4,4
+Hauch der Weissagung,Narkotika,AR,30,15,6,4,3,2
+Liebestrunk,Narkotika,HK,40,20,8,5,5,4
+Mengbiller Bannbalöl,Narkotika,L,140,70,4,2,8,6
+Regenbogenstaub,Narkotika,L,50,25,4,4,6,2
+Traumwind-Elixier,Narkotika,AR,60,30,8,2/4,2,4
+Wachtrunk,Narkotika,AR,15,8,10,3,1,3
+Antidot,Spagyrik,HK,50,25,9,5,5,4
+Furchtlos-Tropfen,Spagyrik,AR,20,10,12,4,3,3
+Heiltrank,Spagyrik,AR,>10,5,14,7,2,1
+Pastillen gg. Erschöpfung,Spagyrik,HK,10,5,11,6,4,4
+Prophylaktikum gg. Kukris,Spagyrik,L,35,18,4,4,7,7
+Pulver des klaren Geistes,Spagyrik,AR,15,8,14,4,3,2
+Restorarium,Spagyrik,L,120,60,3,3,6,3
+Schlaftrunk,Spagyrik,AR,20,10,10,5,3,1
+Angstgift,Venenik,AR,25,13,8,5,5,3
+Bannstaub,Venenik,L,250,125,3,3,10,7
+Boabungaha,Venenik,AR,250,10,2,2,12,7
+Drachenspeichel,Venenik,L,60,30,7,5,6,3
+Halbgift,Venenik,HK,60,30,7,4,6,8
+Krötenhauch,Venenik,HK,70,35,7,3,4,6
+Purpurblitz,Venenik,L,300,50,3,3,8,4
+Schlafgift,Venenik,HK,35,18,13,6,5,4
+Tulmadron,Venenik,AR,200,20,4,3/5,9,10
+Wasserwahn,Venenik,L,180,50,4,3,9,7
+Zazamotoxin,Venenik,L,250,75,1,2,10,8
+Zwei-Komponenten-Gifte,Venenik,L,∞,>100,3,1,10,15
+Charismaelixier,Virtutica,HK,45,23,9,5,5,4
+Fingerfertigkeitselixier,Virtutica,AR,30,15,8,4,6,5
+Gewandtheitselixier,Virtutica,HK,50,25,6,5,6,7
+Intuitionselixier,Virtutica,HK,35,18,8,4,2,5
+Klugheitselixier,Virtutica,HK,45,23,9,4,3,5
+Konstitutionselixier,Virtutica,HK,40,20,7,5,6,3
+Kraftelixier,Virtutica,AR,50,25,7,6,7,3
+Mutelixier,Virtutica,AR,40,20,8,6,1,1
+Respondarum,Virtutica,L,60,30,7,5,5,4
+Scharfsinn-Elixier,Virtutica,AR,30,15,10,6,4,3
+Willenstrunk,Virtutica,L,50,25,6,5,6,6
+Zielwasser,Virtutica,AR,35,18,10,6,6,4
