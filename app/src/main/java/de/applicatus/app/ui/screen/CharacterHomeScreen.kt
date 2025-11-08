@@ -1,11 +1,13 @@
 package de.applicatus.app.ui.screen
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -195,75 +197,113 @@ private fun EnergiesCard(
             // Erste Zeile: Überschriften und Regeneration Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // LE Überschrift
-                Text(
-                    text = stringResource(R.string.le_short),
-                    style = MaterialTheme.typography.titleMedium,
+                OutlinedCard(
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    Text(
+                        text = stringResource(R.string.le_short),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
                 
                 // AE Überschrift (nur wenn vorhanden)
                 if (character.hasAe) {
-                    Text(
-                        text = stringResource(R.string.ae_short),
-                        style = MaterialTheme.typography.titleMedium,
+                    OutlinedCard(
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ae_short),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
                 
                 // KE Überschrift (nur wenn vorhanden)
                 if (character.hasKe) {
-                    Text(
-                        text = stringResource(R.string.ke_short),
-                        style = MaterialTheme.typography.titleMedium,
+                    OutlinedCard(
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ke_short),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
                 
-                // Regeneration Button
-                Button(
+                // Regeneration Button mit Icon
+                FilledTonalButton(
                     onClick = onRegeneration,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(8.dp)
                 ) {
-                    Text(stringResource(R.string.regeneration))
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = stringResource(R.string.regeneration),
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
             
             // Zweite Zeile: Werte und Anpassungs-Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // LE Werte
-                EnergyValueRow(
-                    current = character.currentLe,
-                    max = character.maxLe,
-                    onAdjust = onAdjustLe,
+                OutlinedCard(
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    EnergyValueRow(
+                        current = character.currentLe,
+                        max = character.maxLe,
+                        onAdjust = onAdjustLe,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
                 
                 // AE Werte (nur wenn vorhanden)
                 if (character.hasAe) {
-                    EnergyValueRow(
-                        current = character.currentAe,
-                        max = character.maxAe,
-                        onAdjust = onAdjustAe,
+                    OutlinedCard(
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        EnergyValueRow(
+                            current = character.currentAe,
+                            max = character.maxAe,
+                            onAdjust = onAdjustAe,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
                 
                 // KE Werte (nur wenn vorhanden)
                 if (character.hasKe) {
-                    EnergyValueRow(
-                        current = character.currentKe,
-                        max = character.maxKe,
-                        onAdjust = onAdjustKe,
+                    OutlinedCard(
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        EnergyValueRow(
+                            current = character.currentKe,
+                            max = character.maxKe,
+                            onAdjust = onAdjustKe,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
                 
                 // Platzhalter für Button-Spalte
@@ -281,7 +321,7 @@ private fun EnergyValueRow(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -293,6 +333,7 @@ private fun EnergyValueRow(
         
         // Anpassungs-Buttons
         Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {

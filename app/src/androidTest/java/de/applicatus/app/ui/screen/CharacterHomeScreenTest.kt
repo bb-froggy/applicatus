@@ -378,9 +378,8 @@ class CharacterHomeScreenTest {
 
         composeRule.waitForIdle()
         
-        // Klicke auf Regeneration-Button (es gibt mehrere "Regeneration" Texte)
-        // Verwende den Button mit useUnmergedTree oder finde Button-Rolle
-        composeRule.onAllNodesWithText("Regeneration", useUnmergedTree = true)[0].performClick()
+        // Klicke auf Regeneration-Button (jetzt ein Icon mit contentDescription)
+        composeRule.onNodeWithContentDescription("Regeneration").performClick()
         
         composeRule.waitForIdle()
         
