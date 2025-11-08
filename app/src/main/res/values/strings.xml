@@ -102,4 +102,13 @@
     <string name="applicatus">Applicatus</string>
     <string name="odem_arcanum">ODEM ARCANUM</string>
     <string name="analys_arkanstruktur">ANALYS ARKANSTRUKTUR</string>
+    
+    <!-- Player/GameMaster Mode -->
+    <string name="game_master_mode">Spielleiter-Modus</string>
+    <string name="player_mode">Spieler-Modus</string>
+    <string name="is_game_master">Spielleiter</string>
+    <string name="botched_spell">Fehlgeschlagen!</string>
+    <string name="hidden_info">Verdeckte Information (nur für Spielleiter)</string>
+    <string name="not_analyzed">Nicht analysiert</string>
+    <string name="unknown_potion">Unbekannter Trank</string>
 </resources>

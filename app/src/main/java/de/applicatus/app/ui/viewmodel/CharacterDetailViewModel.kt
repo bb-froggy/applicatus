@@ -38,6 +38,14 @@ class CharacterDetailViewModel(
         data class Error(val message: String) : ExportState()
     }
     
+    // Zauber-Auslösen-State
+    var spellCastMessage by mutableStateOf<String?>(null)
+        private set
+    
+    fun clearSpellCastMessage() {
+        spellCastMessage = null
+    }
+    
     // Bearbeitungsmodus-State
     var isEditMode by mutableStateOf(false)
         private set
@@ -187,13 +195,28 @@ class CharacterDetailViewModel(
                     characterCh = char.ch
                 )
                 
+                // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
+                // Patzer kann sowohl bei Applicatus als auch beim eigentlichen Zauber auftreten
+                val applicatusPatzer = result.applicatusResult?.let { 
+                    it.isDoubleTwenty || it.isTripleTwenty
+                } ?: false
+                
+                val spellPatzer = result.spellResult.isDoubleTwenty || result.spellResult.isTripleTwenty
+                
+                // Wenn Applicatus patzt, wird der Slot belegt aber der Zauber wird nicht gewürfelt
+                // Wenn der Zauber patzt (und Applicatus erfolgreich war), wird der Slot auch belegt
+                val isPatzer = applicatusPatzer || (result.applicatusResult?.success == true && spellPatzer)
+                
                 // Aktualisiere den Slot
                 repository.updateSlot(
                     slot.copy(
-                        isFilled = result.overallSuccess,
+                        // Slot wird nur bei Erfolg ODER Patzer belegt
+                        // Bei normalem Fehlschlag bleibt Slot leer
+                        isFilled = result.overallSuccess || isPatzer,
                         zfpStar = if (result.overallSuccess) result.spellResult.zfpStar else null,
                         lastRollResult = formatRollResult(result.spellResult),
-                        applicatusRollResult = result.applicatusResult?.let { formatRollResult(it) }
+                        applicatusRollResult = result.applicatusResult?.let { formatRollResult(it) },
+                        isBotched = isPatzer // true wenn Patzer, false sonst
                     )
                 )
             } else {
@@ -206,13 +229,19 @@ class CharacterDetailViewModel(
                     attribute3 = attr3
                 )
                 
+                // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
+                val isPatzer = result.isDoubleTwenty || result.isTripleTwenty
+                
                 // Aktualisiere den Slot
                 repository.updateSlot(
                     slot.copy(
-                        isFilled = result.success,
+                        // Slot wird nur bei Erfolg ODER Patzer belegt
+                        // Bei normalem Fehlschlag bleibt Slot leer
+                        isFilled = result.success || isPatzer,
                         zfpStar = if (result.success) result.zfpStar else null,
                         lastRollResult = formatRollResult(result),
-                        applicatusRollResult = null
+                        applicatusRollResult = null,
+                        isBotched = isPatzer // true wenn Patzer, false sonst
                     )
                 )
             }
@@ -221,12 +250,20 @@ class CharacterDetailViewModel(
     
     fun clearSlot(slot: SpellSlot) {
         viewModelScope.launch {
+            // Prüfe, ob der Slot einen verpatzten Zauber enthält
+            if (slot.isBotched) {
+                spellCastMessage = "⚠️ PATZER! Der Zauber ist fehlgeschlagen und verpufft wirkungslos!"
+            } else if (slot.isFilled) {
+                spellCastMessage = "✓ Zauber erfolgreich ausgelöst!"
+            }
+            
             repository.updateSlot(
                 slot.copy(
                     isFilled = false,
                     zfpStar = null,
                     lastRollResult = null,
-                    applicatusRollResult = null
+                    applicatusRollResult = null,
+                    isBotched = false
                 )
             )
         }

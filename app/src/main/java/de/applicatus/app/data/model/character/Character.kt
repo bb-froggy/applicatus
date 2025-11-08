@@ -48,5 +48,7 @@ data class Character(
     // Karmaenergie (nur für Geweihte)
     val hasKe: Boolean = false,          // Hat der Charakter KE?
     val currentKe: Int = 0,              // Aktuelle Karmaenergie
-    val maxKe: Int = 0                   // Maximale Karmaenergie
+    val maxKe: Int = 0,                  // Maximale Karmaenergie
+    // Spieler/Spielleiter-Modus
+    val isGameMaster: Boolean = false    // Ist der Nutzer Spielleiter? (zeigt alle Infos)
 )

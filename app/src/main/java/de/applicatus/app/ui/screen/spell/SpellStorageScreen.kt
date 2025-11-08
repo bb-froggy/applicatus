@@ -40,6 +40,7 @@ fun SpellStorageScreen(
     val spellSlots by viewModel.spellSlots.collectAsState()
     val allSpells by viewModel.allSpells.collectAsState()
     val isEditMode = viewModel.isEditMode
+    val spellCastMessage = viewModel.spellCastMessage
     val context = LocalContext.current
     
     var showAddSlotDialog by remember { mutableStateOf(false) }
@@ -86,6 +87,20 @@ fun SpellStorageScreen(
             )
         }
         else -> {}
+    }
+    
+    // Zauber-Auslösungs-Meldung Dialog
+    spellCastMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearSpellCastMessage() },
+            title = { Text("Zauber ausgelöst") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearSpellCastMessage() }) {
+                    Text("OK")
+                }
+            }
+        )
     }
     
     Scaffold(
@@ -268,6 +283,7 @@ fun SpellStorageScreen(
                     } else {
                         SpellSlotCardUsageMode(
                             slotWithSpell = slotWithSpell,
+                            isGameMaster = character?.isGameMaster ?: false,
                             onCastSpell = {
                                 slotWithSpell.spell?.let { spell ->
                                     viewModel.castSpell(slotWithSpell.slot, spell)
@@ -365,6 +381,7 @@ fun ApplicatusInfoCard(character: Character) {
 @Composable
 fun SpellSlotCardUsageMode(
     slotWithSpell: SpellSlotWithSpell,
+    isGameMaster: Boolean,
     onCastSpell: () -> Unit,
     onClearSlot: () -> Unit
 ) {
@@ -417,30 +434,52 @@ fun SpellSlotCardUsageMode(
                 
                 if (slot.isFilled) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "✓ Gefüllt: ${slot.zfpStar} ZfP*",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    if (isGameMaster) {
+                        // Spielleiter sieht alles: ZfP* oder Patzer-Hinweis
+                        if (slot.isBotched) {
+                            Text(
+                                text = "✗ Verpatzt!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            Text(
+                                text = "✓ Gefüllt: ${slot.zfpStar} ZfP*",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else {
+                        // Spieler sieht immer nur "Gefüllt" (auch bei Patzer!)
+                        // Er erfährt erst beim Auslösen, dass es verpatzt war
+                        Text(
+                            text = "✓ Gefüllt",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 
-                if (slot.lastRollResult != null) {
-                    Text(
-                        text = slot.lastRollResult,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (slot.isFilled) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.error
-                    )
-                }
-                
-                if (slot.applicatusRollResult != null) {
-                    Text(
-                        text = "Applicatus: ${slot.applicatusRollResult}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
+                // Würfelergebnisse nur für Spielleiter
+                if (isGameMaster) {
+                    if (slot.lastRollResult != null) {
+                        Text(
+                            text = slot.lastRollResult,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (slot.isFilled) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.error
+                        )
+                    }
+                    
+                    if (slot.applicatusRollResult != null) {
+                        Text(
+                            text = "Applicatus: ${slot.applicatusRollResult}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
                 }
             }
             
@@ -762,6 +801,9 @@ fun EditCharacterDialog(
     var sensoryAcuitySkill by remember { mutableStateOf(character.sensoryAcuitySkill.toString()) }
     var magicalLoreSkill by remember { mutableStateOf(character.magicalLoreSkill.toString()) }
     var herbalLoreSkill by remember { mutableStateOf(character.herbalLoreSkill.toString()) }
+    
+    // Spieler/Spielleiter-Modus
+    var isGameMaster by remember { mutableStateOf(character.isGameMaster) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1105,6 +1147,24 @@ fun EditCharacterDialog(
                         }
                     }
                 }
+                
+                // Spieler/Spielleiter-Modus
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Spielmodus:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = isGameMaster,
+                            onCheckedChange = { isGameMaster = it }
+                        )
+                        Text("Spielleiter-Modus (zeigt alle Informationen)")
+                    }
+                }
             }
         },
         confirmButton = {
@@ -1148,7 +1208,8 @@ fun EditCharacterDialog(
                         selfControlSkill = (selfControlSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
                         sensoryAcuitySkill = (sensoryAcuitySkill.toIntOrNull() ?: 0).coerceIn(0, 18),
                         magicalLoreSkill = (magicalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
-                        herbalLoreSkill = (herbalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18)
+                        herbalLoreSkill = (herbalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
+                        isGameMaster = isGameMaster
                     )
                     onConfirm(updatedCharacter)
                 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
+import de.applicatus.app.data.model.potion.KnownQualityLevel
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
@@ -50,6 +51,7 @@ fun PotionScreen(
     val viewModel: PotionViewModel = viewModel(factory = viewModelFactory)
     val potions by viewModel.potions.collectAsState()
     val recipes by viewModel.recipes.collectAsState()
+    val character by viewModel.character.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
@@ -97,6 +99,7 @@ fun PotionScreen(
                 items(potions) { potionWithRecipe ->
                     PotionCard(
                         potionWithRecipe = potionWithRecipe,
+                        isGameMaster = character?.isGameMaster ?: false,
                         onDelete = { showDeleteDialog = potionWithRecipe },
                         onAnalyze = { showAnalysisDialog = potionWithRecipe }
                     )
@@ -171,6 +174,7 @@ fun PotionScreen(
 @Composable
 private fun PotionCard(
     potionWithRecipe: PotionWithRecipe,
+    isGameMaster: Boolean,
     onDelete: () -> Unit,
     onAnalyze: () -> Unit
 ) {
@@ -191,10 +195,22 @@ private fun PotionCard(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = potionWithRecipe.recipe.name,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    // Spielleiter sieht immer den Rezeptnamen
+                    // Spieler sieht "Unbekannter Trank" wenn keine Kategorie bekannt ist
+                    if (isGameMaster) {
+                        Text(
+                            text = potionWithRecipe.recipe.name,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    } else {
+                        val hasAnyKnowledge = potionWithRecipe.potion.categoryKnown || 
+                                            potionWithRecipe.potion.shelfLifeKnown ||
+                                            potionWithRecipe.potion.knownQualityLevel != KnownQualityLevel.UNKNOWN
+                        Text(
+                            text = if (hasAnyKnowledge) potionWithRecipe.recipe.name else "Unbekannter Trank",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                     
                     // Bekannte Informationen über das Elixier anzeigen
                     val knowledge = de.applicatus.app.data.model.potion.PotionKnowledgeDisplay.fromPotion(
@@ -202,25 +218,55 @@ private fun PotionCard(
                         potionWithRecipe.recipe
                     )
                     
-                    Text(
-                        text = knowledge.qualityText,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = knowledge.categoryText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = knowledge.shelfLifeText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Status: ${knowledge.analysisProgressText}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    // Spielleiter sieht alles, Spieler nur analysierte Infos
+                    if (isGameMaster) {
+                        Text(
+                            text = "Tatsächliche Qualität: ${potionWithRecipe.potion.actualQuality}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = knowledge.qualityText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    } else {
+                        Text(
+                            text = knowledge.qualityText,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    
+                    if (isGameMaster || potionWithRecipe.potion.categoryKnown) {
+                        Text(
+                            text = knowledge.categoryText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    if (isGameMaster) {
+                        Text(
+                            text = "Tatsächliche Haltbarkeit: ${potionWithRecipe.recipe.shelfLife}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    if (isGameMaster || potionWithRecipe.potion.shelfLifeKnown) {
+                        Text(
+                            text = knowledge.shelfLifeText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    if (isGameMaster) {
+                        Text(
+                            text = "Status: ${knowledge.analysisProgressText}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
                 IconButton(onClick = onDelete) {
