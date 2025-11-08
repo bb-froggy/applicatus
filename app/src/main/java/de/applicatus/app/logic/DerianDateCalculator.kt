@@ -130,7 +130,7 @@ object DerianDateCalculator {
             val day = dateParts[0].toIntOrNull() ?: return null
             
             // Behandle "Namenlose Tage" als zwei Wörter
-            val monthName = if (dateParts.size >= 4 && dateParts[1] == "Namenlose" && dateParts[2] == "Tage") {
+            if (dateParts.size >= 4 && dateParts[1] == "Namenlose" && dateParts[2] == "Tage") {
                 val year = dateParts[3].toIntOrNull() ?: return null
                 val monthIndex = months.indexOf("Namenlose Tage")
                 if (monthIndex == -1) return null
