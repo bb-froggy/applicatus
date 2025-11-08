@@ -32,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
-import de.applicatus.app.data.model.potion.AnalysisStatus
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
@@ -107,15 +106,18 @@ fun PotionScreen(
     }
 
     showAnalysisDialog?.let { potionWithRecipe ->
-        PotionAnalysisDialog(
-            potionWithRecipe = potionWithRecipe,
-            characterId = characterId,
-            viewModelFactory = viewModelFactory,
-            onDismiss = { showAnalysisDialog = null },
-            onAnalysisComplete = {
-                showAnalysisDialog = null
-            }
-        )
+        val character by viewModel.character.collectAsState()
+        
+        character?.let { char ->
+            PotionAnalysisDialog(
+                potion = potionWithRecipe.potion,
+                recipe = potionWithRecipe.recipe,
+                character = char,
+                characterId = characterId,
+                viewModel = viewModel,
+                onDismiss = { showAnalysisDialog = null }
+            )
+        }
     }
 
     if (showAddDialog) {
@@ -193,23 +195,29 @@ private fun PotionCard(
                         text = potionWithRecipe.recipe.name,
                         style = MaterialTheme.typography.titleMedium
                     )
+                    
+                    // Bekannte Informationen über das Elixier anzeigen
+                    val knowledge = de.applicatus.app.data.model.potion.PotionKnowledgeDisplay.fromPotion(
+                        potionWithRecipe.potion,
+                        potionWithRecipe.recipe
+                    )
+                    
                     Text(
-                        text = "${stringResource(R.string.quality)}: ${getQualityLabel(potionWithRecipe.potion.quality)}",
+                        text = knowledge.qualityText,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "${stringResource(R.string.expiry_date)}: ${potionWithRecipe.potion.expiryDate}",
+                        text = knowledge.categoryText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    val analysisStatusText = when (potionWithRecipe.potion.analysisStatus) {
-                        AnalysisStatus.NOT_ANALYZED -> "Nicht analysiert"
-                        AnalysisStatus.ROUGH_ANALYZED -> "Grob analysiert"
-                        AnalysisStatus.PRECISE_ANALYZED -> "Genau analysiert"
-                    }
                     Text(
-                        text = "Status: $analysisStatusText",
+                        text = knowledge.shelfLifeText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Status: ${knowledge.analysisProgressText}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )

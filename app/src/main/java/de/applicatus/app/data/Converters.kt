@@ -1,10 +1,7 @@
 package de.applicatus.app.data
 
 import androidx.room.TypeConverter
-import de.applicatus.app.data.model.potion.AnalysisStatus
-import de.applicatus.app.data.model.potion.Laboratory
-import de.applicatus.app.data.model.potion.PotionQuality
-import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.data.model.spell.SlotType
 
 class Converters {
@@ -29,13 +26,43 @@ class Converters {
     }
     
     @TypeConverter
-    fun fromAnalysisStatus(value: AnalysisStatus): String {
+    fun fromPotionQualityNullable(value: PotionQuality?): String? {
+        return value?.name
+    }
+    
+    @TypeConverter
+    fun toPotionQualityNullable(value: String?): PotionQuality? {
+        return value?.let { PotionQuality.valueOf(it) }
+    }
+    
+    @TypeConverter
+    fun fromKnownQualityLevel(value: KnownQualityLevel): String {
         return value.name
     }
     
     @TypeConverter
-    fun toAnalysisStatus(value: String): AnalysisStatus {
-        return AnalysisStatus.valueOf(value)
+    fun toKnownQualityLevel(value: String): KnownQualityLevel {
+        return KnownQualityLevel.valueOf(value)
+    }
+    
+    @TypeConverter
+    fun fromIntensityQuality(value: IntensityQuality): String {
+        return value.name
+    }
+    
+    @TypeConverter
+    fun toIntensityQuality(value: String): IntensityQuality {
+        return IntensityQuality.valueOf(value)
+    }
+    
+    @TypeConverter
+    fun fromRefinedQuality(value: RefinedQuality): String {
+        return value.name
+    }
+    
+    @TypeConverter
+    fun toRefinedQuality(value: String): RefinedQuality {
+        return RefinedQuality.valueOf(value)
     }
     
     @TypeConverter

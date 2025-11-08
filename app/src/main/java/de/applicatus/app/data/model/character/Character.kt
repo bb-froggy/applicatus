@@ -26,6 +26,10 @@ data class Character(
     val alchemySkill: Int = 0,           // Alchimie-Talentwert (0-18)
     val hasCookingPotions: Boolean = false, // Beherrscht der Charakter Kochen (Tränke)?
     val cookingPotionsSkill: Int = 0,    // Kochen (Tränke)-Talentwert (0-18)
+    val selfControlSkill: Int = 0,       // Selbstbeherrschung-Talentwert (0-18, für Strukturanalyse-Serie)
+    val sensoryAcuitySkill: Int = 0,     // Sinnenschärfe-Talentwert (0-18, für Analyse nach Augenschein)
+    val magicalLoreSkill: Int = 0,       // Magiekunde-Talentwert (0-18, für Analys und Laboranalyse)
+    val herbalLoreSkill: Int = 0,        // Pflanzenkunde-Talentwert (0-18, alternativ zu Magiekunde bei Laboranalyse)
     // Zauber für Alchimie (nur mit AE)
     val hasOdem: Boolean = false,        // Beherrscht der Charakter ODEM ARCANUM?
     val odemZfw: Int = 0,                // ODEM ARCANUM-Zauberfertigkeit (0-18)

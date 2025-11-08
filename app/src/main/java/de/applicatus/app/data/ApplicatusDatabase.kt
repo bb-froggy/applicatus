@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -202,6 +202,47 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // WICHTIG: Da es noch keine Anwender mit Elixieren gibt, erstellen wir die Potion-Tabelle neu
+                // Alte Potion-Tabelle löschen
+                database.execSQL("DROP TABLE IF EXISTS potions")
+                
+                // Neue Potion-Tabelle mit erweiterten Analyse-Feldern erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS potions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        recipeId INTEGER NOT NULL,
+                        actualQuality TEXT NOT NULL,
+                        appearance TEXT NOT NULL DEFAULT '',
+                        expiryDate TEXT NOT NULL,
+                        categoryKnown INTEGER NOT NULL DEFAULT 0,
+                        knownQualityLevel TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        intensityQuality TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        refinedQuality TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        knownExactQuality TEXT,
+                        shelfLifeKnown INTEGER NOT NULL DEFAULT 0,
+                        intensityDeterminationZfp INTEGER NOT NULL DEFAULT 0,
+                        bestStructureAnalysisFacilitation INTEGER NOT NULL DEFAULT 0,
+                        accumulatedStructureAnalysisTap INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(recipeId) REFERENCES recipes(id) ON DELETE CASCADE,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // Indices für Potions erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
+                
+                // Character-Tabelle erweitern mit zusätzlichen Talenten für Alchemie
+                database.execSQL("ALTER TABLE characters ADD COLUMN selfControlSkill INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN sensoryAcuitySkill INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN magicalLoreSkill INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN herbalLoreSkill INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -209,7 +250,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

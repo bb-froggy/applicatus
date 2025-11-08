@@ -62,12 +62,12 @@ class PotionViewModel(
         }
     }
     
-    fun addPotion(recipeId: Long, quality: PotionQuality, expiryDate: String) {
+    fun addPotion(recipeId: Long, actualQuality: PotionQuality, expiryDate: String) {
         viewModelScope.launch {
             val potion = Potion(
                 characterId = characterId,
                 recipeId = recipeId,
-                quality = quality,
+                actualQuality = actualQuality,
                 expiryDate = expiryDate
             )
             repository.insertPotion(potion)

@@ -1,11 +1,7 @@
 package de.applicatus.app.data.export
 
 import de.applicatus.app.data.model.character.Character
-import de.applicatus.app.data.model.potion.AnalysisStatus
-import de.applicatus.app.data.model.potion.Potion
-import de.applicatus.app.data.model.potion.PotionQuality
-import de.applicatus.app.data.model.potion.RecipeKnowledge
-import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.data.model.spell.SpellSlot
 import kotlinx.serialization.Serializable
@@ -195,35 +191,68 @@ data class SpellSlotDto(
 data class PotionDto(
     val recipeId: Long? = null,
     val recipeName: String? = null,
-    val quality: String,
+    val actualQuality: String,
     val appearance: String = "",
-    val analysisStatus: String = AnalysisStatus.NOT_ANALYZED.name,
-    val expiryDate: String
+    val expiryDate: String,
+    // Analysedaten
+    val categoryKnown: Boolean = false,
+    val knownQualityLevel: String = KnownQualityLevel.UNKNOWN.name,
+    val intensityQuality: String = IntensityQuality.UNKNOWN.name,
+    val refinedQuality: String = RefinedQuality.UNKNOWN.name,
+    val knownExactQuality: String? = null,
+    val shelfLifeKnown: Boolean = false,
+    val intensityDeterminationZfp: Int = 0,
+    val bestStructureAnalysisFacilitation: Int = 0,
+    val accumulatedStructureAnalysisTap: Int = 0
 ) {
     companion object {
         fun fromPotion(potion: Potion, recipeName: String?) = PotionDto(
             recipeId = potion.recipeId,
             recipeName = recipeName,
-            quality = potion.quality.name,
+            actualQuality = potion.actualQuality.name,
             appearance = potion.appearance,
-            analysisStatus = potion.analysisStatus.name,
-            expiryDate = potion.expiryDate
+            expiryDate = potion.expiryDate,
+            categoryKnown = potion.categoryKnown,
+            knownQualityLevel = potion.knownQualityLevel.name,
+            intensityQuality = potion.intensityQuality.name,
+            refinedQuality = potion.refinedQuality.name,
+            knownExactQuality = potion.knownExactQuality?.name,
+            shelfLifeKnown = potion.shelfLifeKnown,
+            intensityDeterminationZfp = potion.intensityDeterminationZfp,
+            bestStructureAnalysisFacilitation = potion.bestStructureAnalysisFacilitation,
+            accumulatedStructureAnalysisTap = potion.accumulatedStructureAnalysisTap
         )
     }
 
     fun toPotion(characterId: Long, resolvedRecipeId: Long): Potion {
-        val safeQuality = runCatching { PotionQuality.valueOf(quality) }
+        val safeActualQuality = runCatching { PotionQuality.valueOf(actualQuality) }
             .getOrElse { PotionQuality.C }
-        val safeStatus = runCatching { AnalysisStatus.valueOf(analysisStatus) }
-            .getOrElse { AnalysisStatus.NOT_ANALYZED }
+        val safeKnownQualityLevel = runCatching { KnownQualityLevel.valueOf(knownQualityLevel) }
+            .getOrElse { KnownQualityLevel.UNKNOWN }
+        val safeIntensityQuality = runCatching { IntensityQuality.valueOf(intensityQuality) }
+            .getOrElse { IntensityQuality.UNKNOWN }
+        val safeRefinedQuality = runCatching { RefinedQuality.valueOf(refinedQuality) }
+            .getOrElse { RefinedQuality.UNKNOWN }
+        val safeKnownExactQuality = knownExactQuality?.let { 
+            runCatching { PotionQuality.valueOf(it) }.getOrNull()
+        }
+        
         return Potion(
             id = 0,
             characterId = characterId,
             recipeId = resolvedRecipeId,
-            quality = safeQuality,
+            actualQuality = safeActualQuality,
             appearance = appearance,
-            analysisStatus = safeStatus,
-            expiryDate = expiryDate
+            expiryDate = expiryDate,
+            categoryKnown = categoryKnown,
+            knownQualityLevel = safeKnownQualityLevel,
+            intensityQuality = safeIntensityQuality,
+            refinedQuality = safeRefinedQuality,
+            knownExactQuality = safeKnownExactQuality,
+            shelfLifeKnown = shelfLifeKnown,
+            intensityDeterminationZfp = intensityDeterminationZfp,
+            bestStructureAnalysisFacilitation = bestStructureAnalysisFacilitation,
+            accumulatedStructureAnalysisTap = accumulatedStructureAnalysisTap
         )
     }
 }

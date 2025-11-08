@@ -757,6 +757,12 @@ fun EditCharacterDialog(
     var hasAnalys by remember { mutableStateOf(character.hasAnalys) }
     var analysZfw by remember { mutableStateOf(character.analysZfw.toString()) }
     
+    // Zusätzliche Talente für Analyse
+    var selfControlSkill by remember { mutableStateOf(character.selfControlSkill.toString()) }
+    var sensoryAcuitySkill by remember { mutableStateOf(character.sensoryAcuitySkill.toString()) }
+    var magicalLoreSkill by remember { mutableStateOf(character.magicalLoreSkill.toString()) }
+    var herbalLoreSkill by remember { mutableStateOf(character.herbalLoreSkill.toString()) }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Charakter bearbeiten") },
@@ -1006,6 +1012,48 @@ fun EditCharacterDialog(
                     }
                 }
                 
+                // Zusätzliche Talente für Analyse (immer sichtbar)
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Analyse-Talente:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    OutlinedTextField(
+                        value = selfControlSkill,
+                        onValueChange = { selfControlSkill = it.filter { c -> c.isDigit() } },
+                        label = { Text("Selbstbeherrschung TaW (0-18)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = sensoryAcuitySkill,
+                        onValueChange = { sensoryAcuitySkill = it.filter { c -> c.isDigit() } },
+                        label = { Text("Sinnenschärfe TaW (0-18)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (hasAe || hasAlchemy) {
+                    item {
+                        OutlinedTextField(
+                            value = magicalLoreSkill,
+                            onValueChange = { magicalLoreSkill = it.filter { c -> c.isDigit() } },
+                            label = { Text("Magiekunde TaW (0-18)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                if (hasAlchemy) {
+                    item {
+                        OutlinedTextField(
+                            value = herbalLoreSkill,
+                            onValueChange = { herbalLoreSkill = it.filter { c -> c.isDigit() } },
+                            label = { Text("Pflanzenkunde TaW (0-18)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                
                 // Analyse-Zauber (nur für magisch Begabte)
                 if (hasAe) {
                     item {
@@ -1096,7 +1144,11 @@ fun EditCharacterDialog(
                         hasOdem = if (hasAe) hasOdem else false,
                         odemZfw = if (hasAe && hasOdem) (odemZfw.toIntOrNull() ?: 0) else 0,
                         hasAnalys = if (hasAe) hasAnalys else false,
-                        analysZfw = if (hasAe && hasAnalys) (analysZfw.toIntOrNull() ?: 0) else 0
+                        analysZfw = if (hasAe && hasAnalys) (analysZfw.toIntOrNull() ?: 0) else 0,
+                        selfControlSkill = (selfControlSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
+                        sensoryAcuitySkill = (sensoryAcuitySkill.toIntOrNull() ?: 0).coerceIn(0, 18),
+                        magicalLoreSkill = (magicalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
+                        herbalLoreSkill = (herbalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18)
                     )
                     onConfirm(updatedCharacter)
                 }
