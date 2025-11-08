@@ -165,25 +165,28 @@ fun IntensityDeterminationDialog(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Ergebnis speichern")
+                        Text("OK")
                     }
                 }
                 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f)
+                // Zurück und Schließen nur anzeigen, wenn noch kein Ergebnis vorliegt
+                if (result == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Zurück")
-                    }
-                    TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Schließen")
+                        TextButton(
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Zurück")
+                        }
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Schließen")
+                        }
                     }
                 }
             }

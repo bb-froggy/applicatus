@@ -73,6 +73,12 @@ fun CharacterHomeScreen(
                     onRegeneration = { showRegenerationDialog = true }
                 )
                 
+                // Talente
+                TalentsCard(character = char)
+                
+                // Zauber
+                SpellsCard(character = char)
+                
                 // Navigation Buttons
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -352,4 +358,163 @@ private fun RegenerationDialog(
             }
         }
     )
+}
+
+@Composable
+private fun TalentsCard(character: Character) {
+    // Prüfe, ob der Charakter überhaupt Talente hat
+    val hasTalents = character.hasAlchemy || 
+                     character.hasCookingPotions || 
+                     character.selfControlSkill > 0 || 
+                     character.sensoryAcuitySkill > 0 || 
+                     character.magicalLoreSkill > 0 || 
+                     character.herbalLoreSkill > 0
+    
+    if (!hasTalents) return
+    
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.talents),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Divider()
+            
+            // Alchimie
+            if (character.hasAlchemy) {
+                TalentItem(
+                    name = stringResource(R.string.alchemy),
+                    value = character.alchemySkill
+                )
+            }
+            
+            // Kochen (Tränke)
+            if (character.hasCookingPotions) {
+                TalentItem(
+                    name = stringResource(R.string.cooking_potions),
+                    value = character.cookingPotionsSkill
+                )
+            }
+            
+            // Selbstbeherrschung
+            if (character.selfControlSkill > 0) {
+                TalentItem(
+                    name = stringResource(R.string.self_control),
+                    value = character.selfControlSkill
+                )
+            }
+            
+            // Sinnenschärfe
+            if (character.sensoryAcuitySkill > 0) {
+                TalentItem(
+                    name = stringResource(R.string.sensory_acuity),
+                    value = character.sensoryAcuitySkill
+                )
+            }
+            
+            // Magiekunde
+            if (character.magicalLoreSkill > 0) {
+                TalentItem(
+                    name = stringResource(R.string.magical_lore),
+                    value = character.magicalLoreSkill
+                )
+            }
+            
+            // Pflanzenkunde
+            if (character.herbalLoreSkill > 0) {
+                TalentItem(
+                    name = stringResource(R.string.herbal_lore),
+                    value = character.herbalLoreSkill
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TalentItem(name: String, value: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun SpellsCard(character: Character) {
+    // Prüfe, ob der Charakter überhaupt Zauber beherrscht
+    val hasSpells = character.hasApplicatus || 
+                    character.hasOdem || 
+                    character.hasAnalys
+    
+    if (!hasSpells) return
+    
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.spells),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Divider()
+            
+            // Applicatus
+            if (character.hasApplicatus) {
+                SpellItem(
+                    name = stringResource(R.string.applicatus),
+                    zfw = character.applicatusZfw
+                )
+            }
+            
+            // ODEM ARCANUM
+            if (character.hasOdem) {
+                SpellItem(
+                    name = stringResource(R.string.odem_arcanum),
+                    zfw = character.odemZfw
+                )
+            }
+            
+            // ANALYS ARKANSTRUKTUR
+            if (character.hasAnalys) {
+                SpellItem(
+                    name = stringResource(R.string.analys_arkanstruktur),
+                    zfw = character.analysZfw
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellItem(name: String, zfw: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = stringResource(R.string.zfw) + ": $zfw",
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
 }

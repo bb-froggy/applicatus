@@ -87,4 +87,19 @@
     <string name="quality_e">E - Gut</string>
     <string name="quality_f">F - Sehr gut</string>
     <string name="quality_m">M - Misslungen</string>
+    
+    <!-- Talents -->
+    <string name="talents">Talente</string>
+    <string name="alchemy">Alchimie</string>
+    <string name="cooking_potions">Kochen (Tränke)</string>
+    <string name="self_control">Selbstbeherrschung</string>
+    <string name="sensory_acuity">Sinnenschärfe</string>
+    <string name="magical_lore">Magiekunde</string>
+    <string name="herbal_lore">Pflanzenkunde</string>
+    
+    <!-- Spells -->
+    <string name="spells">Zauber</string>
+    <string name="applicatus">Applicatus</string>
+    <string name="odem_arcanum">ODEM ARCANUM</string>
+    <string name="analys_arkanstruktur">ANALYS ARKANSTRUKTUR</string>
 </resources>
