@@ -48,12 +48,18 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 ```
 app/
 ├── data/
-│   ├── model/           # Datenmodelle (Spell, Character, SpellSlot)
+│   ├── model/           # Datenmodelle
+│   │   ├── character/   # Character
+│   │   ├── spell/       # Spell, SystemSpell (ODEM, ANALYS)
+│   │   ├── talent/      # Talent-Enum mit Eigenschaftsproben
+│   │   └── potion/      # Potion, Recipe, etc.
 │   ├── dao/             # Room DAOs
 │   ├── repository/      # Repository-Pattern
 │   └── InitialSpells.kt # Vordefinierte Zauber
 ├── logic/
-│   └── SpellChecker.kt  # Zauberprobe-Logik mit W20-Würfeln
+│   ├── ProbeChecker.kt  # Zentrale Proben-Logik (Talente, Zauber, System-Zauber)
+│   ├── SpellChecker.kt  # Zauberprobe mit Applicatus-Unterstützung
+│   └── ElixirAnalyzer.kt # Alchimie-Analysen (ODEM, ANALYS, Alchimie)
 ├── ui/
 │   ├── screen/          # Composable Screens (z.B. potion/ für Hexenküche)
 │   ├── viewmodel/       # ViewModels

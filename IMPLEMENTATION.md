@@ -85,6 +85,10 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 
 ### 2. Datenmodell (data/model/)
 - ✅ **Spell**: Zauber mit Name und drei Eigenschaftsproben
+- ✅ **SystemSpell**: System-Zauber (ODEM KL/IN/IN, ANALYS KL/KL/IN) mit festen Eigenschaftsproben
+- ✅ **Talent**: Enum für alle bekannten Talente mit ihren Eigenschaftsproben
+  - Alchimie (MU/KL/FF), Kochen (KL/IN/FF), Magiekunde (KL/KL/IN)
+  - Pflanzenkunde (KL/FF/KK), Selbstbeherrschung (MU/MU/KO), Sinnenschärfe (KL/IN/IN)
 - ✅ **Character**: Charakter mit 8 Eigenschaftswerten (MU, KL, IN, CH, FF, GE, KO, KK)
   - ✅ Applicatus-Support (hasApplicatus, applicatusZfw, applicatusModifier)
 - ✅ **SlotType**: Enum für Slot-Typen (APPLICATUS, SPELL_STORAGE)
@@ -111,6 +115,10 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Erkennung von Doppel-1, Dreifach-1, Doppel-20, Dreifach-20
   - ✅ Berechnung von Qualitätspunkten (TaP*, ZfP*, FP*)
   - ✅ Unterstützung für Erschwernisse und Erleichterungen
+  - ✅ **performTalentProbe()**: Talentproben mit automatischer Eigenschaftsauswahl
+  - ✅ **performSpellProbe()**: Zauberproben mit automatischer Eigenschaftsauswahl
+  - ✅ **performSystemSpellProbe()**: System-Zauberproben (ODEM, ANALYS)
+  - ✅ Zentrale Verwaltung aller Eigenschaften-Mappings
   
 - ✅ **SpellChecker**: Zauberprobe-Implementierung (nutzt ProbeChecker)
   - ✅ Zauberproben mit ZfW und Modifikatoren
@@ -118,7 +126,9 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ **Applicatus-Probe**: Doppelte Zauberprobe (Applicatus + eigentlicher Zauber)
 
 - ✅ **ElixirAnalyzer**: Elixier-Analyse-Implementierung (nutzt ProbeChecker)
-  - ✅ Intensitätsbestimmung (Odem-Zauber)
+  - ✅ Intensitätsbestimmung (ODEM ARCANUM: KL/IN/IN)
+  - ✅ Strukturanalyse (ANALYS: KL/KL/IN, Alchimie: MU/KL/FF)
+  - ✅ Selbstbeherrschungsprobe (MU/MU/KO)
   - ✅ Strukturanalyse mit mehreren Proben
   - ✅ Selbstbeherrschungs-Proben
   - ✅ Berechnung von Analyseergebnissen

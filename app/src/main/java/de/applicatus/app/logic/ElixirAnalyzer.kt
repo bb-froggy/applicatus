@@ -2,6 +2,8 @@ package de.applicatus.app.logic
 
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.potion.*
+import de.applicatus.app.data.model.spell.SystemSpell
+import de.applicatus.app.data.model.talent.Talent
 import kotlin.random.Random
 
 /**
@@ -26,7 +28,10 @@ data class StructureAnalysisProbeResult(
     val selfControlRolls: List<Int>,   // Würfe der Selbstbeherrschungsprobe
     val canContinue: Boolean,          // Kann die Analyse fortgesetzt werden?
     val probeRolls: List<Int>,         // Die drei Würfelwürfe der Hauptprobe
-    val message: String                // Beschreibung des Ergebnisses
+    val message: String,               // Beschreibung des Ergebnisses
+    val fertigkeitswert: Int,          // Talentwert/ZfW
+    val difficulty: Int,               // Erschwernis/Erleichterung
+    val attributes: Triple<Pair<String, Int>, Pair<String, Int>, Pair<String, Int>>  // Eigenschaftsnamen und -werte
 )
 
 /**
@@ -66,14 +71,12 @@ object ElixirAnalyzer {
         recipe: Recipe,
         actualQuality: PotionQuality
     ): IntensityDeterminationResult {
-        // Odem-Probe: KL/IN/CH
-        val probeResult = ProbeChecker.performThreeAttributeProbe(
-            fertigkeitswert = character.odemZfw,
-            difficulty = recipe.analysisDifficulty,
-            attribute1 = character.kl,
-            attribute2 = character.inValue,
-            attribute3 = character.ch,
-            qualityPointName = "ZfP*"
+        // ODEM ARCANUM: Probe auf KL/IN/IN
+        val probeResult = ProbeChecker.performSystemSpellProbe(
+            systemSpell = SystemSpell.ODEM,
+            character = character,
+            zauberfertigkeit = character.odemZfw,
+            difficulty = recipe.analysisDifficulty
         )
         
         if (!probeResult.success) {
@@ -205,23 +208,43 @@ object ElixirAnalyzer {
             }
         }
         
-        // Eigenschaften für die Probe
-        val attributes = when (method) {
-            StructureAnalysisMethod.ANALYS_SPELL -> 
-                Triple(character.kl, character.inValue, character.ch)
-            StructureAnalysisMethod.BY_SIGHT, StructureAnalysisMethod.LABORATORY -> 
-                Triple(character.kl, character.inValue, character.inValue)
+        // Führe Probe durch - je nach Methode unterschiedlich
+        val probeResult = when (method) {
+            StructureAnalysisMethod.ANALYS_SPELL -> {
+                // ANALYS ARKANSTRUKTUR: Probe auf KL/KL/IN
+                ProbeChecker.performSystemSpellProbe(
+                    systemSpell = SystemSpell.ANALYS,
+                    character = character,
+                    zauberfertigkeit = baseTaw,
+                    difficulty = difficulty
+                )
+            }
+            StructureAnalysisMethod.BY_SIGHT, StructureAnalysisMethod.LABORATORY -> {
+                // Alchimie: Probe auf MU/KL/FF
+                ProbeChecker.performTalentProbe(
+                    talent = Talent.ALCHEMY,
+                    character = character,
+                    talentwert = baseTaw,
+                    difficulty = difficulty
+                )
+            }
         }
         
-        // Führe Probe durch
-        val probeResult = ProbeChecker.performThreeAttributeProbe(
-            fertigkeitswert = baseTaw,
-            difficulty = difficulty,
-            attribute1 = attributes.first,
-            attribute2 = attributes.second,
-            attribute3 = attributes.third,
-            qualityPointName = "TaP*"
-        )
+        // Eigenschaftsnamen für die Anzeige
+        val attributeNames = when (method) {
+            StructureAnalysisMethod.ANALYS_SPELL -> 
+                Triple(
+                    Pair("KL", character.kl),
+                    Pair("KL", character.kl),
+                    Pair("IN", character.inValue)
+                )
+            StructureAnalysisMethod.BY_SIGHT, StructureAnalysisMethod.LABORATORY -> 
+                Triple(
+                    Pair("MU", character.mu),
+                    Pair("KL", character.kl),
+                    Pair("FF", character.ff)
+                )
+        }
         
         if (!probeResult.success) {
             return StructureAnalysisProbeResult(
@@ -232,7 +255,10 @@ object ElixirAnalyzer {
                 selfControlRolls = emptyList(),
                 canContinue = false,
                 probeRolls = probeResult.rolls,
-                message = "Strukturanalyse-Probe fehlgeschlagen (${probeResult.qualityPoints} TaP*)"
+                message = "Strukturanalyse-Probe fehlgeschlagen (${probeResult.qualityPoints} TaP*)",
+                fertigkeitswert = baseTaw,
+                difficulty = difficulty,
+                attributes = attributeNames
             )
         }
         
@@ -272,21 +298,23 @@ object ElixirAnalyzer {
             selfControlRolls = emptyList(),  // TODO: Würfe speichern wenn gewünscht
             canContinue = selfControlResult,
             probeRolls = probeResult.rolls,
-            message = message
+            message = message,
+            fertigkeitswert = baseTaw,
+            difficulty = difficulty,
+            attributes = attributeNames
         )
     }
     
     /**
      * Führt eine Selbstbeherrschungsprobe durch
+     * Selbstbeherrschung: MU/MU/KO
      */
     private fun performSelfControlProbe(character: Character, difficulty: Int): Boolean {
-        val probeResult = ProbeChecker.performThreeAttributeProbe(
-            fertigkeitswert = character.selfControlSkill,
-            difficulty = difficulty,
-            attribute1 = character.mu,
-            attribute2 = character.mu,
-            attribute3 = character.ko,
-            qualityPointName = "TaP*"
+        val probeResult = ProbeChecker.performTalentProbe(
+            talent = Talent.SELF_CONTROL,
+            character = character,
+            talentwert = character.selfControlSkill,
+            difficulty = difficulty
         )
         return probeResult.success
     }
@@ -302,7 +330,8 @@ object ElixirAnalyzer {
         method: StructureAnalysisMethod,
         acceptHarderProbe: Boolean
     ): StructureAnalysisFinalResult {
-        val categoryKnown = totalAccumulatedTap >= 0
+        // Kategorie ist nur bekannt, wenn mindestens 1 TaP* akkumuliert wurde
+        val categoryKnown = totalAccumulatedTap >= 1
         
         // Bestimme KnownQualityLevel und andere Informationen
         val knownQualityLevel: KnownQualityLevel
@@ -341,26 +370,30 @@ object ElixirAnalyzer {
         val message = buildString {
             appendLine("Strukturanalyse abgeschlossen mit $totalAccumulatedTap TaP*!")
             appendLine()
-            if (categoryKnown) {
-                appendLine("✓ Kategorie erkannt")
-            }
-            when (knownQualityLevel) {
-                KnownQualityLevel.EXACT -> {
-                    appendLine("✓ Genaue Qualität erkannt: ${qualityToString(actualQuality)}")
+            if (totalAccumulatedTap == 0) {
+                appendLine("❌ Keine Informationen über den Trank erhalten!")
+            } else {
+                if (categoryKnown) {
+                    appendLine("✓ Kategorie erkannt")
                 }
-                KnownQualityLevel.VERY_WEAK_MEDIUM_OR_VERY_STRONG -> {
-                    appendLine("✓ Verfeinerte Qualität erkannt: ${refinedQualityToString(refinedQuality)}")
+                when (knownQualityLevel) {
+                    KnownQualityLevel.EXACT -> {
+                        appendLine("✓ Genaue Qualität erkannt: ${qualityToString(actualQuality)}")
+                    }
+                    KnownQualityLevel.VERY_WEAK_MEDIUM_OR_VERY_STRONG -> {
+                        appendLine("✓ Verfeinerte Qualität erkannt: ${refinedQualityToString(refinedQuality)}")
+                    }
+                    KnownQualityLevel.WEAK_OR_STRONG -> {
+                        appendLine("✓ Grobe Qualität erkannt (schwach/stark)")
+                    }
+                    else -> {}
                 }
-                KnownQualityLevel.WEAK_OR_STRONG -> {
-                    appendLine("✓ Grobe Qualität erkannt (schwach/stark)")
+                if (shelfLifeKnown) {
+                    appendLine("✓ Haltbarkeit erkannt")
                 }
-                else -> {}
-            }
-            if (shelfLifeKnown) {
-                appendLine("✓ Haltbarkeit erkannt")
-            }
-            if (recipeKnown && totalAccumulatedTap >= 19) {
-                appendLine("🎓 Rezept wurde verstanden!")
+                if (recipeKnown && totalAccumulatedTap >= 19) {
+                    appendLine("🎓 Rezept wurde verstanden!")
+                }
             }
             if (potionConsumed) {
                 appendLine()

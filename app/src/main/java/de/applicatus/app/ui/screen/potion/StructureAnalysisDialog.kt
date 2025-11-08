@@ -115,7 +115,130 @@ fun StructureAnalysisDialog(
                     }
                 }
                 
+                // Zeige Probenergebnisse an (auch bei fehlgeschlagener Analyse)
+                currentProbeResult?.let { probeResult ->
+                    Divider()
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (probeResult.success) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.errorContainer
+                            }
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = if (probeResult.success) "Probe erfolgreich!" else "Probe fehlgeschlagen",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            
+                            Divider()
+                            
+                            // Eigenschaften und Fertigkeitswert
+                            Text(
+                                text = "Probe:",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Text(
+                                text = "${probeResult.attributes.first.first}/${probeResult.attributes.second.first}/${probeResult.attributes.third.first} " +
+                                      "(${probeResult.attributes.first.second}/${probeResult.attributes.second.second}/${probeResult.attributes.third.second})",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            Text(
+                                text = "Fertigkeitswert: ${probeResult.fertigkeitswert}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            // Modifikator
+                            val modText = when {
+                                probeResult.difficulty > 0 -> "Erschwernis: +${probeResult.difficulty}"
+                                probeResult.difficulty < 0 -> "Erleichterung: ${probeResult.difficulty}"
+                                else -> "Modifikator: ±0"
+                            }
+                            Text(
+                                text = modText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = when {
+                                    probeResult.difficulty > 0 -> MaterialTheme.colorScheme.error
+                                    probeResult.difficulty < 0 -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                            
+                            Divider()
+                            
+                            Text(
+                                text = "Würfe: ${probeResult.probeRolls.joinToString(", ")}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            Text(
+                                text = "TaP*: ${probeResult.tap}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            if (selectedMethod == StructureAnalysisMethod.BY_SIGHT && probeResult.success) {
+                                Text(
+                                    text = "Effektiv: ${probeResult.effectiveTap} TaP* (halbiert)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                            
+                            Divider()
+                            
+                            Text(
+                                text = probeResult.message,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+                
                 if (finalResult == null) {
+                    // Buttons für weitere Proben (nur wenn Analyse noch nicht abgeschlossen)
+                    currentProbeResult?.let { probeResult ->
+                        if (probeResult.canContinue && probeResult.success) {
+                            Button(
+                                onClick = {
+                                    probeNumber++
+                                    currentProbeResult = null
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Weitere Probe durchführen")
+                            }
+                        }
+                        
+                        if (probeResult.success) {
+                            OutlinedButton(
+                                onClick = {
+                                    val final = ElixirAnalyzer.calculateFinalStructureAnalysisResult(
+                                        totalAccumulatedTap = accumulatedTap,
+                                        actualQuality = potion.actualQuality,
+                                        currentIntensity = potion.intensityQuality,
+                                        isRecipeKnown = isRecipeKnown,
+                                        method = selectedMethod,
+                                        acceptHarderProbe = acceptHarderProbe
+                                    )
+                                    finalResult = final
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Analyse abschließen")
+                            }
+                        }
+                    }
+                    
                     Divider()
                     
                     Text(
@@ -236,87 +359,6 @@ fun StructureAnalysisDialog(
                                 Text("Probe durchführen")
                             }
                         }
-                    } else {
-                        Divider()
-                        
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (currentProbeResult!!.success) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.errorContainer
-                                }
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = if (currentProbeResult!!.success) "Probe erfolgreich!" else "Probe fehlgeschlagen",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                
-                                Text(
-                                    text = "Würfe: ${currentProbeResult!!.probeRolls.joinToString(", ")}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                
-                                Text(
-                                    text = "TaP*: ${currentProbeResult!!.tap}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                
-                                if (selectedMethod == StructureAnalysisMethod.BY_SIGHT && currentProbeResult!!.success) {
-                                    Text(
-                                        text = "Effektiv: ${currentProbeResult!!.effectiveTap} TaP* (halbiert)",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
-                                
-                                Divider()
-                                
-                                Text(
-                                    text = currentProbeResult!!.message,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                        
-                        if (currentProbeResult!!.canContinue && currentProbeResult!!.success) {
-                            Button(
-                                onClick = {
-                                    probeNumber++
-                                    currentProbeResult = null
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Weitere Probe durchführen")
-                            }
-                        }
-                        
-                        if (currentProbeResult!!.success) {
-                            OutlinedButton(
-                                onClick = {
-                                    val final = ElixirAnalyzer.calculateFinalStructureAnalysisResult(
-                                        totalAccumulatedTap = accumulatedTap,
-                                        actualQuality = potion.actualQuality,
-                                        currentIntensity = potion.intensityQuality,
-                                        isRecipeKnown = isRecipeKnown,
-                                        method = selectedMethod,
-                                        acceptHarderProbe = acceptHarderProbe
-                                    )
-                                    finalResult = final
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Analyse abschließen")
-                            }
-                        }
                     }
                 }
                 
@@ -399,25 +441,28 @@ fun StructureAnalysisDialog(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(if (final.potionConsumed) "Trank entfernen" else "Ergebnis speichern")
+                        Text("OK")
                     }
                 }
                 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f)
+                // Zurück und Schließen nur anzeigen, wenn Analyse noch nicht abgeschlossen
+                if (finalResult == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Zurück")
-                    }
-                    TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Schließen")
+                        TextButton(
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Zurück")
+                        }
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Schließen")
+                        }
                     }
                 }
             }

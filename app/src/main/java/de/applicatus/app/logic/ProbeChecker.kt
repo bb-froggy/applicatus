@@ -1,5 +1,9 @@
 package de.applicatus.app.logic
 
+import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.spell.Spell
+import de.applicatus.app.data.model.spell.SystemSpell
+import de.applicatus.app.data.model.talent.Talent
 import kotlin.random.Random
 
 /**
@@ -220,4 +224,141 @@ object ProbeChecker {
      * Zählt Zwanziger in einer Würfelliste
      */
     fun countTwenties(rolls: List<Int>): Int = rolls.count { it == 20 }
+    
+    /**
+     * Führt eine Talentprobe durch
+     * 
+     * @param talent Das Talent, für das die Probe durchgeführt wird
+     * @param character Der Charakter, der die Probe durchführt
+     * @param talentwert Der Talentwert (0-18+)
+     * @param difficulty Erschwernis (positiv) oder Erleichterung (negativ)
+     * @param diceRoll Lambda für Würfelwürfe (Standard: W20)
+     * @return ProbeResult mit allen Details
+     */
+    fun performTalentProbe(
+        talent: Talent,
+        character: Character,
+        talentwert: Int,
+        difficulty: Int = 0,
+        diceRoll: () -> Int = { rollD20() }
+    ): ProbeResult {
+        val (attr1, attr2, attr3) = getAttributesForTalent(talent, character)
+        return performThreeAttributeProbe(
+            fertigkeitswert = talentwert,
+            difficulty = difficulty,
+            attribute1 = attr1,
+            attribute2 = attr2,
+            attribute3 = attr3,
+            diceRoll = diceRoll,
+            qualityPointName = "TaP*"
+        )
+    }
+    
+    /**
+     * Führt eine Zauberprobe durch
+     * 
+     * @param spell Der Zauber, für den die Probe durchgeführt wird
+     * @param character Der Charakter, der die Probe durchführt
+     * @param zauberfertigkeit Die Zauberfertigkeit (ZfW)
+     * @param difficulty Erschwernis (positiv) oder Erleichterung (negativ)
+     * @param diceRoll Lambda für Würfelwürfe (Standard: W20)
+     * @return ProbeResult mit allen Details
+     */
+    fun performSpellProbe(
+        spell: Spell,
+        character: Character,
+        zauberfertigkeit: Int,
+        difficulty: Int = 0,
+        diceRoll: () -> Int = { rollD20() }
+    ): ProbeResult {
+        val (attr1, attr2, attr3) = getAttributesForSpell(spell, character)
+        return performThreeAttributeProbe(
+            fertigkeitswert = zauberfertigkeit,
+            difficulty = difficulty,
+            attribute1 = attr1,
+            attribute2 = attr2,
+            attribute3 = attr3,
+            diceRoll = diceRoll,
+            qualityPointName = "ZfP*"
+        )
+    }
+    
+    /**
+     * Führt eine System-Zauberprobe durch (z.B. ODEM, ANALYS)
+     * 
+     * @param systemSpell Der System-Zauber
+     * @param character Der Charakter, der die Probe durchführt
+     * @param zauberfertigkeit Die Zauberfertigkeit (ZfW)
+     * @param difficulty Erschwernis (positiv) oder Erleichterung (negativ)
+     * @param diceRoll Lambda für Würfelwürfe (Standard: W20)
+     * @return ProbeResult mit allen Details
+     */
+    fun performSystemSpellProbe(
+        systemSpell: SystemSpell,
+        character: Character,
+        zauberfertigkeit: Int,
+        difficulty: Int = 0,
+        diceRoll: () -> Int = { rollD20() }
+    ): ProbeResult {
+        val (attr1, attr2, attr3) = getAttributesForSystemSpell(systemSpell, character)
+        return performThreeAttributeProbe(
+            fertigkeitswert = zauberfertigkeit,
+            difficulty = difficulty,
+            attribute1 = attr1,
+            attribute2 = attr2,
+            attribute3 = attr3,
+            diceRoll = diceRoll,
+            qualityPointName = "ZfP*"
+        )
+    }
+    
+    /**
+     * Holt die Eigenschaftswerte für ein Talent aus dem Charakter
+     */
+    private fun getAttributesForTalent(talent: Talent, character: Character): Triple<Int, Int, Int> {
+        return Triple(
+            getAttributeValue(talent.attribute1, character),
+            getAttributeValue(talent.attribute2, character),
+            getAttributeValue(talent.attribute3, character)
+        )
+    }
+    
+    /**
+     * Holt die Eigenschaftswerte für einen Zauber aus dem Charakter
+     */
+    private fun getAttributesForSpell(spell: Spell, character: Character): Triple<Int, Int, Int> {
+        return Triple(
+            getAttributeValue(spell.attribute1, character),
+            getAttributeValue(spell.attribute2, character),
+            getAttributeValue(spell.attribute3, character)
+        )
+    }
+    
+    /**
+     * Holt die Eigenschaftswerte für einen System-Zauber aus dem Charakter
+     */
+    private fun getAttributesForSystemSpell(systemSpell: SystemSpell, character: Character): Triple<Int, Int, Int> {
+        return Triple(
+            getAttributeValue(systemSpell.attribute1, character),
+            getAttributeValue(systemSpell.attribute2, character),
+            getAttributeValue(systemSpell.attribute3, character)
+        )
+    }
+    
+    /**
+     * Holt einen einzelnen Eigenschaftswert aus dem Charakter basierend auf dem Namen
+     */
+    private fun getAttributeValue(attributeName: String, character: Character): Int {
+        return when (attributeName.uppercase()) {
+            "MU" -> character.mu
+            "KL" -> character.kl
+            "IN" -> character.inValue
+            "CH" -> character.ch
+            "FF" -> character.ff
+            "GE" -> character.ge
+            "KO" -> character.ko
+            "KK" -> character.kk
+            else -> throw IllegalArgumentException("Unbekannte Eigenschaft: $attributeName")
+        }
+    }
 }

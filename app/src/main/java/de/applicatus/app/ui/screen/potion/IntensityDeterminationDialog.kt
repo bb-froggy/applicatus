@@ -67,7 +67,7 @@ fun IntensityDeterminationDialog(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "Eigenschaften: KL ${character.kl}, IN ${character.inValue}, CH ${character.ch}",
+                            text = "Eigenschaften: KL ${character.kl}, IN ${character.inValue}, IN ${character.inValue}",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
