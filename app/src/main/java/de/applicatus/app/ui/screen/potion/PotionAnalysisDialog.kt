@@ -26,6 +26,12 @@ fun PotionAnalysisDialog(
 ) {
     var selectedMode by remember { mutableStateOf<AnalysisMode?>(null) }
     
+    val recipeKnowledge by viewModel.getRecipeKnowledge(recipe.id).collectAsState(null)
+    val isRecipeKnown = recipeKnowledge?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
+    
+    // Rezeptname nur anzeigen, wenn Spielleiter oder Rezept bekannt/verstanden
+    val showRecipeName = character.isGameMaster || isRecipeKnown
+    
     when (selectedMode) {
         null -> {
             Dialog(onDismissRequest = onDismiss) {
@@ -48,7 +54,7 @@ fun PotionAnalysisDialog(
                         Divider()
                         
                         Text(
-                            text = recipe.name,
+                            text = if (showRecipeName) recipe.name else "Unbekannter Trank",
                             style = MaterialTheme.typography.titleMedium
                         )
                         

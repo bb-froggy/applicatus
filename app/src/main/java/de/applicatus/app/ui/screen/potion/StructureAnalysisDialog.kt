@@ -49,6 +49,9 @@ fun StructureAnalysisDialog(
     val recipeKnowledge by viewModel.getRecipeKnowledge(recipe.id).collectAsState(null)
     val isRecipeKnown = recipeKnowledge?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
     
+    // Rezeptname nur anzeigen, wenn Spielleiter oder Rezept bekannt/verstanden
+    val showRecipeName = character.isGameMaster || isRecipeKnown
+    
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -70,7 +73,7 @@ fun StructureAnalysisDialog(
                 Divider()
                 
                 Text(
-                    text = recipe.name,
+                    text = if (showRecipeName) recipe.name else "Unbekannter Trank",
                     style = MaterialTheme.typography.titleMedium
                 )
                 
