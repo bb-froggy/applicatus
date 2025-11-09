@@ -84,11 +84,14 @@ fun CharacterHomeScreen(
                 // Navigation Buttons
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                Button(
-                    onClick = { onNavigateToSpellStorage(characterId) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.spell_storage))
+                // Zauberspeicher nur anzeigen, wenn Charakter AE hat
+                if (char.maxAe > 0) {
+                    Button(
+                        onClick = { onNavigateToSpellStorage(characterId) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.spell_storage))
+                    }
                 }
                 
                 Button(
