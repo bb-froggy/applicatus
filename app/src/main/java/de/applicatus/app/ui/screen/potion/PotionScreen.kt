@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -58,8 +59,11 @@ fun PotionScreen(
     val groupCharacters by viewModel.groupCharacters.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var showBrewDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showAnalysisDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
+
+    val isGameMaster = character?.isGameMaster ?: false
 
     Scaffold(
         topBar = {
@@ -78,8 +82,23 @@ fun PotionScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_potion))
+            // Beide Buttons für alle Spieler - Spielleiter und Spieler
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (isGameMaster) {
+                    // Spielleiter: Button zum direkten Hinzufügen
+                    FloatingActionButton(
+                        onClick = { showAddDialog = true },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_potion))
+                    }
+                }
+                // Brauen-Button für alle (Spieler und Spielleiter)
+                FloatingActionButton(onClick = { showBrewDialog = true }) {
+                    Icon(Icons.Default.Build, contentDescription = "Trank brauen")
+                }
             }
         }
     ) { paddingValues ->
@@ -158,6 +177,14 @@ fun PotionScreen(
                 }
             )
         }
+    }
+
+    if (showBrewDialog && character != null) {
+        BrewPotionDialog(
+            character = character!!,
+            viewModel = viewModel,
+            onDismiss = { showBrewDialog = false }
+        )
     }
 
     showDeleteDialog?.let { potionWithRecipe ->

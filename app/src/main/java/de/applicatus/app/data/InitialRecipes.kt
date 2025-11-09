@@ -35,7 +35,7 @@ object InitialRecipes {
         Recipe(
             name = "Hylailer Feuer",
             gruppe = "Inanimatica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 30,
             zutatenPreis = 15,
             zutatenVerbreitung = 8,
@@ -46,7 +46,7 @@ object InitialRecipes {
         Recipe(
             name = "Magisches Brandöl",
             gruppe = "Inanimatica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = null, // unverkäuflich
             zutatenPreis = 50,
             zutatenVerbreitung = 7,
@@ -57,7 +57,7 @@ object InitialRecipes {
         Recipe(
             name = "Sonnenlicht-Elixier",
             gruppe = "Inanimatica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 100,
             zutatenPreis = 50,
             zutatenVerbreitung = 5,
@@ -204,7 +204,7 @@ object InitialRecipes {
         Recipe(
             name = "Bannpulver gg. Unsichtbares",
             gruppe = "Magika",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 80,
             zutatenPreis = 40,
             zutatenVerbreitung = 10,
@@ -226,7 +226,7 @@ object InitialRecipes {
         Recipe(
             name = "Borbarads Hauch",
             gruppe = "Magika",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 25,
             zutatenPreis = 13,
             zutatenVerbreitung = 3,
@@ -248,7 +248,7 @@ object InitialRecipes {
         Recipe(
             name = "Retro-Elixier",
             gruppe = "Magika",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 80, // >80
             zutatenPreis = 40,
             zutatenVerbreitung = 2,
@@ -283,7 +283,7 @@ object InitialRecipes {
         Recipe(
             name = "Elixier gegen Verfall",
             gruppe = "Mutandica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 400,
             zutatenPreis = 200,
             zutatenVerbreitung = 4,
@@ -316,7 +316,7 @@ object InitialRecipes {
         Recipe(
             name = "Levitationselixier",
             gruppe = "Mutandica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 70,
             zutatenPreis = 35,
             zutatenVerbreitung = 7,
@@ -338,7 +338,7 @@ object InitialRecipes {
         Recipe(
             name = "Rethonikum",
             gruppe = "Mutandica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 50,
             zutatenPreis = 25,
             zutatenVerbreitung = 6,
@@ -349,7 +349,7 @@ object InitialRecipes {
         Recipe(
             name = "Unsichtbarkeitselixier",
             gruppe = "Mutandica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 60,
             zutatenPreis = 30,
             zutatenVerbreitung = 6,
@@ -382,7 +382,7 @@ object InitialRecipes {
         Recipe(
             name = "Zurbarans Tinktur",
             gruppe = "Mutandica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 150,
             zutatenPreis = 75,
             zutatenVerbreitung = 2,
@@ -393,7 +393,7 @@ object InitialRecipes {
         Recipe(
             name = "Zwergentrunk",
             gruppe = "Mutandica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 80,
             zutatenPreis = 40,
             zutatenVerbreitung = 8,
@@ -417,7 +417,7 @@ object InitialRecipes {
         Recipe(
             name = "Bestinoid",
             gruppe = "Narkotika",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 100,
             zutatenPreis = 50,
             zutatenVerbreitung = 4,
@@ -461,7 +461,7 @@ object InitialRecipes {
         Recipe(
             name = "Mengbiller Bannbalöl",
             gruppe = "Narkotika",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 140,
             zutatenPreis = 70,
             zutatenVerbreitung = 4,
@@ -472,7 +472,7 @@ object InitialRecipes {
         Recipe(
             name = "Regenbogenstaub",
             gruppe = "Narkotika",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 50,
             zutatenPreis = 25,
             zutatenVerbreitung = 4,
@@ -551,7 +551,7 @@ object InitialRecipes {
         Recipe(
             name = "Prophylaktikum gg. Kukris",
             gruppe = "Spagyrik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 35,
             zutatenPreis = 18,
             zutatenVerbreitung = 4,
@@ -573,7 +573,7 @@ object InitialRecipes {
         Recipe(
             name = "Restorarium",
             gruppe = "Spagyrik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 120,
             zutatenPreis = 60,
             zutatenVerbreitung = 3,
@@ -608,7 +608,7 @@ object InitialRecipes {
         Recipe(
             name = "Bannstaub",
             gruppe = "Venenik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 250,
             zutatenPreis = 125,
             zutatenVerbreitung = 3,
@@ -630,7 +630,7 @@ object InitialRecipes {
         Recipe(
             name = "Drachenspeichel",
             gruppe = "Venenik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 60,
             zutatenPreis = 30,
             zutatenVerbreitung = 7,
@@ -663,7 +663,7 @@ object InitialRecipes {
         Recipe(
             name = "Purpurblitz",
             gruppe = "Venenik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 300,
             zutatenPreis = 50,
             zutatenVerbreitung = 3,
@@ -696,7 +696,7 @@ object InitialRecipes {
         Recipe(
             name = "Wasserwahn",
             gruppe = "Venenik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 180,
             zutatenPreis = 50,
             zutatenVerbreitung = 4,
@@ -707,7 +707,7 @@ object InitialRecipes {
         Recipe(
             name = "Zazamotoxin",
             gruppe = "Venenik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 250,
             zutatenPreis = 75,
             zutatenVerbreitung = 1,
@@ -718,7 +718,7 @@ object InitialRecipes {
         Recipe(
             name = "Zwei-Komponenten-Gifte",
             gruppe = "Venenik",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = null, // unverkäuflich (∞)
             zutatenPreis = 100, // >100
             zutatenVerbreitung = 3,
@@ -819,7 +819,7 @@ object InitialRecipes {
         Recipe(
             name = "Respondarum",
             gruppe = "Virtutica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 60,
             zutatenPreis = 30,
             zutatenVerbreitung = 7,
@@ -841,7 +841,7 @@ object InitialRecipes {
         Recipe(
             name = "Willenstrunk",
             gruppe = "Virtutica",
-            lab = Laboratory.LABORATORY,
+            lab = Laboratory.ALCHEMIST_LABORATORY,
             preis = 50,
             zutatenPreis = 25,
             zutatenVerbreitung = 6,

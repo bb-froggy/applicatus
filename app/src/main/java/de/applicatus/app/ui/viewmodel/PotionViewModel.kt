@@ -4,13 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.potion.Laboratory
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.data.model.potion.RecipeKnowledge
 import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.potion.Substitution
+import de.applicatus.app.data.model.talent.Talent
 import de.applicatus.app.data.repository.ApplicatusRepository
+import de.applicatus.app.logic.PotionBrewer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -162,6 +166,154 @@ class PotionViewModel(
                 val newAe = (character.currentAe + delta).coerceIn(0, character.maxAe)
                 repository.updateCharacter(character.copy(currentAe = newAe))
             }
+        }
+    }
+    
+    /**
+     * Gibt die bekannten Rezepte für den Charakter zurück (KNOWN, nicht nur UNDERSTOOD)
+     */
+    fun getKnownRecipes(): Flow<List<Recipe>> {
+        return repository.getRecipeKnowledgeForCharacter(characterId)
+            .combine(repository.allRecipes) { knowledgeList, allRecipes ->
+                val knownRecipeIds = knowledgeList
+                    .filter { it.knowledgeLevel == RecipeKnowledgeLevel.KNOWN }
+                    .map { it.recipeId }
+                    .toSet()
+                
+                allRecipes.filter { it.id in knownRecipeIds }
+            }
+    }
+    
+    /**
+     * Prüft, ob der Charakter das angegebene Talent zum Brauen nutzen kann
+     */
+    fun canUseBrewingTalent(talent: Talent): Boolean {
+        val char = _character.value ?: return false
+        return when (talent) {
+            Talent.ALCHEMY -> char.hasAlchemy
+            Talent.COOKING_POTIONS -> char.hasCookingPotions
+            else -> false
+        }
+    }
+    
+    /**
+     * Gibt die verfügbaren Brau-Talente für den Charakter zurück
+     */
+    fun getAvailableBrewingTalents(): List<Talent> {
+        val char = _character.value ?: return emptyList()
+        val talents = mutableListOf<Talent>()
+        if (char.hasAlchemy) talents.add(Talent.ALCHEMY)
+        if (char.hasCookingPotions) talents.add(Talent.COOKING_POTIONS)
+        return talents
+    }
+    
+    /**
+     * Braut einen Trank und fügt ihn zur Charakterliste hinzu
+     * 
+     * @param recipe Das Rezept
+     * @param talent Das verwendete Talent (ALCHEMY oder COOKING_POTIONS)
+     * @param laboratory Das verfügbare Labor
+     * @param voluntaryHandicap Freiwilliger Handicap (0 oder min. 2)
+     * @param substitutions Liste der Substitutionen
+     * @param astralCharging Anzahl der Qualitätspunkte durch astrale Aufladung
+     * @return Das Brau-Ergebnis
+     */
+    suspend fun brewPotion(
+        recipe: Recipe,
+        talent: Talent,
+        laboratory: Laboratory,
+        voluntaryHandicap: Int = 0,
+        substitutions: List<Substitution> = emptyList(),
+        astralCharging: Int = 0
+    ): PotionBrewer.BrewingResult {
+        val char = _character.value ?: throw IllegalStateException("Character not loaded")
+        
+        // Prüfe, ob der Charakter das Rezept kennt
+        val knownRecipes = getKnownRecipes().first()
+        if (!knownRecipes.any { it.id == recipe.id }) {
+            throw IllegalStateException("Rezept nicht bekannt")
+        }
+        
+        // Prüfe, ob das Talent verfügbar ist
+        if (!canUseBrewingTalent(talent)) {
+            throw IllegalStateException("Talent nicht verfügbar")
+        }
+        
+        // Prüfe, ob das Labor ausreichend ist
+        if (!PotionBrewer.canBrew(recipe, laboratory)) {
+            throw IllegalStateException("Labor nicht ausreichend")
+        }
+        
+        // Berechne AsP-Kosten für astrale Aufladung
+        val aspCost = PotionBrewer.calculateAspCostForQualityPoints(astralCharging)
+        if (char.hasAe && aspCost > char.currentAe) {
+            throw IllegalStateException("Nicht genug AsP für astrale Aufladung")
+        }
+        
+        // Führe Brauprobe durch
+        val result = PotionBrewer.brewPotion(
+            character = char,
+            recipe = recipe,
+            talent = talent,
+            availableLaboratory = laboratory,
+            voluntaryHandicap = voluntaryHandicap,
+            substitutions = substitutions,
+            astralCharging = astralCharging
+        )
+        
+        // AsP abziehen (falls verwendet)
+        if (char.hasAe && aspCost > 0) {
+            val updatedChar = char.copy(currentAe = char.currentAe - aspCost)
+            repository.updateCharacter(updatedChar)
+        }
+        
+        // Zufälliges Aussehen generieren (falls nicht im Rezept definiert)
+        val appearance = if (recipe.appearance.isBlank()) {
+            generateRandomAppearance()
+        } else {
+            recipe.appearance
+        }
+        
+        // Trank zur Datenbank hinzufügen
+        // Beim Brauen ist die Kategorie immer bekannt
+        val potion = Potion(
+            characterId = characterId,
+            recipeId = recipe.id,
+            actualQuality = result.quality,
+            appearance = appearance,
+            expiryDate = recipe.shelfLife,
+            categoryKnown = true  // Gebraute Tränke haben bekannte Kategorie
+        )
+        repository.insertPotion(potion)
+        
+        return result
+    }
+    
+    /**
+     * Generiert ein zufälliges Aussehen für einen Trank
+     */
+    private fun generateRandomAppearance(): String {
+        val colors = listOf(
+            "klar", "trüb", "goldgelb", "bernsteinfarben", "smaragdgrün", 
+            "rubinrot", "saphirblau", "violett", "silbrig", "kupferfarben",
+            "milchig", "schimmernd", "dunkelrot", "hellblau", "grünlich"
+        )
+        val properties = listOf(
+            "glitzernd", "schimmernd", "leuchtend", "dampfend", "blubbernde",
+            "ölig", "dickflüssig", "wässrig", "klebrig", "sirupartig"
+        )
+        val color = colors.random()
+        val property = properties.random()
+        return "$color, $property"
+    }
+    
+    /**
+     * Aktualisiert das Standard-Labor des Charakters
+     */
+    fun updateDefaultLaboratory(laboratory: Laboratory?) {
+        viewModelScope.launch {
+            val char = _character.value ?: return@launch
+            repository.updateCharacter(char.copy(defaultLaboratory = laboratory))
         }
     }
 }

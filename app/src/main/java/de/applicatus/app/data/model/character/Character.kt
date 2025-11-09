@@ -2,6 +2,7 @@ package de.applicatus.app.data.model.character
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import de.applicatus.app.data.model.potion.Laboratory
 import java.util.UUID
 
 @Entity(tableName = "characters")
@@ -37,6 +38,8 @@ data class Character(
     val odemZfw: Int = 0,                // ODEM ARCANUM-Zauberfertigkeit (0-18)
     val hasAnalys: Boolean = false,      // Beherrscht der Charakter ANALYS ARKANSTRUKTUR?
     val analysZfw: Int = 0,              // ANALYS ARKANSTRUKTUR-Zauberfertigkeit (0-18)
+    // Labor für Alchimie
+    val defaultLaboratory: Laboratory? = null,  // Standard-Labor für Brauproben (null = kein Labor verfügbar)
     // Lebensenergie (alle Charaktere haben LE)
     val currentLe: Int = 30,             // Aktuelle Lebensenergie
     val maxLe: Int = 30,                 // Maximale Lebensenergie
