@@ -72,6 +72,12 @@
     <string name="select_quality">Qualität auswählen</string>
     <string name="enter_expiry_date">Ablaufdatum eingeben</string>
     <string name="expiry_date_hint">z.B. 1. Praios 1040 BF</string>
+    <string name="appearance">Aussehen</string>
+    <string name="generate_random_appearance">Zufällig generieren</string>
+    <string name="unlimited">Unbegrenzt haltbar</string>
+    <string name="day">Tag</string>
+    <string name="month">Monat</string>
+    <string name="year">Jahr</string>
     <string name="no_potions">Keine Tränke vorhanden</string>
     <string name="delete_potion">Trank löschen</string>
     <string name="delete_potion_confirm">Möchten Sie diesen Trank wirklich löschen?</string>

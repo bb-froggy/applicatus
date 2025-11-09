@@ -473,15 +473,6 @@ fun StructureAnalysisDialog(
                                 text = final.message,
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
-                            if (final.potionConsumed) {
-                                Divider()
-                                Text(
-                                    text = "⚠️ Der Trank wurde bei der Laboranalyse verbraucht!",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
                         }
                     }
                     

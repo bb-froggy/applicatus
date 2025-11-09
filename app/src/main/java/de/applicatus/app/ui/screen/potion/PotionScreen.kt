@@ -18,9 +18,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ import de.applicatus.app.data.model.potion.KnownQualityLevel
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
+import de.applicatus.app.logic.PotionHelper
 import de.applicatus.app.ui.screen.potion.PotionAnalysisDialog
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
@@ -147,9 +150,10 @@ fun PotionScreen(
         } else {
             AddPotionDialog(
                 recipes = recipes,
+                currentDate = "1. Praios 1040 BF", // TODO: Aktuelles Datum aus Charaktereinstellungen
                 onDismiss = { showAddDialog = false },
-                onAdd = { recipeId, quality, expiryDate ->
-                    viewModel.addPotion(recipeId, quality, expiryDate)
+                onAdd = { recipeId, actualQuality, appearance, expiryDate ->
+                    viewModel.addPotion(recipeId, actualQuality, appearance, expiryDate)
                     showAddDialog = false
                 }
             )
@@ -227,6 +231,15 @@ private fun PotionCard(
                         potionWithRecipe.recipe
                     )
                     
+                    // Aussehen anzeigen (falls vorhanden)
+                    if (potionWithRecipe.potion.appearance.isNotBlank()) {
+                        Text(
+                            text = "Aussehen: ${potionWithRecipe.potion.appearance}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
                     // Spielleiter sieht alles, Spieler nur analysierte Infos
                     if (isGameMaster) {
                         Text(
@@ -258,6 +271,19 @@ private fun PotionCard(
                             text = "Tatsächliche Haltbarkeit: ${potionWithRecipe.recipe.shelfLife}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    // Ablaufdatum anzeigen (Spielleiter sieht es immer)
+                    if (isGameMaster || potionWithRecipe.potion.shelfLifeKnown) {
+                        Text(
+                            text = "Ablaufdatum: ${potionWithRecipe.potion.expiryDate}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (potionWithRecipe.potion.expiryDate == de.applicatus.app.logic.PotionHelper.UNLIMITED_DATE) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                         )
                     }
                     
@@ -350,15 +376,51 @@ private fun getQualityLabel(quality: PotionQuality): String {
 @Composable
 private fun AddPotionDialog(
     recipes: List<Recipe>,
+    currentDate: String,
     onDismiss: () -> Unit,
-    onAdd: (Long, PotionQuality, String) -> Unit
+    onAdd: (Long, PotionQuality, String, String) -> Unit
 ) {
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var selectedQuality by remember { mutableStateOf(PotionQuality.C) }
-    var expiryDate by remember { mutableStateOf("") }
+    var appearance by remember { mutableStateOf("") }
+    
+    // Datum-State
+    var isUnlimited by remember { mutableStateOf(false) }
+    var expiryDay by remember { mutableStateOf(1) }
+    var expiryMonth by remember { mutableStateOf(1) }
+    var expiryYear by remember { mutableStateOf(1040) }
 
     var expandedRecipe by remember { mutableStateOf(false) }
     var expandedQuality by remember { mutableStateOf(false) }
+    
+    // Initialisiere Datum mit aktuellem Datum
+    LaunchedEffect(Unit) {
+        PotionHelper.parseDerischenDate(currentDate)?.let { (day, month, year) ->
+            expiryDay = day
+            expiryMonth = month
+            expiryYear = year
+        }
+    }
+    
+    // Aktualisiere Aussehen wenn Rezept gewählt wird
+    LaunchedEffect(selectedRecipe) {
+        selectedRecipe?.let { recipe ->
+            if (appearance.isEmpty() && recipe.appearance.isNotEmpty()) {
+                appearance = recipe.appearance
+            }
+            // Berechne Ablaufdatum basierend auf Haltbarkeit
+            if (!isUnlimited) {
+                val calculatedDate = PotionHelper.calculateExpiryDate(currentDate, recipe.shelfLife)
+                if (calculatedDate != PotionHelper.UNLIMITED_DATE) {
+                    PotionHelper.parseDerischenDate(calculatedDate)?.let { (day, month, year) ->
+                        expiryDay = day
+                        expiryMonth = month
+                        expiryYear = year
+                    }
+                }
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -368,6 +430,7 @@ private fun AddPotionDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Rezept-Auswahl
                 ExposedDropdownMenuBox(
                     expanded = expandedRecipe,
                     onExpandedChange = { expandedRecipe = it }
@@ -399,6 +462,7 @@ private fun AddPotionDialog(
                     }
                 }
 
+                // Qualitäts-Auswahl
                 ExposedDropdownMenuBox(
                     expanded = expandedQuality,
                     onExpandedChange = { expandedQuality = it }
@@ -430,23 +494,171 @@ private fun AddPotionDialog(
                     }
                 }
 
-                OutlinedTextField(
-                    value = expiryDate,
-                    onValueChange = { expiryDate = it },
-                    label = { Text(stringResource(R.string.expiry_date)) },
-                    placeholder = { Text(stringResource(R.string.expiry_date_hint)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Aussehen-Eingabe mit Zufallsgenerator
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = appearance,
+                        onValueChange = { appearance = it },
+                        label = { Text(stringResource(R.string.appearance)) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    IconButton(
+                        onClick = { appearance = PotionHelper.generateRandomAppearance() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.generate_random_appearance)
+                        )
+                    }
+                }
+
+                // Haltbarkeit - Unbegrenzt Checkbox
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = isUnlimited,
+                        onCheckedChange = { isUnlimited = it }
+                    )
+                    Text(stringResource(R.string.unlimited))
+                }
+
+                // Datum-Eingabe mit +/- Buttons (nur wenn nicht unbegrenzt)
+                if (!isUnlimited) {
+                    Text(
+                        text = stringResource(R.string.expiry_date),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    
+                    // Tag
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.day),
+                            modifier = Modifier.width(60.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                expiryDay = (expiryDay - 1).coerceAtLeast(1)
+                            }
+                        ) {
+                            Text("-", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Text(
+                            text = expiryDay.toString(),
+                            modifier = Modifier.width(40.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        IconButton(
+                            onClick = {
+                                val maxDays = PotionHelper.getDaysInMonth(expiryMonth)
+                                expiryDay = (expiryDay + 1).coerceAtMost(maxDays)
+                            }
+                        ) {
+                            Text("+", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                    
+                    // Monat
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.month),
+                            modifier = Modifier.width(60.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                expiryMonth = if (expiryMonth > 1) expiryMonth - 1 else 12
+                                // Passe Tag an falls nötig
+                                val maxDays = PotionHelper.getDaysInMonth(expiryMonth)
+                                if (expiryDay > maxDays) expiryDay = maxDays
+                            }
+                        ) {
+                            Text("-", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Text(
+                            text = expiryMonth.toString(),
+                            modifier = Modifier.width(40.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        IconButton(
+                            onClick = {
+                                expiryMonth = if (expiryMonth < 12) expiryMonth + 1 else 1
+                                // Passe Tag an falls nötig
+                                val maxDays = PotionHelper.getDaysInMonth(expiryMonth)
+                                if (expiryDay > maxDays) expiryDay = maxDays
+                            }
+                        ) {
+                            Text("+", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                    
+                    // Jahr
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.year),
+                            modifier = Modifier.width(60.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                expiryYear = (expiryYear - 1).coerceAtLeast(1)
+                            }
+                        ) {
+                            Text("-", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Text(
+                            text = "$expiryYear BF",
+                            modifier = Modifier.width(80.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        IconButton(
+                            onClick = {
+                                expiryYear++
+                            }
+                        ) {
+                            Text("+", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                    
+                    // Formatiertes Datum anzeigen
+                    Text(
+                        text = PotionHelper.formatDerischenDate(expiryDay, expiryMonth, expiryYear),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
                     selectedRecipe?.let { recipe ->
-                        onAdd(recipe.id, selectedQuality, expiryDate)
+                        val finalExpiryDate = if (isUnlimited) {
+                            PotionHelper.UNLIMITED_DATE
+                        } else {
+                            PotionHelper.formatDerischenDate(expiryDay, expiryMonth, expiryYear)
+                        }
+                        onAdd(recipe.id, selectedQuality, appearance, finalExpiryDate)
                     }
                 },
-                enabled = selectedRecipe != null && expiryDate.isNotBlank()
+                enabled = selectedRecipe != null && appearance.isNotBlank()
             ) {
                 Text(stringResource(R.string.save))
             }
