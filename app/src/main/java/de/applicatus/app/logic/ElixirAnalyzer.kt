@@ -18,50 +18,35 @@ data class IntensityDeterminationResult(
 )
 
 /**
- * Ergebnis einer einzelnen Strukturanalyse-Probe
+ * Ergebnis einer Strukturanalyse-Probe (nur eine Probe, keine Serie mehr)
  */
 data class StructureAnalysisProbeResult(
     val success: Boolean,              // War die Probe erfolgreich?
     val tap: Int,                      // Talentpunkte*/ZfP* dieser Probe
     val effectiveTap: Int,             // Effektive TaP* (bei Augenschein halbiert)
-    val selfControlSuccess: Boolean,   // War die Selbstbeherrschungsprobe erfolgreich?
-    val selfControlRolls: List<Int>,   // Würfe der Selbstbeherrschungsprobe
-    val canContinue: Boolean,          // Kann die Analyse fortgesetzt werden?
     val probeRolls: List<Int>,         // Die drei Würfelwürfe der Hauptprobe
     val message: String,               // Beschreibung des Ergebnisses
     val fertigkeitswert: Int,          // Talentwert/ZfW
     val difficulty: Int,               // Erschwernis/Erleichterung (gesamt)
     val baseDifficulty: Int,           // Basis-Analyseerschwernis
-    val facilitation: Int,             // Erleichterung aus vorheriger Analyse
+    val facilitation: Int,             // Erleichterung aus Intensitätsbestimmung
     val methodBonus: Int,              // Bonus durch Methode (Sinnenschärfe, Magiekunde, etc.)
     val attributes: Triple<Pair<String, Int>, Pair<String, Int>, Pair<String, Int>>  // Eigenschaftsnamen und -werte
 )
 
 /**
- * Ergebnis einer Selbstbeherrschungsprobe bei Strukturanalyse
- */
-data class StructureAnalysisSelfControlResult(
-    val success: Boolean,              // War die Probe erfolgreich?
-    val rolls: List<Int>,              // Die drei Würfelwürfe
-    val difficulty: Int,               // Erschwernis (probeNumber - 1)
-    val fertigkeitswert: Int,          // Selbstbeherrschungs-Talentwert
-    val message: String,               // Beschreibung des Ergebnisses
-    val attributes: Triple<Pair<String, Int>, Pair<String, Int>, Pair<String, Int>>  // Eigenschaftsnamen und -werte
-)
-
-/**
- * Ergebnis der finalen Strukturanalyse
+ * Ergebnis der Strukturanalyse (direkt nach einer Probe)
  */
 data class StructureAnalysisFinalResult(
-    val totalTap: Int,                 // Gesamte akkumulierte TaP*
+    val totalTap: Int,                 // TaP* der Probe
     val categoryKnown: Boolean,        // Kategorie bekannt (bei Erfolg)
     val knownQualityLevel: KnownQualityLevel,  // Wie genau ist die Qualität bekannt
-    val intensityQuality: IntensityQuality,    // Intensitätsqualität (falls neu bestimmt)
+    val intensityQuality: IntensityQuality,    // Intensitätsqualität (aus vorheriger Bestimmung)
     val refinedQuality: RefinedQuality,        // Verfeinerte Qualität
     val knownExactQuality: PotionQuality?,     // Genaue Qualität (ab 13 TaP*)
     val shelfLifeKnown: Boolean,       // Haltbarkeit bekannt (ab 8 TaP*)
     val recipeKnown: Boolean,          // Rezept bekannt (ab 19 TaP*)
-    val newFacilitation: Int,          // Neue Erleichterung für zukünftige Analysen
+    val newFacilitation: Int,          // Neue Erleichterung für zukünftige Analysen (halbe TaP* aufgerundet)
     val potionConsumed: Boolean,       // Wurde der Trank bei der Analyse verbraucht?
     val message: String                // Beschreibung des Gesamtergebnisses
 )
@@ -166,22 +151,20 @@ object ElixirAnalyzer {
     }
     
     /**
-     * Führt eine einzelne Strukturanalyse-Probe durch
+     * Führt eine Strukturanalyse-Probe durch (es gibt keine Serie mehr, nur eine Probe)
      * 
      * @param character Der analysierende Charakter
      * @param recipe Das Rezept des Elixiers
      * @param method Die gewählte Analysemethode
-     * @param currentFacilitation Aktuelle Erleichterung aus vorherigen Analysen
-     * @param probeNumber Die laufende Nummer dieser Probe (1, 2, 3, ...)
+     * @param currentFacilitation Erleichterung aus Intensitätsbestimmung (halbe ZfP* aufgerundet)
      * @param acceptHarderProbe Bei Laboranalyse: Um 3 erschweren statt Trank zu verbrauchen
-     * @return StructureAnalysisProbeResult
+     * @return StructureAnalysisProbeResult mit direktem Analyseergebnis
      */
     fun performStructureAnalysisProbe(
         character: Character,
         recipe: Recipe,
         method: StructureAnalysisMethod,
         currentFacilitation: Int,
-        probeNumber: Int,
         acceptHarderProbe: Boolean = false
     ): StructureAnalysisProbeResult {
         // Bestimme Talentwert/ZfW basierend auf Methode
@@ -194,7 +177,7 @@ object ElixirAnalyzer {
         // Basis-Analyseerschwernis
         val baseDifficulty = recipe.analysisDifficulty
         
-        // Erleichterung aus vorheriger Analyse
+        // Erleichterung aus Intensitätsbestimmung
         val facilitation = currentFacilitation
         
         // Erschwernisse und Erleichterungen
@@ -204,14 +187,14 @@ object ElixirAnalyzer {
         var methodBonus = 0
         when (method) {
             StructureAnalysisMethod.ANALYS_SPELL -> {
-                // Je 3 TaP in Magiekunde über 7 → 1 Punkt Erleichterung
+                // Je 3 volle TaP in Magiekunde über 7 → 1 Punkt Erleichterung
                 methodBonus = if (character.magicalLoreSkill > 7) {
                     (character.magicalLoreSkill - 7) / 3
                 } else 0
                 difficulty -= methodBonus
             }
             StructureAnalysisMethod.BY_SIGHT -> {
-                // Je 3 TaP in Sinnenschärfe → 1 Punkt Erleichterung
+                // Je 3 volle TaP in Sinnenschärfe → 1 Punkt Erleichterung
                 methodBonus = character.sensoryAcuitySkill / 3
                 difficulty -= methodBonus
             }
@@ -273,9 +256,6 @@ object ElixirAnalyzer {
                 success = false,
                 tap = probeResult.qualityPoints,
                 effectiveTap = 0,
-                selfControlSuccess = false,
-                selfControlRolls = emptyList(),
-                canContinue = false,
                 probeRolls = probeResult.rolls,
                 message = "Strukturanalyse-Probe fehlgeschlagen (${probeResult.qualityPoints} TaP*)",
                 fertigkeitswert = baseTaw,
@@ -310,9 +290,6 @@ object ElixirAnalyzer {
             success = true,
             tap = probeResult.qualityPoints,
             effectiveTap = effectiveTap,
-            selfControlSuccess = false,  // Wird später gesetzt
-            selfControlRolls = emptyList(),
-            canContinue = true,  // Zunächst immer true, wird durch SK-Probe bestimmt
             probeRolls = probeResult.rolls,
             message = message,
             fertigkeitswert = baseTaw,
@@ -325,65 +302,18 @@ object ElixirAnalyzer {
     }
     
     /**
-     * Führt eine Selbstbeherrschungsprobe durch
-     * Selbstbeherrschung: MU/MU/KO
+     * Berechnet das Ergebnis der Strukturanalyse direkt nach der Probe
      */
-    private fun performSelfControlProbe(character: Character, difficulty: Int): Boolean {
-        val probeResult = ProbeChecker.performTalentProbe(
-            talent = Talent.SELF_CONTROL,
-            character = character,
-            talentwert = character.selfControlSkill,
-            difficulty = difficulty
-        )
-        return probeResult.success
-    }
-    
-    /**
-     * Führt eine Selbstbeherrschungsprobe durch und gibt das Ergebnis mit Details zurück
-     * Selbstbeherrschung: MU/MU/KO
-     */
-    fun performSelfControlProbeWithDetails(character: Character, probeNumber: Int): StructureAnalysisSelfControlResult {
-        val difficulty = probeNumber - 1
-        val probeResult = ProbeChecker.performTalentProbe(
-            talent = Talent.SELF_CONTROL,
-            character = character,
-            talentwert = character.selfControlSkill,
-            difficulty = difficulty
-        )
-        
-        val message = if (probeResult.success) {
-            "Selbstbeherrschungsprobe erfolgreich! Sie können weitere Proben ablegen."
-        } else {
-            "Selbstbeherrschungsprobe fehlgeschlagen. Die Analyse ist abgeschlossen."
-        }
-        
-        return StructureAnalysisSelfControlResult(
-            success = probeResult.success,
-            rolls = probeResult.rolls,
-            difficulty = difficulty,
-            fertigkeitswert = character.selfControlSkill,
-            message = message,
-            attributes = Triple(
-                Pair("MU", character.mu),
-                Pair("MU", character.mu),
-                Pair("KO", character.ko)
-            )
-        )
-    }
-    
-    /**
-     * Berechnet das finale Ergebnis der Strukturanalyse
-     */
-    fun calculateFinalStructureAnalysisResult(
-        totalAccumulatedTap: Int,
+    fun calculateStructureAnalysisResult(
+        totalTap: Int,
         actualQuality: PotionQuality,
         currentIntensity: IntensityQuality,
         isRecipeKnown: Boolean,
         method: StructureAnalysisMethod,
         acceptHarderProbe: Boolean
     ): StructureAnalysisFinalResult {
-        // Kategorie ist nur bekannt, wenn mindestens 1 TaP* akkumuliert wurde
-        val categoryKnown = totalAccumulatedTap >= 1
+        // Kategorie ist nur bekannt, wenn mindestens 1 TaP* erreicht wurde
+        val categoryKnown = totalTap >= 1
         
         // Bestimme KnownQualityLevel und andere Informationen
         val knownQualityLevel: KnownQualityLevel
@@ -391,17 +321,17 @@ object ElixirAnalyzer {
         var knownExactQuality: PotionQuality? = null
         
         when {
-            totalAccumulatedTap >= 13 -> {
+            totalTap >= 13 -> {
                 // Genaue Qualität bekannt
                 knownQualityLevel = KnownQualityLevel.EXACT
                 knownExactQuality = actualQuality
             }
-            totalAccumulatedTap >= 4 && currentIntensity != IntensityQuality.UNKNOWN -> {
+            totalTap >= 4 && currentIntensity != IntensityQuality.UNKNOWN -> {
                 // Verfeinerte Qualität (sehr schwach / mittel / sehr stark)
                 knownQualityLevel = KnownQualityLevel.VERY_WEAK_MEDIUM_OR_VERY_STRONG
                 refinedQuality = determineRefinedQuality(actualQuality, currentIntensity)
             }
-            totalAccumulatedTap >= 4 -> {
+            totalTap >= 4 -> {
                 // Qualität wie bei Intensitätsbestimmung
                 knownQualityLevel = KnownQualityLevel.WEAK_OR_STRONG
             }
@@ -410,19 +340,19 @@ object ElixirAnalyzer {
             }
         }
         
-        val shelfLifeKnown = totalAccumulatedTap >= 8
-        val recipeKnown = totalAccumulatedTap >= 19 || isRecipeKnown
+        val shelfLifeKnown = totalTap >= 8
+        val recipeKnown = totalTap >= 19 || isRecipeKnown
         
-        // Neue Erleichterung: Hälfte der TaP*
-        val newFacilitation = totalAccumulatedTap / 2
+        // Neue Erleichterung: Hälfte der TaP* (aufgerundet)
+        val newFacilitation = (totalTap + 1) / 2
         
         // Wurde der Trank verbraucht?
         val potionConsumed = method == StructureAnalysisMethod.LABORATORY && !acceptHarderProbe
         
         val message = buildString {
-            appendLine("Strukturanalyse abgeschlossen mit $totalAccumulatedTap TaP*!")
+            appendLine("Strukturanalyse abgeschlossen mit $totalTap TaP*!")
             appendLine()
-            if (totalAccumulatedTap == 0) {
+            if (totalTap == 0) {
                 appendLine("❌ Keine Informationen über den Trank erhalten!")
             } else {
                 if (categoryKnown) {
@@ -443,7 +373,7 @@ object ElixirAnalyzer {
                 if (shelfLifeKnown) {
                     appendLine("✓ Haltbarkeit erkannt")
                 }
-                if (recipeKnown && totalAccumulatedTap >= 19) {
+                if (recipeKnown && totalTap >= 19) {
                     appendLine("🎓 Rezept wurde verstanden!")
                 }
             }
@@ -454,7 +384,7 @@ object ElixirAnalyzer {
         }
         
         return StructureAnalysisFinalResult(
-            totalTap = totalAccumulatedTap,
+            totalTap = totalTap,
             categoryKnown = categoryKnown,
             knownQualityLevel = knownQualityLevel,
             intensityQuality = currentIntensity,

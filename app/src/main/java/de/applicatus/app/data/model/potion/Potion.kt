@@ -48,6 +48,5 @@ data class Potion(
     
     // Analysedaten
     val intensityDeterminationZfp: Int = 0,             // ZfP* der Intensitätsbestimmung (für Strukturanalyse-Erleichterung)
-    val bestStructureAnalysisFacilitation: Int = 0,     // Beste Erleichterung aus vorherigen Analysen (halbe ZfP*/TaP*)
-    val accumulatedStructureAnalysisTap: Int = 0        // Akkumulierte TaP* der laufenden Strukturanalyse-Serie
+    val bestStructureAnalysisFacilitation: Int = 0      // Beste Erleichterung aus vorherigen Analysen (halbe ZfP*/TaP* der besten Analyse)
 )

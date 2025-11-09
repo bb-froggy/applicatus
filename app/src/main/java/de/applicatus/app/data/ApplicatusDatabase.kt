@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -253,6 +253,62 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Entferne nur accumulatedStructureAnalysisTap aus Potion-Tabelle
+                // bestStructureAnalysisFacilitation bleibt erhalten!
+                // Da SQLite keine ALTER TABLE DROP COLUMN unterstützt, müssen wir die Tabelle neu erstellen
+                
+                // 1. Temporäre Tabelle mit neuer Struktur erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS potions_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        recipeId INTEGER NOT NULL,
+                        actualQuality TEXT NOT NULL,
+                        appearance TEXT NOT NULL DEFAULT '',
+                        expiryDate TEXT NOT NULL,
+                        categoryKnown INTEGER NOT NULL DEFAULT 0,
+                        knownQualityLevel TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        intensityQuality TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        refinedQuality TEXT NOT NULL DEFAULT 'UNKNOWN',
+                        knownExactQuality TEXT,
+                        shelfLifeKnown INTEGER NOT NULL DEFAULT 0,
+                        intensityDeterminationZfp INTEGER NOT NULL DEFAULT 0,
+                        bestStructureAnalysisFacilitation INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(recipeId) REFERENCES recipes(id) ON DELETE CASCADE,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // 2. Daten von alter Tabelle in neue Tabelle kopieren (ohne accumulatedStructureAnalysisTap)
+                database.execSQL("""
+                    INSERT INTO potions_new (
+                        id, characterId, recipeId, actualQuality, appearance, expiryDate,
+                        categoryKnown, knownQualityLevel, intensityQuality, refinedQuality,
+                        knownExactQuality, shelfLifeKnown, intensityDeterminationZfp,
+                        bestStructureAnalysisFacilitation
+                    )
+                    SELECT 
+                        id, characterId, recipeId, actualQuality, appearance, expiryDate,
+                        categoryKnown, knownQualityLevel, intensityQuality, refinedQuality,
+                        knownExactQuality, shelfLifeKnown, intensityDeterminationZfp,
+                        bestStructureAnalysisFacilitation
+                    FROM potions
+                """.trimIndent())
+                
+                // 3. Alte Tabelle löschen
+                database.execSQL("DROP TABLE potions")
+                
+                // 4. Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE potions_new RENAME TO potions")
+                
+                // 5. Indices neu erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -260,7 +316,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

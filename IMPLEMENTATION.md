@@ -2,6 +2,57 @@
 
 ## ⚠️ Wichtige Hinweise für Entwickler
 
+### DSA-Regelkonformität: Rundungsregeln
+
+**WICHTIG: Bei DSA 4.1 gibt es unterschiedliche Rundungsregeln je nach Kontext!**
+
+#### 1. Division durch 2: Immer aufrunden (kaufmännisches Runden)
+Wenn TaP*/ZfP*/FP* halbiert werden, wird **immer aufgerundet**:
+- **Beispiel**: Erleichterung bei Strukturanalyse = Hälfte der vorherigen TaP*
+  - 5 TaP* → 3 Erleichterung (nicht 2)
+  - 7 TaP* → 4 Erleichterung (nicht 3)
+
+**Implementierung**: `(wert + 1) / 2`
+
+```kotlin
+// Strukturanalyse-Erleichterung
+val newFacilitation = (totalAccumulatedTap + 1) / 2
+
+// Augenschein (halbierte TaP*)
+val effectiveTap = (probeResult.qualityPoints + 1) / 2
+```
+
+#### 2. Division durch 3: Kaufmännisch runden
+Bei Divisionen durch 3 wird kaufmännisch gerundet (bei 0.5 und höher aufrunden):
+
+**Implementierung**: `(wert + 1) / 3`
+
+```kotlin
+// Meisterliche Regeneration: max(KL, IN) / 3
+val masteryRegen = (baseValue + 1) / 3 + 3
+```
+
+#### 3. "Je 3 Punkte"-Regeln: Nur volle 3 Punkte zählen (Abrundung)
+Bei Talent-Boni wie "Je 3 Punkte in Magiekunde über 7" werden **nur volle 3 Punkte** gezählt:
+- **Beispiel**: Magiekunde 9 → (9-7) = 2 Punkte → **0** Bonus (nicht 1!)
+- **Beispiel**: Magiekunde 10 → (10-7) = 3 Punkte → **1** Bonus
+- **Beispiel**: Magiekunde 11 → (11-7) = 4 Punkte → **1** Bonus (nicht 2!)
+
+**Implementierung**: Einfache Integer-Division ohne Rundung: `wert / 3`
+
+```kotlin
+// Magiekunde-Bonus bei ANALYS
+methodBonus = (character.magicalLoreSkill - 7) / 3  // Abrundung ist hier korrekt!
+
+// Sinnenschärfe-Bonus bei Augenschein
+methodBonus = character.sensoryAcuitySkill / 3  // Abrundung ist hier korrekt!
+```
+
+#### Zusammenfassung
+- **Division durch 2**: Immer aufrunden → `(wert + 1) / 2`
+- **Division durch 3 (Berechnung)**: Kaufmännisch runden → `(wert + 1) / 3`
+- **"Je 3 Punkte" (Schwellenwerte)**: Nur volle 3 Punkte → `wert / 3` (normale Division)
+
 ### Build-Prozess und Testing
 
 **WICHTIG: Immer nach Code-Änderungen einen Build durchführen!**
@@ -138,14 +189,13 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 
 - ✅ **ElixirAnalyzer**: Elixier-Analyse-Implementierung (nutzt ProbeChecker)
   - ✅ Intensitätsbestimmung (ODEM ARCANUM: KL/IN/IN)
-  - ✅ Strukturanalyse (ANALYS: KL/KL/IN, Alchimie: MU/KL/FF)
-  - ✅ Selbstbeherrschungsprobe (MU/MU/KO)
-  - ✅ Strukturanalyse mit mehreren Proben
-  - ✅ Selbstbeherrschungs-Proben
+  - ✅ Strukturanalyse (ANALYS: KL/KL/IN, Alchimie: MU/KL/FF) - eine Probe pro Analyse
+  - ✅ Erleichterung aus Intensitätsbestimmung oder vorheriger Strukturanalyse (jeweils halbe Punkte aufgerundet)
+  - ✅ Mehrere unabhängige Strukturanalysen mit kumulativer Verbesserung der Erleichterung
   - ✅ Berechnung von Analyseergebnissen
 
 - ✅ **PotionAnalyzer**: Tranksanalyse-Implementierung (nutzt ProbeChecker)
-  - ✅ Analyse nach verschiedenen Methoden (ODEM, Augenschein, Labor, Strukturanalyse-Serie)
+  - ✅ Analyse nach verschiedenen Methoden (ODEM, Augenschein, Labor, Strukturanalyse)
   - ✅ Bestimmung des Analysestatus
   - ✅ Rezept-Verständnis bei 19+ TaP*
   - ✅ Vollständige Integration mit PotionAnalysisStatus
@@ -241,8 +291,8 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Trank bearbeiten/löschen
   - ✅ Analyse-Dialoge:
     - ✅ IntensityDeterminationDialog (ODEM ARCANUM)
-    - ✅ StructureAnalysisDialog (ANALYS + Alchimie)
-    - ✅ PotionAnalysisDialog (Augenschein, Labor, Strukturanalyse-Serie)
+    - ✅ StructureAnalysisDialog (ANALYS/Augenschein/Labor) - nur eine Probe
+    - ✅ PotionAnalysisDialog (Auswahl der Analysemethode)
   - ✅ Navigation zu Rezeptwissen
   - ✅ Spielleiter-Integration (zeigt alle Infos)
 
@@ -354,11 +404,13 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   
 - ✅ **Trank-Analyse**:
   - ✅ **Intensitätsbestimmung**: ODEM ARCANUM (KL/IN/IN)
-  - ✅ **Strukturanalyse**: ANALYS (KL/KL/IN) + Alchimie (MU/KL/FF)
+  - ✅ **Strukturanalyse**: ANALYS (KL/KL/IN) + Alchimie (MU/KL/FF) - eine Probe pro Analyse
   - ✅ **Augenschein**: Sinnenschärfe (KL/IN/IN)
   - ✅ **Labor**: Magiekunde oder Pflanzenkunde
-  - ✅ **Strukturanalyse-Serie**: Mehrere ANALYS-Proben + Selbstbeherrschung
-  - ✅ Rezept verstehen bei 19+ TaP* gesamt
+  - ✅ **Mehrere unabhängige Strukturanalysen möglich**
+  - ✅ Erleichterung aus Intensitätsbestimmung (halbe ZfP* aufgerundet) ODER vorheriger Strukturanalyse (halbe TaP* aufgerundet)
+  - ✅ Beste Erleichterung wird gespeichert und bei nächster Analyse verwendet
+  - ✅ Rezept verstehen bei 19+ TaP*
   
 - ✅ **Rezeptverwaltung**:
   - ✅ 30+ vordefinierte Rezepte (Rezepte.csv)

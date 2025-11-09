@@ -84,10 +84,9 @@ object RegenerationCalculator {
         // AE-Regeneration (wenn vorhanden)
         if (character.hasAe) {
             if (character.hasMasteryRegeneration) {
-                // Meisterliche Regeneration: 1/3 von max(KL, IN) + 3
-                var baseValue = maxOf(character.kl, character.inValue)
-                baseValue += 1  // Damit im nächsten Schritt richtig gerundet wird
-                val masteryRegen = (baseValue / 3.0).toInt() + 3
+                // Meisterliche Regeneration: 1/3 von max(KL, IN) + 3 (kaufmännisch gerundet)
+                val baseValue = maxOf(character.kl, character.inValue)
+                val masteryRegen = (baseValue + 1) / 3 + 3  // +1 für kaufmännisches Runden
                 aeGain += masteryRegen
                 aeDetailsParts.add("Meisterlich=${masteryRegen}")
             } else {

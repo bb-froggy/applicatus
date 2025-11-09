@@ -202,8 +202,7 @@ data class PotionDto(
     val knownExactQuality: String? = null,
     val shelfLifeKnown: Boolean = false,
     val intensityDeterminationZfp: Int = 0,
-    val bestStructureAnalysisFacilitation: Int = 0,
-    val accumulatedStructureAnalysisTap: Int = 0
+    val bestStructureAnalysisFacilitation: Int = 0
 ) {
     companion object {
         fun fromPotion(potion: Potion, recipeName: String?) = PotionDto(
@@ -219,8 +218,7 @@ data class PotionDto(
             knownExactQuality = potion.knownExactQuality?.name,
             shelfLifeKnown = potion.shelfLifeKnown,
             intensityDeterminationZfp = potion.intensityDeterminationZfp,
-            bestStructureAnalysisFacilitation = potion.bestStructureAnalysisFacilitation,
-            accumulatedStructureAnalysisTap = potion.accumulatedStructureAnalysisTap
+            bestStructureAnalysisFacilitation = potion.bestStructureAnalysisFacilitation
         )
     }
 
@@ -251,8 +249,7 @@ data class PotionDto(
             knownExactQuality = safeKnownExactQuality,
             shelfLifeKnown = shelfLifeKnown,
             intensityDeterminationZfp = intensityDeterminationZfp,
-            bestStructureAnalysisFacilitation = bestStructureAnalysisFacilitation,
-            accumulatedStructureAnalysisTap = accumulatedStructureAnalysisTap
+            bestStructureAnalysisFacilitation = bestStructureAnalysisFacilitation
         )
     }
 }
