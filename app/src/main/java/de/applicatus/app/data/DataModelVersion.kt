@@ -9,16 +9,17 @@ package de.applicatus.app.data
  * - Änderung von Enum-Werten (z.B. SlotType)
  * - Änderung der Datenbank-Struktur
  * 
- * Aktuelle Version: 4
+ * Aktuelle Version: 5
  * 
  * Versions-Historie:
  * v1: Initiale Version
  * v2: Hinzufügen von Applicatus-Unterstützung, SlotType, Volumenpunkte
  * v3: Export erweitert um Alchemie-, Energie-, Trank- und Rezeptwissen-Daten
  * v4: Hinzufügen von Gruppen für Charaktere, GUID für Tränke (Trank-Übergabe)
+ * v5: Magisches Meisterhandwerk für Alchimie und Kochen (Tränke)
  */
 object DataModelVersion {
-     const val CURRENT_VERSION = 4
+     const val CURRENT_VERSION = 5
     
     /**
      * Prüft, ob eine Import-Version mit der aktuellen Version kompatibel ist.

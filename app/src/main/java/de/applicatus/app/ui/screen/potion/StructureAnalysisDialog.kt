@@ -39,6 +39,7 @@ fun StructureAnalysisDialog(
     }
     
     var acceptHarderProbe by remember { mutableStateOf(false) }
+    var astralEnergyCost by remember { mutableStateOf(0) }  // AE-Ausgabe für Magisches Meisterhandwerk
     var probeResult by remember { mutableStateOf<StructureAnalysisProbeResult?>(null) }
     var finalResult by remember { mutableStateOf<StructureAnalysisFinalResult?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
@@ -317,15 +318,99 @@ fun StructureAnalysisDialog(
                         }
                     }
                     
+                    // AE-Ausgabe für Magisches Meisterhandwerk (nur bei Alchimie-Methoden und wenn Charakter AE hat)
+                    val canUseMagicalMastery = character.hasAe && character.currentAe > 0 && 
+                        ((selectedMethod == StructureAnalysisMethod.BY_SIGHT && character.alchemyIsMagicalMastery) ||
+                         (selectedMethod == StructureAnalysisMethod.LABORATORY && character.alchemyIsMagicalMastery))
+                    
+                    if (canUseMagicalMastery) {
+                        Divider()
+                        
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Magisches Meisterhandwerk",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                val maxAe = (character.alchemySkill + 1) / 2  // ⌈TaW/2⌉
+                                Text(
+                                    text = "AE ausgeben um TaW zu erhöhen (+2 TaW pro AE, max. ${character.alchemySkill * 2} TaW = $maxAe AE)",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = "Aktuelle AE: ${character.currentAe}/${character.maxAe}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "AE ausgeben:",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    
+                                    IconButton(
+                                        onClick = { if (astralEnergyCost > 0) astralEnergyCost-- },
+                                        enabled = astralEnergyCost > 0
+                                    ) {
+                                        Text("-", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                    
+                                    Text(
+                                        text = astralEnergyCost.toString(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                    
+                                    IconButton(
+                                        onClick = { astralEnergyCost++ },
+                                        enabled = astralEnergyCost < character.currentAe && 
+                                                 astralEnergyCost < (character.alchemySkill + 1) / 2  // Max ⌈TaW/2⌉
+                                    ) {
+                                        Text("+", style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                                
+                                if (astralEnergyCost > 0) {
+                                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                                    
+                                    val effectiveTaw = minOf(character.alchemySkill + (astralEnergyCost * 2), character.alchemySkill * 2)
+                                    Text(
+                                        text = "Effektiver TaW: $effectiveTaw (Basis: ${character.alchemySkill}, Bonus: +${astralEnergyCost * 2})",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
                     Button(
                         onClick = {
                             isAnalyzing = true
+                            
+                            // AE abziehen, wenn Magisches Meisterhandwerk verwendet wird
+                            if (astralEnergyCost > 0) {
+                                viewModel.adjustCurrentAe(characterId, -astralEnergyCost)
+                            }
+                            
                             val result = ElixirAnalyzer.performStructureAnalysisProbe(
                                 character = character,
                                 recipe = recipe,
                                 method = selectedMethod,
                                 currentFacilitation = bestFacilitation,
-                                acceptHarderProbe = acceptHarderProbe
+                                acceptHarderProbe = acceptHarderProbe,
+                                astralEnergyCost = astralEnergyCost
                             )
                             probeResult = result
                             

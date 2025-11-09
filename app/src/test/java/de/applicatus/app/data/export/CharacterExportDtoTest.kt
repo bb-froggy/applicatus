@@ -210,6 +210,7 @@ class CharacterExportDtoTest {
             ),
             potions = listOf(
                 PotionDto(
+                    guid = "test-guid-1",
                     recipeId = 42,
                     recipeName = "Heiltrank",
                     actualQuality = PotionQuality.B.name,
@@ -377,6 +378,7 @@ class CharacterExportDtoTest {
     @Test
     fun `PotionDto converts to Potion model`() {
         val dto = PotionDto(
+            guid = "test-guid-2",
             recipeId = 7,
             recipeName = "Zaubertrank",
             actualQuality = PotionQuality.A.name,

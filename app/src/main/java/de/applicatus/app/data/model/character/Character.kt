@@ -24,8 +24,10 @@ data class Character(
     // Talente für Alchimie
     val hasAlchemy: Boolean = false,     // Beherrscht der Charakter Alchimie?
     val alchemySkill: Int = 0,           // Alchimie-Talentwert (0-18)
+    val alchemyIsMagicalMastery: Boolean = false, // Ist Alchimie ein Magisches Meisterhandwerk?
     val hasCookingPotions: Boolean = false, // Beherrscht der Charakter Kochen (Tränke)?
     val cookingPotionsSkill: Int = 0,    // Kochen (Tränke)-Talentwert (0-18)
+    val cookingPotionsIsMagicalMastery: Boolean = false, // Ist Kochen (Tränke) ein Magisches Meisterhandwerk?
     val selfControlSkill: Int = 0,       // Selbstbeherrschung-Talentwert (0-18, für Strukturanalyse-Serie)
     val sensoryAcuitySkill: Int = 0,     // Sinnenschärfe-Talentwert (0-18, für Analyse nach Augenschein)
     val magicalLoreSkill: Int = 0,       // Magiekunde-Talentwert (0-18, für Analys und Laboranalyse)

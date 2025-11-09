@@ -150,6 +150,19 @@ class PotionViewModel(
             repository.updateRecipeKnowledgeLevel(characterId, recipeId, knowledgeLevel)
         }
     }
+    
+    /**
+     * Passt die aktuelle AE eines Charakters an (für Magisches Meisterhandwerk)
+     */
+    fun adjustCurrentAe(characterId: Long, delta: Int) {
+        viewModelScope.launch {
+            val character = repository.getCharacterById(characterId)
+            if (character != null) {
+                val newAe = (character.currentAe + delta).coerceIn(0, character.maxAe)
+                repository.updateCharacter(character.copy(currentAe = newAe))
+            }
+        }
+    }
 }
 
 class PotionViewModelFactory(

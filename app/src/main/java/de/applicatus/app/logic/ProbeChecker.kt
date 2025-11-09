@@ -53,11 +53,16 @@ object ProbeChecker {
      * - Doppel-1/Dreifach-1: Automatischer Erfolg mit max FP
      * - Doppel-20/Dreifach-20: Automatischer Patzer
      * 
+     * Magisches Meisterhandwerk:
+     * - Bei AE-Ausgabe: TaW wird um 2 pro AE erhöht
+     * - Maximum: 2x des ursprünglichen TaW
+     * 
      * @param fertigkeitswert Fertigkeitswert (FW): Talentwert oder Zauberfertigkeit
      * @param difficulty Erschwernis (positiv) oder Erleichterung (negativ)
      * @param attribute1 Erster Eigenschaftswert
      * @param attribute2 Zweiter Eigenschaftswert
      * @param attribute3 Dritter Eigenschaftswert
+     * @param astralEnergyCost AE-Kosten für Magisches Meisterhandwerk (0 = keine AE ausgeben)
      * @param diceRoll Lambda für Würfelwürfe (Standard: W20, überschreibbar für Tests)
      * @param qualityPointName Name der Qualitätspunkte (z.B. "TaP*", "ZfP*")
      * @return ProbeResult mit allen Details
@@ -68,9 +73,25 @@ object ProbeChecker {
         attribute1: Int,
         attribute2: Int,
         attribute3: Int,
+        astralEnergyCost: Int = 0,
         diceRoll: () -> Int = { rollD20() },
         qualityPointName: String = "FP*"
     ): ProbeResult {
+        // Berechne effektiven Fertigkeitswert mit AE-Bonus
+        // +2 TaW pro AE, maximal auf 2x TaW
+        val originalFW = fertigkeitswert
+        val aeBonus = astralEnergyCost * 2
+        val bonusFW = originalFW + aeBonus
+        
+        // Deckelung: Bonus darf nicht mehr als originalFW sein (also max 2x originalFW)
+        // Bei negativem FW: max(-5 + bonus, -10) würde -10 geben, aber wir wollen -5
+        // Bei positivem FW: min(10 + bonus, 20) gibt korrekt 20
+        val effectiveFW = if (originalFW >= 0) {
+            minOf(bonusFW, originalFW * 2)
+        } else {
+            maxOf(bonusFW, originalFW * 2)
+        }
+        
         // Würfle 3x W20
         val rolls = List(3) { diceRoll() }
         
@@ -82,7 +103,7 @@ object ProbeChecker {
         if (countOnes >= 3) {
             return ProbeResult(
                 success = true,
-                qualityPoints = fertigkeitswert,
+                qualityPoints = effectiveFW,
                 rolls = rolls,
                 message = "Dreifach-1! Legendär!",
                 isTripleOne = true
@@ -93,7 +114,7 @@ object ProbeChecker {
         if (countOnes >= 2) {
             return ProbeResult(
                 success = true,
-                qualityPoints = fertigkeitswert,
+                qualityPoints = effectiveFW,
                 rolls = rolls,
                 message = "Doppel-1! Meisterwerk!",
                 isDoubleOne = true
@@ -123,12 +144,12 @@ object ProbeChecker {
         }
         
         // Berechne Fertigkeitspunkte (FP* = FW - Erschwernis)
-        var qualityPoints = fertigkeitswert - difficulty
+        var qualityPoints = effectiveFW - difficulty
         
         val attributes = listOf(attribute1, attribute2, attribute3)
         val success: Boolean
         
-        if (fertigkeitswert > difficulty) {
+        if (effectiveFW > difficulty) {
             // Normale Probe: FW > Erschwernis
             // Prüfe jeden Würfelwurf gegen die Eigenschaft
             rolls.forEachIndexed { index, roll ->
@@ -145,14 +166,14 @@ object ProbeChecker {
             
             // FP* werden auf FW gedeckelt (kann nicht höher sein als FW)
             if (success) {
-                qualityPoints = minOf(qualityPoints, fertigkeitswert)
+                qualityPoints = minOf(qualityPoints, effectiveFW)
             } else {
                 qualityPoints = 0
             }
         } else {
             // Erschwerte Probe: FW <= Erschwernis
             // Jede Eigenschaft muss um die Erschwernis unterwürfelt werden
-            val effectiveDifficulty = difficulty - fertigkeitswert
+            val effectiveDifficulty = difficulty - effectiveFW
             qualityPoints = 0 // Besser kann es nicht werden
             success = rolls.zip(attributes).all { (roll, attribute) ->
                 roll + effectiveDifficulty <= attribute
@@ -232,6 +253,7 @@ object ProbeChecker {
      * @param character Der Charakter, der die Probe durchführt
      * @param talentwert Der Talentwert (0-18+)
      * @param difficulty Erschwernis (positiv) oder Erleichterung (negativ)
+     * @param astralEnergyCost AE-Kosten für Magisches Meisterhandwerk (0 = keine AE ausgeben)
      * @param diceRoll Lambda für Würfelwürfe (Standard: W20)
      * @return ProbeResult mit allen Details
      */
@@ -240,6 +262,7 @@ object ProbeChecker {
         character: Character,
         talentwert: Int,
         difficulty: Int = 0,
+        astralEnergyCost: Int = 0,
         diceRoll: () -> Int = { rollD20() }
     ): ProbeResult {
         val (attr1, attr2, attr3) = getAttributesForTalent(talent, character)
@@ -249,6 +272,7 @@ object ProbeChecker {
             attribute1 = attr1,
             attribute2 = attr2,
             attribute3 = attr3,
+            astralEnergyCost = astralEnergyCost,
             diceRoll = diceRoll,
             qualityPointName = "TaP*"
         )

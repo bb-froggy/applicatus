@@ -790,8 +790,10 @@ fun EditCharacterDialog(
     // Alchimie & Zauber
     var hasAlchemy by remember { mutableStateOf(character.hasAlchemy) }
     var alchemySkill by remember { mutableStateOf(character.alchemySkill.toString()) }
+    var alchemyIsMagicalMastery by remember { mutableStateOf(character.alchemyIsMagicalMastery) }
     var hasCookingPotions by remember { mutableStateOf(character.hasCookingPotions) }
     var cookingPotionsSkill by remember { mutableStateOf(character.cookingPotionsSkill.toString()) }
+    var cookingPotionsIsMagicalMastery by remember { mutableStateOf(character.cookingPotionsIsMagicalMastery) }
     var hasOdem by remember { mutableStateOf(character.hasOdem) }
     var odemZfw by remember { mutableStateOf(character.odemZfw.toString()) }
     var hasAnalys by remember { mutableStateOf(character.hasAnalys) }
@@ -1043,6 +1045,21 @@ fun EditCharacterDialog(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+                    // Magisches Meisterhandwerk für Alchimie (nur bei AE)
+                    if (hasAe) {
+                        item {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Checkbox(
+                                    checked = alchemyIsMagicalMastery,
+                                    onCheckedChange = { alchemyIsMagicalMastery = it }
+                                )
+                                Text("Magisches Meisterhandwerk", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                 }
                 item {
                     Row(
@@ -1064,6 +1081,21 @@ fun EditCharacterDialog(
                             label = { Text("Kochen (Tränke) TaW (0-18)") },
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
+                    // Magisches Meisterhandwerk für Kochen (nur bei AE)
+                    if (hasAe) {
+                        item {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Checkbox(
+                                    checked = cookingPotionsIsMagicalMastery,
+                                    onCheckedChange = { cookingPotionsIsMagicalMastery = it }
+                                )
+                                Text("Magisches Meisterhandwerk", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
                 }
                 
@@ -1213,8 +1245,10 @@ fun EditCharacterDialog(
                         applicatusModifier = applicatusModifier.toIntOrNull() ?: 0,
                         hasAlchemy = hasAlchemy,
                         alchemySkill = if (hasAlchemy) (alchemySkill.toIntOrNull() ?: 0) else 0,
+                        alchemyIsMagicalMastery = if (hasAlchemy && hasAe) alchemyIsMagicalMastery else false,
                         hasCookingPotions = hasCookingPotions,
                         cookingPotionsSkill = if (hasCookingPotions) (cookingPotionsSkill.toIntOrNull() ?: 0) else 0,
+                        cookingPotionsIsMagicalMastery = if (hasCookingPotions && hasAe) cookingPotionsIsMagicalMastery else false,
                         hasOdem = if (hasAe) hasOdem else false,
                         odemZfw = if (hasAe && hasOdem) (odemZfw.toIntOrNull() ?: 0) else 0,
                         hasAnalys = if (hasAe) hasAnalys else false,

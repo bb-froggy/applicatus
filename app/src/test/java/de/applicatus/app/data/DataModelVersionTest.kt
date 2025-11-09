@@ -9,20 +9,20 @@ import org.junit.Test
 class DataModelVersionTest {
     
     @Test
-    fun `current version is 3`() {
-        assertEquals(3, DataModelVersion.CURRENT_VERSION)
+    fun `current version is 5`() {
+        assertEquals(5, DataModelVersion.CURRENT_VERSION)
     }
     
     @Test
     fun `same version is compatible`() {
-        val (isCompatible, warning) = DataModelVersion.checkCompatibility(3)
+        val (isCompatible, warning) = DataModelVersion.checkCompatibility(5)
         assertTrue(isCompatible)
         assertNull(warning)
     }
     
     @Test
     fun `older version is compatible with warning`() {
-        val (isCompatible, warning) = DataModelVersion.checkCompatibility(2)
+        val (isCompatible, warning) = DataModelVersion.checkCompatibility(4)
         assertTrue(isCompatible)
         assertNotNull(warning)
         assertTrue(warning!!.contains("älteren Version"))
@@ -30,7 +30,7 @@ class DataModelVersionTest {
     
     @Test
     fun `newer version is incompatible`() {
-        val (isCompatible, warning) = DataModelVersion.checkCompatibility(4)
+        val (isCompatible, warning) = DataModelVersion.checkCompatibility(6)
         assertFalse(isCompatible)
         assertNotNull(warning)
         assertTrue(warning!!.contains("neueren Version"))
@@ -39,8 +39,8 @@ class DataModelVersionTest {
     @Test
     fun `overwrite with older version shows warning`() {
         val warning = DataModelVersion.checkOverwriteWarning(
-            existingVersion = 3,
-            importVersion = 2
+            existingVersion = 5,
+            importVersion = 4
         )
         assertNotNull(warning)
         assertTrue(warning!!.contains("älteren Version"))
@@ -49,8 +49,8 @@ class DataModelVersionTest {
     @Test
     fun `overwrite with same version shows no warning`() {
         val warning = DataModelVersion.checkOverwriteWarning(
-            existingVersion = 3,
-            importVersion = 3
+            existingVersion = 5,
+            importVersion = 5
         )
         assertNull(warning)
     }

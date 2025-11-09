@@ -165,7 +165,8 @@ object ElixirAnalyzer {
         recipe: Recipe,
         method: StructureAnalysisMethod,
         currentFacilitation: Int,
-        acceptHarderProbe: Boolean = false
+        acceptHarderProbe: Boolean = false,
+        astralEnergyCost: Int = 0  // AE-Kosten für Magisches Meisterhandwerk
     ): StructureAnalysisProbeResult {
         // Bestimme Talentwert/ZfW basierend auf Methode
         val baseTaw = when (method) {
@@ -230,7 +231,8 @@ object ElixirAnalyzer {
                     talent = Talent.ALCHEMY,
                     character = character,
                     talentwert = baseTaw,
-                    difficulty = difficulty
+                    difficulty = difficulty,
+                    astralEnergyCost = astralEnergyCost
                 )
             }
         }
