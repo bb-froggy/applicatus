@@ -128,10 +128,13 @@ class CharacterExportManager(
                     ))
                 }
                 
-                // Bestehenden Charakter aktualisieren (ID und GUID beibehalten)
+                // Bestehenden Charakter aktualisieren (ID, GUID und isGameMaster beibehalten)
+                // isGameMaster wird bewusst NICHT überschrieben, damit Spieler und Spielleiter
+                // den gleichen Charakter teilen können, aber unterschiedliche Rechte behalten
                 val updatedCharacter = exportDto.character.toCharacter().copy(
                     id = existingCharacter.id,
-                    guid = existingCharacter.guid
+                    guid = existingCharacter.guid,
+                    isGameMaster = existingCharacter.isGameMaster
                 )
                 repository.updateCharacter(updatedCharacter)
                 
