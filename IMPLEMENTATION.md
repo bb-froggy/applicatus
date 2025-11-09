@@ -87,24 +87,35 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 - ✅ **Spell**: Zauber mit Name und drei Eigenschaftsproben
 - ✅ **SystemSpell**: System-Zauber (ODEM KL/IN/IN, ANALYS KL/KL/IN) mit festen Eigenschaftsproben
 - ✅ **Talent**: Enum für alle bekannten Talente mit ihren Eigenschaftsproben
-  - Alchimie (MU/KL/FF), Kochen (KL/IN/FF), Magiekunde (KL/KL/IN)
+  - Alchimie (MU/KL/FF), Kochen (MU/KL/FF), Magiekunde (KL/KL/IN)
   - Pflanzenkunde (KL/FF/KK), Selbstbeherrschung (MU/MU/KO), Sinnenschärfe (KL/IN/IN)
 - ✅ **Character**: Charakter mit 8 Eigenschaftswerten (MU, KL, IN, CH, FF, GE, KO, KK)
   - ✅ Applicatus-Support (hasApplicatus, applicatusZfw, applicatusModifier)
+  - ✅ Alchimie-Talente (hasAlchemy, alchemySkill, hasCookingPotions, cookingPotionsSkill, etc.)
+  - ✅ System-Zauber (hasOdem, odemZfw, hasAnalys, analysZfw)
+  - ✅ Energien (LE, AE, KE mit aktuell/max/regenBonus)
+  - ✅ Spielleiter-Modus (isGameMaster)
 - ✅ **SlotType**: Enum für Slot-Typen (APPLICATUS, SPELL_STORAGE)
 - ✅ **SpellSlot**: Zauberslot mit ZfW, Modifikator, Variante, Füllstatus, ZfP*
   - ✅ SlotType (Applicatus oder Zauberspeicher)
   - ✅ Volumenpunkte für Zauberspeicher (1-100, max. 100 gesamt)
   - ✅ Applicatus-Würfelergebnis
 - ✅ **SpellSlotWithSpell**: View-Objekt für Join zwischen Slot und Zauber
+- ✅ **Potion**: Trank mit Name, Rezept-Referenz, Qualität, Analyse-Status
+- ✅ **Recipe**: Trank-Rezept mit Name, Beschreibung, Wirkung
+- ✅ **PotionAnalysisStatus**: Status der Trank-Analyse (Intensität, Struktur, verstanden)
+- ✅ **RecipeKnowledge**: Verknüpfung zwischen Charakter und bekannten Rezepten
 
 ### 3. Datenbank (data/)
-- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao
-- ✅ **TypeConverters**: SlotType-Converter
+- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao
+- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter
 - ✅ **ApplicatusDatabase**: Room-Datenbank mit automatischer Initialisierung
   - ✅ Migration von Version 1 zu 2 (neue Felder)
+  - ✅ Migration von Version 2 zu 3 (Alchimie-Features)
+  - ✅ Migration von Version 3 zu 4 (LE/AE/KE, Spielleiter-Modus)
 - ✅ **ApplicatusRepository**: Repository-Pattern für Datenzugriff (inkl. Bereinigung von Rezeptwissen beim Import)
-- ✅ **InitialSpells**: 190+ vordefinierte Zauber aus magierzauber.txt
+- ✅ **InitialSpells**: 235+ vordefinierte Zauber (magierzauber.txt + hexenzauber.txt)
+- ✅ **InitialRecipes**: 30+ vordefinierte Trank-Rezepte (Rezepte.csv)
 
 ### 4. Geschäftslogik (logic/)
 
@@ -134,9 +145,10 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Berechnung von Analyseergebnissen
 
 - ✅ **PotionAnalyzer**: Tranksanalyse-Implementierung (nutzt ProbeChecker)
-  - ✅ Analyse nach verschiedenen Methoden
+  - ✅ Analyse nach verschiedenen Methoden (ODEM, Augenschein, Labor, Strukturanalyse-Serie)
   - ✅ Bestimmung des Analysestatus
   - ✅ Rezept-Verständnis bei 19+ TaP*
+  - ✅ Vollständige Integration mit PotionAnalysisStatus
 
 - ✅ **RegenerationCalculator**: Regenerations-Berechnung (nutzt ProbeChecker)
   - ✅ LE-Regeneration mit KO-Probe
@@ -151,7 +163,12 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Löschen von Charakteren
   - ✅ Keine automatische Slot-Initialisierung mehr
   
-- ✅ **CharacterDetailViewModel**: Verwaltung eines Charakters
+- ✅ **CharacterHomeViewModel**: Verwaltung der Charakter-Hauptseite
+  - ✅ Energien-Verwaltung (LE, AE, KE)
+  - ✅ Regeneration mit Proben
+  - ✅ Spielleiter-Modus-Toggle
+  
+- ✅ **SpellStorageViewModel**: Verwaltung der Zauberspeicher
   - ✅ **Bearbeitungsmodus**: Umschaltbar zwischen Nutzungs- und Bearbeitungsmodus
   - ✅ Anzeige aller Zauberslots
   - ✅ **Slot-Verwaltung**:
@@ -165,14 +182,32 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ **Charaktereigenschaften bearbeiten**
   - ✅ Applicatus-Verwaltung (ZfW, Modifikator)
 
+- ✅ **PotionViewModel**: Verwaltung der Tränke
+  - ✅ Tränke hinzufügen, bearbeiten, löschen
+  - ✅ Analyse-Status-Verwaltung
+  - ✅ Rezept-Verknüpfung
+  - ✅ Integration mit Spielleiter-Modus
+
+- ✅ **RecipeKnowledgeViewModel**: Verwaltung des Rezeptwissens
+  - ✅ Bekannte Rezepte pro Charakter
+  - ✅ Rezepte hinzufügen/entfernen
+  - ✅ Filterung nach bekannten/unbekannten Rezepten
+
 ### 6. UI-Screens (ui/screen/)
 - ✅ **CharacterListScreen**: 
   - ✅ Liste aller Charaktere mit Eigenschaftswerten
   - ✅ FAB zum Hinzufügen
-  - ✅ Dialog mit allen 8 Eigenschaftsfeldern + Applicatus-Feldern
-  - ✅ Navigation zu Details
+  - ✅ Dialog mit allen 8 Eigenschaftsfeldern + Applicatus-Feldern + Alchimie-Feldern
+  - ✅ Navigation zu CharacterHomeScreen
   
-- ✅ **CharacterDetailScreen**:
+- ✅ **CharacterHomeScreen**:
+  - ✅ Übersicht über Charakter
+  - ✅ Energien-Verwaltung (LE, AE, KE)
+  - ✅ Regeneration mit Proben
+  - ✅ Spielleiter-Modus-Toggle
+  - ✅ Navigation zu Zauberspeicher und Hexenküche
+  
+- ✅ **SpellStorageScreen**:
   - ✅ **Mode-Toggle**: Button zum Umschalten zwischen Nutzungs- und Bearbeitungsmodus
   - ✅ Anzeige der Charaktereigenschaften (editierbar im Bearbeitungsmodus)
   - ✅ Applicatus-Info-Card (wenn vorhanden)
@@ -185,6 +220,7 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ "Leeren" Button für gefüllte Slots
   - ✅ Anzeige von ZfP*, Würfelergebnissen
   - ✅ Applicatus-Würfelergebnis-Anzeige
+  - ✅ Spielleiter-Ansicht (zeigt alle Details)
   
   **Bearbeitungsmodus** (ausführliche Ansicht):
   - ✅ FAB zum Hinzufügen von Slots
@@ -198,10 +234,40 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Eigenschaften-Bearbeiten-Dialog
   - ✅ Applicatus-Bearbeitung
 
+- ✅ **PotionScreen** (Hexenküche):
+  - ✅ Liste aller Tränke mit Qualität und Analyse-Status
+  - ✅ Anzeige von Rezeptnamen (nur für Spielleiter oder analysierte Tränke)
+  - ✅ FAB zum Hinzufügen neuer Tränke
+  - ✅ Trank bearbeiten/löschen
+  - ✅ Analyse-Dialoge:
+    - ✅ IntensityDeterminationDialog (ODEM ARCANUM)
+    - ✅ StructureAnalysisDialog (ANALYS + Alchimie)
+    - ✅ PotionAnalysisDialog (Augenschein, Labor, Strukturanalyse-Serie)
+  - ✅ Navigation zu Rezeptwissen
+  - ✅ Spielleiter-Integration (zeigt alle Infos)
+
+- ✅ **RecipeKnowledgeScreen**:
+  - ✅ Liste aller Rezepte (bekannte und unbekannte)
+  - ✅ Filterung nach bekannten/unbekannten Rezepten
+  - ✅ Rezepte als bekannt markieren/entfernen
+  - ✅ Rezept-Details (Name, Beschreibung, Wirkung)
+  - ✅ Spielleiter sieht alle Rezepte, Spieler nur bekannte
+
+- ✅ **NearbySyncScreen**:
+  - ✅ Verbindungsstatus-Anzeige
+  - ✅ Geräteliste
+  - ✅ Senden/Empfangen-Buttons
+  - ✅ Permission-Handling
+  - ✅ Anleitungstext
+
 ### 7. Navigation (ui/navigation/)
 - ✅ **Screen**: Sealed Class für Routes
 - ✅ **ApplicatusNavHost**: Jetpack Compose Navigation
-  - CharacterList → CharacterDetail mit characterId-Parameter
+  - CharacterList → CharacterHome mit characterId-Parameter
+  - CharacterHome → SpellStorage mit characterId-Parameter
+  - CharacterHome → Potion (Hexenküche) mit characterId-Parameter
+  - Potion → RecipeKnowledge mit characterId-Parameter
+  - CharacterHome → NearbySync mit characterId-Parameter
 
 ### 8. App-Setup
 - ✅ **ApplicatusApplication**: Application-Klasse mit Repository
@@ -211,9 +277,17 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 
 ### Charakterverwaltung
 - ✅ Charaktere erstellen mit Name und 8 Eigenschaftswerten
+- ✅ Energien-Verwaltung (LE, AE, KE)
+- ✅ Regeneration mit Proben (KO für LE, IN für AE, automatisch für KE)
+- ✅ Meisterliche Regeneration-Support
 - ✅ Applicatus-Unterstützung (optional)
   - ✅ Applicatus ZfW und Modifikator
   - ✅ Automatische Probe auf KL/IN/CH beim Zaubern
+- ✅ Alchimie-Talente und -Zauber
+  - ✅ Alchimie, Kochen (Tränke), Selbstbeherrschung, Sinnenschärfe
+  - ✅ Magiekunde, Pflanzenkunde
+  - ✅ ODEM ARCANUM, ANALYS ARKANSTRUKTUR
+- ✅ Spielleiter-Modus (zeigt alle versteckten Informationen)
 - ✅ Charaktere anzeigen und löschen
 - ✅ Charaktereigenschaften bearbeiten
 - ✅ Persistente Speicherung
@@ -236,7 +310,7 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
     - ✅ Volumenpunkte (1-100 pro Slot)
     - ✅ Max. 100 Volumenpunkte gesamt
 - ✅ Slots hinzufügen und entfernen
-- ✅ Zauberauswahl aus 190+ Zaubern
+- ✅ Zauberauswahl aus 235+ Zaubern
 - ✅ Durchsuchbare Zauberliste
 - ✅ ZfW (0-28), Modifikator (-8 bis +4), Variante-Notiz
 - ✅ Individuelle +/- Buttons pro Slot (Bearbeitungsmodus)
@@ -248,6 +322,7 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Zauber sprechen und Slots leeren
   - ✅ Globale Modifikator-Anpassung
   - ✅ Fokus auf Spielfluss
+  - ✅ Spielleiter-Ansicht (zeigt alle Details)
   
 - ✅ **Bearbeitungsmodus**:
   - ✅ Slots hinzufügen/entfernen
@@ -270,12 +345,69 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 - ✅ Doppel-20 / Dreifach-20 (automatischer Patzer)
 - ✅ Formatierte Würfelergebnisse mit Details
 
+### Hexenküche (Alchimie)
+- ✅ **Trankverwaltung**:
+  - ✅ Tränke erstellen mit Name, Rezept, Qualität
+  - ✅ Tränke bearbeiten und löschen
+  - ✅ Analyse-Status pro Trank
+  - ✅ Spielleiter sieht alle Infos, Spieler nur analysierte
+  
+- ✅ **Trank-Analyse**:
+  - ✅ **Intensitätsbestimmung**: ODEM ARCANUM (KL/IN/IN)
+  - ✅ **Strukturanalyse**: ANALYS (KL/KL/IN) + Alchimie (MU/KL/FF)
+  - ✅ **Augenschein**: Sinnenschärfe (KL/IN/IN)
+  - ✅ **Labor**: Magiekunde oder Pflanzenkunde
+  - ✅ **Strukturanalyse-Serie**: Mehrere ANALYS-Proben + Selbstbeherrschung
+  - ✅ Rezept verstehen bei 19+ TaP* gesamt
+  
+- ✅ **Rezeptverwaltung**:
+  - ✅ 30+ vordefinierte Rezepte (Rezepte.csv)
+  - ✅ Rezeptwissen pro Charakter
+  - ✅ Rezepte als bekannt markieren
+  - ✅ Filterung nach bekannten/unbekannten Rezepten
+  - ✅ Automatisches Hinzufügen bei erfolgreicher Analyse
+
+### Export/Import & Synchronisation
+- ✅ **JSON-Export/Import**:
+  - ✅ Charaktere als JSON exportieren
+  - ✅ Inklusive Slots, Tränke, Analyse-Status, Rezeptwissen
+  - ✅ Versionskontrolle (DataModelVersion)
+  - ✅ Kompatibilitätsprüfung
+  - ✅ Warnung bei Versionsunterschieden
+  - ✅ Warnung beim Überschreiben
+  - ✅ **Spielleiter-Modus wird NICHT exportiert** (bleibt lokal)
+  
+- ✅ **Nearby Connections**:
+  - ✅ Gerätesuche via Bluetooth/WLAN
+  - ✅ Direkte Peer-to-Peer-Verbindung
+  - ✅ Charakter-Übertragung
+  - ✅ Versionsprüfung
+  - ✅ Permission-Management
+  - ✅ **Spielleiter-Modus wird NICHT übertragen** (bleibt lokal)
+
+### Spielleiter-Modus
+- ✅ **Pro Charakter aktivierbar** (isGameMaster-Flag)
+- ✅ **Zeigt alle versteckten Informationen**:
+  - ✅ Trank-Rezepte (auch nicht analysierte)
+  - ✅ Vollständige Analyseergebnisse
+  - ✅ ZfP*-Werte bei Zauberproben
+  - ✅ Detaillierte Patzer-Hinweise
+- ✅ **Bleibt immer lokal**:
+  - ✅ Wird NICHT im Export-JSON gespeichert
+  - ✅ Wird NICHT via Nearby Connections übertragen
+  - ✅ Beim Import wird existierender Wert beibehalten
+- ✅ **Spieler/Spielleiter können Charaktere austauschen**:
+  - ✅ Jeder behält seine eigene Ansicht
+  - ✅ Spielleiter sieht alle Details
+  - ✅ Spieler sieht nur analysierte/bekannte Infos
+
 ### Persistenz
 - ✅ Room-Datenbank für alle Daten
-- ✅ Migration von v1 zu v2 (neue Felder)
-- ✅ Automatische Initialisierung mit Zaubern beim ersten Start
+- ✅ Migration von v1 → v2 → v3 → v4
+- ✅ Automatische Initialisierung mit Zaubern und Rezepten beim ersten Start
 - ✅ Status der gefüllten Slots bleibt erhalten
 - ✅ Alle Änderungen werden automatisch gespeichert
+- ✅ Bereinigung von Tränken und Rezeptwissen beim Import
 
 ### UI/UX
 - ✅ Material Design 3
@@ -305,7 +437,7 @@ Die App benötigt:
 - Min SDK: Android 8.0 (API 26)
 - Target SDK: Android 14 (API 34)
 
-Bei der ersten Ausführung werden automatisch alle 190+ Zauber in die Datenbank geladen.
+Bei der ersten Ausführung werden automatisch alle 235+ Zauber und 30+ Rezepte in die Datenbank geladen.
 
 ## 🆕 Neue Features (Version 2)
 
@@ -359,26 +491,79 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
   - Enthält alle Charakterdaten, Slots, Tränke (inklusive Analyse-Status) und bekannte Rezepte
   - Mit Datenmodell-Versionsnummer
   - Zeitstempel des Exports
+  - **Spielleiter-Modus wird NICHT exportiert** (bleibt lokal)
 - ✅ **JSON-Import**: Charaktere aus JSON-Dateien importieren
   - Automatische Versionskompatibilitätsprüfung
   - Zauber-Matching nach Namen
   - Warnung bei Überschreiben existierender Charaktere
   - Warnung bei Versionsunterschieden
+  - **Spielleiter-Modus bleibt lokal erhalten** (wird nicht überschrieben)
 
 ### Nearby Connections Synchronisation
 - ✅ **Gerätesuche**: Entdeckung von Geräten in der Nähe via Bluetooth/WLAN
 - ✅ **Verbindungsaufbau**: Direkte Peer-to-Peer-Verbindung zwischen Geräten
 - ✅ **Charakter-Übertragung**: Senden und Empfangen von Charakterdaten
-- ✅ **Versionspr\u00fcfung**: Warnung bei inkompatiblen Datenmodell-Versionen
+- ✅ **Versionsprüfung**: Warnung bei inkompatiblen Datenmodell-Versionen
 - ✅ **Berechtigungsverwaltung**: Automatische Anfrage erforderlicher Permissions
+- ✅ **Spielleiter-Modus wird NICHT übertragen** (bleibt lokal)
 
 ### Datenmodell-Versionierung
-- ✅ **Versionsnummer**: Aktuelle Version 3 des Datenmodells
+- ✅ **Versionsnummer**: Aktuelle Version 4 des Datenmodells
 - ✅ **Kompatibilitätscheck**: Prüfung bei Import/Sync
 - ✅ **Warnungen**: 
   - Bei älteren Versionen (Import möglich mit Warnung)
   - Bei neueren Versionen (Import blockiert, App-Update nötig)
   - Beim Überschreiben mit älterer Version
+
+## 🆕 Neue Features (Version 4 - Alchimie & Spielleiter-Modus)
+
+### Hexenküche (Alchimie-System)
+- ✅ **Trankverwaltung**: Erstellen, Bearbeiten und Löschen von Tränken
+  - Name, Rezept-Verknüpfung, Qualitätsstufe (1-6)
+  - Analyse-Status (Intensität, Struktur, verstanden)
+- ✅ **Trank-Analyse**: Verschiedene Analysemethoden
+  - ODEM ARCANUM zur Intensitätsbestimmung
+  - ANALYS + Alchimie zur Strukturanalyse
+  - Augenschein (Sinnenschärfe)
+  - Laboranalyse (Magiekunde/Pflanzenkunde)
+  - Strukturanalyse-Serie (mehrere ANALYS + Selbstbeherrschung)
+- ✅ **Rezeptverwaltung**: 30+ vordefinierte Rezepte
+  - Rezeptwissen pro Charakter
+  - Automatisches Hinzufügen bei erfolgreicher Analyse
+  - Filterung nach bekannten/unbekannten Rezepten
+
+### Spielleiter-Modus
+- ✅ **Pro Charakter aktivierbar**: Optional per Toggle
+- ✅ **Zeigt alle versteckten Informationen**:
+  - Trank-Rezepte (auch nicht analysierte)
+  - Vollständige Analyseergebnisse
+  - ZfP*-Werte bei Zauberproben
+  - Detaillierte Patzer-Hinweise
+- ✅ **Bleibt immer lokal**: Wird NICHT exportiert oder übertragen
+- ✅ **Spieler/Spielleiter-Kompatibilität**:
+  - Charaktere können zwischen Spielern und Spielleitern ausgetauscht werden
+  - Jeder behält seine eigene Ansicht
+  - Export enthält KEIN isGameMaster-Feld
+  - Import behält existierenden isGameMaster-Wert bei
+
+### Charakter-Erweiterungen
+- ✅ **Energien-System**:
+  - Lebensenergie (LE): Aktuell/Max/RegenBonus
+  - Astralenergie (AE): Aktuell/Max/RegenBonus
+  - Karmaenergie (KE): Aktuell/Max
+  - Meisterliche Regeneration-Support
+- ✅ **Talente (für Alchimie relevant)**:
+  - Alchimie, Kochen (Tränke), Selbstbeherrschung
+  - Sinnenschärfe, Magiekunde, Pflanzenkunde
+- ✅ **System-Zauber**:
+  - ODEM ARCANUM (KL/IN/IN)
+  - ANALYS ARKANSTRUKTUR (KL/KL/IN)
+
+### Regeneration
+- ✅ **LE-Regeneration**: KO-Probe mit Bonus
+- ✅ **AE-Regeneration**: IN-Probe mit Bonus
+- ✅ **KE-Regeneration**: Automatisch (1 pro Tag)
+- ✅ **Meisterliche Regeneration**: Hohe AE-Regeneration
 
 ### Implementierte Komponenten
 
