@@ -22,7 +22,13 @@ enum class SystemSpell(
      * ANALYS ARKANSTRUKTUR - Strukturanalyse
      * Probe auf KL/KL/IN
      */
-    ANALYS("ANALYS ARKANSTRUKTUR", "KL", "KL", "IN");
+    ANALYS("ANALYS ARKANSTRUKTUR", "KL", "KL", "IN"),
+    
+    /**
+     * APPLICATUS - Zaubereinspeicherung
+     * Probe auf KL/FF/FF
+     */
+    APPLICATUS("APPLICATUS", "KL", "FF", "FF");
     
     companion object {
         /**

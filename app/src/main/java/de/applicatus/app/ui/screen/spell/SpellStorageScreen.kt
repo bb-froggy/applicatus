@@ -372,7 +372,7 @@ fun ApplicatusInfoCard(character: Character) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text("ZfW: ${character.applicatusZfw}  Modifikator: ${character.applicatusModifier}")
-            Text("Probe: KL/IN/CH", style = MaterialTheme.typography.bodySmall)
+            Text("Probe: KL/FF/FF", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

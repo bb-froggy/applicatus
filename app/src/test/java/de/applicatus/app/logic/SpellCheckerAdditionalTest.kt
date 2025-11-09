@@ -68,8 +68,7 @@ class SpellCheckerAdditionalTest {
             applicatusZfw = 8,
             applicatusModifier = 0,
             characterKl = 13,
-            characterIn = 13,
-            characterCh = 13,
+            characterFf = 13,
             diceRoll = diceSequence(5, 6, 7, 4, 5, 6)
         )
 
@@ -91,8 +90,7 @@ class SpellCheckerAdditionalTest {
             applicatusZfw = 0,
             applicatusModifier = 10,
             characterKl = 8,
-            characterIn = 8,
-            characterCh = 8,
+            characterFf = 8,
             diceRoll = diceSequence(20, 20, 20)
         )
 

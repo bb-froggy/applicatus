@@ -68,7 +68,7 @@ object SpellChecker {
     
     /**
      * Führt eine Applicatus-Zauberprobe durch (mit Applicatus-Probe)
-     * Applicatus verwendet immer KL/IN/CH
+     * Applicatus verwendet immer KL/FF/FF
      */
     fun performApplicatusCheck(
         spellZfw: Int,
@@ -79,8 +79,7 @@ object SpellChecker {
         applicatusZfw: Int,
         applicatusModifier: Int,
         characterKl: Int,
-        characterIn: Int,
-        characterCh: Int,
+        characterFf: Int,
         diceRoll: () -> Int = { Random.nextInt(1, 21) }
     ): ApplicatusCheckResult {
         // Erst Applicatus-Probe
@@ -88,8 +87,8 @@ object SpellChecker {
             zfw = applicatusZfw,
             modifier = applicatusModifier,
             attribute1 = characterKl,
-            attribute2 = characterIn,
-            attribute3 = characterCh,
+            attribute2 = characterFf,
+            attribute3 = characterFf,
             diceRoll = diceRoll
         )
         

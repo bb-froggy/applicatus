@@ -191,8 +191,7 @@ class CharacterDetailViewModel(
                     applicatusZfw = char.applicatusZfw,
                     applicatusModifier = char.applicatusModifier,
                     characterKl = char.kl,
-                    characterIn = char.inValue,
-                    characterCh = char.ch
+                    characterFf = char.ff
                 )
                 
                 // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
