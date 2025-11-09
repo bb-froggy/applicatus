@@ -58,7 +58,8 @@ data class CharacterDto(
     val hasMasteryRegeneration: Boolean = false,
     val hasKe: Boolean = false,
     val currentKe: Int = 0,
-    val maxKe: Int = 0
+    val maxKe: Int = 0,
+    val group: String = "Meine Gruppe"
 ) {
     companion object {
         fun fromCharacter(character: Character) = CharacterDto(
@@ -94,7 +95,8 @@ data class CharacterDto(
             hasMasteryRegeneration = character.hasMasteryRegeneration,
             hasKe = character.hasKe,
             currentKe = character.currentKe,
-            maxKe = character.maxKe
+            maxKe = character.maxKe,
+            group = character.group
         )
     }
     
@@ -131,7 +133,8 @@ data class CharacterDto(
         hasMasteryRegeneration = hasMasteryRegeneration,
         hasKe = hasKe,
         currentKe = currentKe,
-        maxKe = maxKe
+        maxKe = maxKe,
+        group = group
     )
 }
 
@@ -189,6 +192,7 @@ data class SpellSlotDto(
 
 @Serializable
 data class PotionDto(
+    val guid: String,
     val recipeId: Long? = null,
     val recipeName: String? = null,
     val actualQuality: String,
@@ -206,6 +210,7 @@ data class PotionDto(
 ) {
     companion object {
         fun fromPotion(potion: Potion, recipeName: String?) = PotionDto(
+            guid = potion.guid,
             recipeId = potion.recipeId,
             recipeName = recipeName,
             actualQuality = potion.actualQuality.name,
@@ -237,6 +242,7 @@ data class PotionDto(
         
         return Potion(
             id = 0,
+            guid = guid,
             characterId = characterId,
             recipeId = resolvedRecipeId,
             actualQuality = safeActualQuality,

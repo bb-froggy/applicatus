@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -309,6 +309,27 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Gruppen-Feld zu Character-Tabelle hinzufügen
+                database.execSQL("ALTER TABLE characters ADD COLUMN 'group' TEXT NOT NULL DEFAULT 'Meine Gruppe'")
+                
+                // GUID-Feld zu Potion-Tabelle hinzufügen
+                database.execSQL("ALTER TABLE potions ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
+                
+                // Generiere UUIDs für bestehende Tränke
+                val cursor = database.query("SELECT id FROM potions")
+                val updates = mutableListOf<String>()
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(0)
+                    val guid = java.util.UUID.randomUUID().toString()
+                    updates.add("UPDATE potions SET guid = '$guid' WHERE id = $id")
+                }
+                cursor.close()
+                updates.forEach { database.execSQL(it) }
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -316,7 +337,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

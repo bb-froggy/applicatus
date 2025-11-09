@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import de.applicatus.app.data.model.character.Character
+import java.util.UUID
 
 /**
  * Alchimistisches Produkt (Elixier, Gift, etc.)
@@ -30,6 +31,7 @@ import de.applicatus.app.data.model.character.Character
 data class Potion(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val guid: String = UUID.randomUUID().toString(),    // Eindeutige GUID für Import/Export und Trank-Übergabe
     val characterId: Long,                              // Zugehöriger Charakter
     val recipeId: Long,                                 // Zugehöriges Rezept
     

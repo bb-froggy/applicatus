@@ -100,6 +100,8 @@ fun CharacterListScreen(
             }
         }
     ) { padding ->
+        val groupedCharacters = characters.groupBy { it.group }.toSortedMap()
+        
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -120,12 +122,23 @@ fun CharacterListScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
             
-            items(characters, key = { it.id }) { character ->
-                CharacterListItem(
-                    character = character,
-                    onClick = { onCharacterClick(character.id) },
-                    onDelete = { viewModel.deleteCharacter(character) }
-                )
+            groupedCharacters.forEach { (group, charactersInGroup) ->
+                item {
+                    Text(
+                        text = group,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                
+                items(charactersInGroup, key = { it.id }) { character ->
+                    CharacterListItem(
+                        character = character,
+                        onClick = { onCharacterClick(character.id) },
+                        onDelete = { viewModel.deleteCharacter(character) }
+                    )
+                }
             }
         }
     }
@@ -149,9 +162,9 @@ fun CharacterListScreen(
     if (showAddDialog) {
         AddCharacterDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, mu, kl, inValue, ch, ff, ge, ko, kk, hasApplicatus, applicatusZfw, applicatusModifier ->
+            onConfirm = { name, group, mu, kl, inValue, ch, ff, ge, ko, kk, hasApplicatus, applicatusZfw, applicatusModifier ->
                 viewModel.addCharacter(
-                    name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                    name, group, mu, kl, inValue, ch, ff, ge, ko, kk,
                     hasApplicatus, applicatusZfw, applicatusModifier
                 )
                 showAddDialog = false
@@ -381,9 +394,10 @@ fun CharacterListItem(
 @Composable
 fun AddCharacterDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, Int, Int, Int, Int, Int, Int, Int, Int, Boolean, Int, Int) -> Unit
+    onConfirm: (String, String, Int, Int, Int, Int, Int, Int, Int, Int, Boolean, Int, Int) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    var group by remember { mutableStateOf("Meine Gruppe") }
     var mu by remember { mutableStateOf("8") }
     var kl by remember { mutableStateOf("8") }
     var inValue by remember { mutableStateOf("8") }
@@ -408,6 +422,15 @@ fun AddCharacterDialog(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = group,
+                        onValueChange = { group = it },
+                        label = { Text("Gruppe") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -513,6 +536,7 @@ fun AddCharacterDialog(
                     if (name.isNotBlank()) {
                         onConfirm(
                             name,
+                            group,
                             mu.toIntOrNull() ?: 8,
                             kl.toIntOrNull() ?: 8,
                             inValue.toIntOrNull() ?: 8,

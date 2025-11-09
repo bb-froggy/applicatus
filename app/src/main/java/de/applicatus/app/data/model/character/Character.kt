@@ -50,5 +50,7 @@ data class Character(
     val currentKe: Int = 0,              // Aktuelle Karmaenergie
     val maxKe: Int = 0,                  // Maximale Karmaenergie
     // Spieler/Spielleiter-Modus
-    val isGameMaster: Boolean = false    // Ist der Nutzer Spielleiter? (zeigt alle Infos)
+    val isGameMaster: Boolean = false,   // Ist der Nutzer Spielleiter? (zeigt alle Infos)
+    // Gruppe
+    val group: String = "Meine Gruppe"   // Gruppenname für Zusammenarbeit (z.B. Trank-Übergabe)
 )

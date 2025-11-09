@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class PotionViewModel(
@@ -32,10 +33,14 @@ class PotionViewModel(
     private val _character = MutableStateFlow<Character?>(null)
     val character: StateFlow<Character?> = _character.asStateFlow()
     
+    private val _groupCharacters = MutableStateFlow<List<Character>>(emptyList())
+    val groupCharacters: StateFlow<List<Character>> = _groupCharacters.asStateFlow()
+    
     init {
         loadPotions()
         loadRecipes()
         loadCharacter()
+        loadGroupCharacters()
     }
     
     private fun loadPotions() {
@@ -58,6 +63,53 @@ class PotionViewModel(
         viewModelScope.launch {
             repository.getCharacterByIdFlow(characterId).collect { char ->
                 _character.value = char
+            }
+        }
+    }
+    
+    private fun loadGroupCharacters() {
+        viewModelScope.launch {
+            repository.getCharacterByIdFlow(characterId).collect { currentChar ->
+                if (currentChar != null) {
+                    repository.allCharacters.collect { allChars ->
+                        // Alle Charaktere in derselben Gruppe außer dem aktuellen
+                        _groupCharacters.value = allChars.filter { 
+                            it.group == currentChar.group && it.id != currentChar.id 
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    fun transferPotionToCharacter(potion: Potion, targetCharacterId: Long) {
+        viewModelScope.launch {
+            // Prüfe ob Zielcharakter in gleicher Gruppe ist
+            val currentChar = _character.value
+            val targetChar = repository.getCharacterById(targetCharacterId)
+            
+            if (currentChar == null || targetChar == null) {
+                return@launch
+            }
+            
+            if (currentChar.group != targetChar.group) {
+                return@launch // Nur innerhalb der Gruppe erlaubt
+            }
+            
+            // Prüfe ob Trank mit dieser GUID bereits beim Ziel existiert
+            val targetPotions = repository.getPotionsForCharacter(targetCharacterId).first()
+            val alreadyExists = targetPotions.any { it.potion.guid == potion.guid }
+            
+            if (!alreadyExists) {
+                // Trank zum Ziel hinzufügen (neue ID, aber gleiche GUID)
+                val transferredPotion = potion.copy(
+                    id = 0, // Neue ID wird generiert
+                    characterId = targetCharacterId
+                )
+                repository.insertPotion(transferredPotion)
+                
+                // Original vom aktuellen Charakter entfernen
+                repository.deletePotion(potion)
             }
         }
     }

@@ -67,6 +67,7 @@ class CharacterListViewModel(
     
     fun addCharacter(
         name: String,
+        group: String = "Meine Gruppe",
         mu: Int = 8,
         kl: Int = 8,
         inValue: Int = 8,
@@ -82,6 +83,7 @@ class CharacterListViewModel(
         viewModelScope.launch {
             val character = Character(
                 name = name,
+                group = group,
                 mu = mu,
                 kl = kl,
                 inValue = inValue,

@@ -3,6 +3,8 @@ package de.applicatus.app.data.export
 import android.content.Context
 import android.net.Uri
 import de.applicatus.app.data.DataModelVersion
+import de.applicatus.app.data.model.potion.Potion
+import de.applicatus.app.data.model.potion.KnownQualityLevel
 import de.applicatus.app.data.repository.ApplicatusRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -20,6 +22,30 @@ class CharacterExportManager(
     private val json = Json {
         prettyPrint = true
         ignoreUnknownKeys = true // Wichtig für Abwärtskompatibilität
+    }
+    
+    /**
+     * Mergt zwei Tränke mit derselben GUID und übernimmt das bessere Analyse-Ergebnis.
+     */
+    private fun mergePotion(existing: Potion, imported: Potion): Potion {
+        // Vergleiche Analyse-Qualitätslevel (höher ist besser)
+        val existingLevel = existing.knownQualityLevel.ordinal
+        val importedLevel = imported.knownQualityLevel.ordinal
+        
+        return if (importedLevel > existingLevel) {
+            // Importierter Trank hat besseres Analyse-Ergebnis
+            imported.copy(id = existing.id, characterId = existing.characterId)
+        } else if (importedLevel == existingLevel) {
+            // Gleicher Level -> Nehme höhere Erleichterung
+            if (imported.bestStructureAnalysisFacilitation > existing.bestStructureAnalysisFacilitation) {
+                imported.copy(id = existing.id, characterId = existing.characterId)
+            } else {
+                existing
+            }
+        } else {
+            // Existierender Trank ist besser
+            existing
+        }
     }
     
     /**
@@ -166,10 +192,14 @@ class CharacterExportManager(
             val recipesByName = allRecipes.associateBy { it.name }
             val additionalWarnings = mutableListOf<String>()
             
-            // Bestehende Tränke und Wissenseinträge zurücksetzen
-            repository.deletePotionsForCharacter(characterId)
+            // Bestehende Tränke laden (für GUID-basierten Merge)
+            val existingPotions = repository.getPotionsForCharacter(characterId).first()
+            val existingPotionsByGuid = existingPotions.associate { it.potion.guid to it.potion }
+            
+            // Bestehende Wissenseinträge zurücksetzen (Tränke werden gemerged, nicht gelöscht!)
             repository.deleteRecipeKnowledgeForCharacter(characterId)
             
+            // Tränke importieren mit intelligentem Merge
             exportDto.potions.forEach { potionDto ->
                 val resolvedRecipeId = potionDto.recipeId?.let { recipesById[it]?.id }
                     ?: potionDto.recipeName?.let { recipesByName[it]?.id }
@@ -177,7 +207,17 @@ class CharacterExportManager(
                     val identifier = potionDto.recipeName ?: potionDto.recipeId?.toString() ?: "Unbekanntes Rezept"
                     additionalWarnings += "Trank für Rezept '$identifier' konnte nicht importiert werden, da das Rezept nicht gefunden wurde."
                 } else {
-                    repository.insertPotion(potionDto.toPotion(characterId, resolvedRecipeId))
+                    val importedPotion = potionDto.toPotion(characterId, resolvedRecipeId)
+                    val existingPotion = existingPotionsByGuid[potionDto.guid]
+                    
+                    if (existingPotion != null) {
+                        // Trank existiert bereits -> Merge mit besserem Analyse-Ergebnis
+                        val mergedPotion = mergePotion(existingPotion, importedPotion)
+                        repository.updatePotion(mergedPotion)
+                    } else {
+                        // Neuer Trank -> Einfügen
+                        repository.insertPotion(importedPotion)
+                    }
                 }
             }
             

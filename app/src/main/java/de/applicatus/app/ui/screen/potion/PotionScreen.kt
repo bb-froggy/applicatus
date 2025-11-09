@@ -52,6 +52,7 @@ fun PotionScreen(
     val potions by viewModel.potions.collectAsState()
     val recipes by viewModel.recipes.collectAsState()
     val character by viewModel.character.collectAsState()
+    val groupCharacters by viewModel.groupCharacters.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
@@ -104,8 +105,12 @@ fun PotionScreen(
                         potionWithRecipe = potionWithRecipe,
                         isGameMaster = character?.isGameMaster ?: false,
                         isRecipeKnown = isRecipeKnown,
+                        groupCharacters = groupCharacters,
                         onDelete = { showDeleteDialog = potionWithRecipe },
-                        onAnalyze = { showAnalysisDialog = potionWithRecipe }
+                        onAnalyze = { showAnalysisDialog = potionWithRecipe },
+                        onTransfer = { targetId ->
+                            viewModel.transferPotionToCharacter(potionWithRecipe.potion, targetId)
+                        }
                     )
                 }
             }
@@ -180,8 +185,10 @@ private fun PotionCard(
     potionWithRecipe: PotionWithRecipe,
     isGameMaster: Boolean,
     isRecipeKnown: Boolean,
+    groupCharacters: List<de.applicatus.app.data.model.character.Character> = emptyList(),
     onDelete: () -> Unit,
-    onAnalyze: () -> Unit
+    onAnalyze: () -> Unit,
+    onTransfer: (Long) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -282,17 +289,45 @@ private fun PotionCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedButton(
-                onClick = onAnalyze,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Analysieren",
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Trank analysieren")
+                OutlinedButton(
+                    onClick = onAnalyze,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Analysieren",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Analysieren")
+                }
+                
+                // Übergeben-Button nur anzeigen, wenn es andere Charaktere in der Gruppe gibt
+                if (groupCharacters.isNotEmpty()) {
+                    var showTransferDialog by remember { mutableStateOf(false) }
+                    
+                    OutlinedButton(
+                        onClick = { showTransferDialog = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Übergeben")
+                    }
+                    
+                    if (showTransferDialog) {
+                        TransferPotionDialog(
+                            characters = groupCharacters,
+                            onDismiss = { showTransferDialog = false },
+                            onConfirm = { targetId ->
+                                onTransfer(targetId)
+                                showTransferDialog = false
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -423,3 +458,74 @@ private fun AddPotionDialog(
         }
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransferPotionDialog(
+    characters: List<de.applicatus.app.data.model.character.Character>,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit
+) {
+    var selectedCharacter by remember { mutableStateOf<de.applicatus.app.data.model.character.Character?>(null) }
+    var expandedCharacter by remember { mutableStateOf(false) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Trank übergeben") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Wähle einen Charakter aus deiner Gruppe:")
+                
+                ExposedDropdownMenuBox(
+                    expanded = expandedCharacter,
+                    onExpandedChange = { expandedCharacter = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCharacter?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Zielcharakter") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCharacter) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    
+                    ExposedDropdownMenu(
+                        expanded = expandedCharacter,
+                        onDismissRequest = { expandedCharacter = false }
+                    ) {
+                        characters.forEach { character ->
+                            DropdownMenuItem(
+                                text = { Text(character.name) },
+                                onClick = {
+                                    selectedCharacter = character
+                                    expandedCharacter = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    selectedCharacter?.let { onConfirm(it.id) }
+                },
+                enabled = selectedCharacter != null
+            ) {
+                Text("Übergeben")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
+}
+
