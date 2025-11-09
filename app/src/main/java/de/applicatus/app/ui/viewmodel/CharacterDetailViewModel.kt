@@ -42,8 +42,20 @@ class CharacterDetailViewModel(
     var spellCastMessage by mutableStateOf<String?>(null)
         private set
     
+    // Animation State für Zauber-Einspeicherung
+    var showSpellAnimation by mutableStateOf(false)
+        private set
+    
+    var animatingSlotId by mutableStateOf<Long?>(null)
+        private set
+    
     fun clearSpellCastMessage() {
         spellCastMessage = null
+    }
+    
+    fun hideSpellAnimation() {
+        showSpellAnimation = false
+        animatingSlotId = null
     }
     
     // Bearbeitungsmodus-State
@@ -173,6 +185,10 @@ class CharacterDetailViewModel(
     fun castSpell(slot: SpellSlot, spell: Spell) {
         viewModelScope.launch {
             val char = character.value ?: return@launch
+            
+            // Starte die Animation
+            showSpellAnimation = true
+            animatingSlotId = slot.id
             
             // Hole die Eigenschaftswerte basierend auf dem Zauber
             val attr1 = getAttributeValue(char, spell.attribute1)

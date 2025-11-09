@@ -284,6 +284,7 @@ fun SpellStorageScreen(
                         SpellSlotCardUsageMode(
                             slotWithSpell = slotWithSpell,
                             isGameMaster = character?.isGameMaster ?: false,
+                            showAnimation = viewModel.showSpellAnimation && viewModel.animatingSlotId == slotWithSpell.slot.id,
                             onCastSpell = {
                                 slotWithSpell.spell?.let { spell ->
                                     viewModel.castSpell(slotWithSpell.slot, spell)
@@ -291,6 +292,9 @@ fun SpellStorageScreen(
                             },
                             onClearSlot = {
                                 viewModel.clearSlot(slotWithSpell.slot)
+                            },
+                            onAnimationEnd = {
+                                viewModel.hideSpellAnimation()
                             }
                         )
                     }
@@ -382,8 +386,10 @@ fun ApplicatusInfoCard(character: Character) {
 fun SpellSlotCardUsageMode(
     slotWithSpell: SpellSlotWithSpell,
     isGameMaster: Boolean,
+    showAnimation: Boolean,
     onCastSpell: () -> Unit,
-    onClearSlot: () -> Unit
+    onClearSlot: () -> Unit,
+    onAnimationEnd: () -> Unit = {}
 ) {
     val slot = slotWithSpell.slot
     val spell = slotWithSpell.spell
@@ -391,109 +397,119 @@ fun SpellSlotCardUsageMode(
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${slot.slotNumber + 1}. ",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = spell?.name ?: "Leer",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    if (slot.slotType == SlotType.SPELL_STORAGE) {
-                        Spacer(modifier = Modifier.width(4.dp))
+        Box {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "(${slot.volumePoints}VP)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
+                            text = "${slot.slotNumber + 1}. ",
+                            style = MaterialTheme.typography.titleSmall
                         )
-                    }
-                }
-                
-                if (spell != null) {
-                    Text(
-                        text = "ZfW: ${slot.zfw} | Mod: ${slot.modifier}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    if (slot.variant.isNotBlank()) {
                         Text(
-                            text = slot.variant,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
+                            text = spell?.name ?: "Leer",
+                            style = MaterialTheme.typography.bodyLarge
                         )
-                    }
-                }
-                
-                if (slot.isFilled) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    if (isGameMaster) {
-                        // Spielleiter sieht alles: ZfP* oder Patzer-Hinweis
-                        if (slot.isBotched) {
+                        if (slot.slotType == SlotType.SPELL_STORAGE) {
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "✗ Verpatzt!",
+                                text = "(${slot.volumePoints}VP)",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
+                                color = MaterialTheme.colorScheme.secondary
                             )
-                        } else {
+                        }
+                    }
+                    
+                    if (spell != null) {
+                        Text(
+                            text = "ZfW: ${slot.zfw} | Mod: ${slot.modifier}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        if (slot.variant.isNotBlank()) {
                             Text(
-                                text = "✓ Gefüllt: ${slot.zfpStar} ZfP*",
+                                text = slot.variant,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                    
+                    if (slot.isFilled) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        if (isGameMaster) {
+                            // Spielleiter sieht alles: ZfP* oder Patzer-Hinweis
+                            if (slot.isBotched) {
+                                Text(
+                                    text = "✗ Verpatzt!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            } else {
+                                Text(
+                                    text = "✓ Gefüllt: ${slot.zfpStar} ZfP*",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            // Spieler sieht immer nur "Gefüllt" (auch bei Patzer!)
+                            // Er erfährt erst beim Auslösen, dass es verpatzt war
+                            Text(
+                                text = "✓ Gefüllt",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                    } else {
-                        // Spieler sieht immer nur "Gefüllt" (auch bei Patzer!)
-                        // Er erfährt erst beim Auslösen, dass es verpatzt war
-                        Text(
-                            text = "✓ Gefüllt",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    }
+                    
+                    // Würfelergebnisse nur für Spielleiter
+                    if (isGameMaster) {
+                        if (slot.lastRollResult != null) {
+                            Text(
+                                text = slot.lastRollResult,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (slot.isFilled) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.error
+                            )
+                        }
+                        
+                        if (slot.applicatusRollResult != null) {
+                            Text(
+                                text = "Applicatus: ${slot.applicatusRollResult}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
                     }
                 }
                 
-                // Würfelergebnisse nur für Spielleiter
-                if (isGameMaster) {
-                    if (slot.lastRollResult != null) {
-                        Text(
-                            text = slot.lastRollResult,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (slot.isFilled) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
-                                MaterialTheme.colorScheme.error
-                        )
-                    }
-                    
-                    if (slot.applicatusRollResult != null) {
-                        Text(
-                            text = "Applicatus: ${slot.applicatusRollResult}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
+                // Actions
+                if (spell != null) {
+                    if (!slot.isFilled) {
+                        Button(onClick = onCastSpell) {
+                            Text("Sprechen")
+                        }
+                    } else {
+                        IconButton(onClick = onClearSlot) {
+                            Icon(Icons.Default.Clear, contentDescription = "Leeren")
+                        }
                     }
                 }
             }
             
-            // Actions
-            if (spell != null) {
-                if (!slot.isFilled) {
-                    Button(onClick = onCastSpell) {
-                        Text("Sprechen")
-                    }
-                } else {
-                    IconButton(onClick = onClearSlot) {
-                        Icon(Icons.Default.Clear, contentDescription = "Leeren")
-                    }
-                }
+            // Sternchen-Animation beim Einspeichern
+            if (showAnimation) {
+                de.applicatus.app.ui.component.SpellCastAnimation(
+                    modifier = Modifier.align(Alignment.Center),
+                    onAnimationEnd = onAnimationEnd
+                )
             }
         }
     }
