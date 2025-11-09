@@ -215,6 +215,7 @@ class PotionViewModel(
      * @param laboratory Das verfügbare Labor
      * @param voluntaryHandicap Freiwilliger Handicap (0 oder min. 2)
      * @param substitutions Liste der Substitutionen
+     * @param magicalMasteryAsp AsP für Magisches Meisterhandwerk (TaW-Erhöhung)
      * @param astralCharging Anzahl der Qualitätspunkte durch astrale Aufladung
      * @return Das Brau-Ergebnis
      */
@@ -224,6 +225,7 @@ class PotionViewModel(
         laboratory: Laboratory,
         voluntaryHandicap: Int = 0,
         substitutions: List<Substitution> = emptyList(),
+        magicalMasteryAsp: Int = 0,
         astralCharging: Int = 0
     ): PotionBrewer.BrewingResult {
         val char = _character.value ?: throw IllegalStateException("Character not loaded")
@@ -244,10 +246,12 @@ class PotionViewModel(
             throw IllegalStateException("Labor nicht ausreichend")
         }
         
-        // Berechne AsP-Kosten für astrale Aufladung
-        val aspCost = PotionBrewer.calculateAspCostForQualityPoints(astralCharging)
-        if (char.hasAe && aspCost > char.currentAe) {
-            throw IllegalStateException("Nicht genug AsP für astrale Aufladung")
+        // Berechne AsP-Kosten (Magisches Meisterhandwerk + Astrale Aufladung)
+        val astralChargingCost = PotionBrewer.calculateAspCostForQualityPoints(astralCharging)
+        val totalAspCost = magicalMasteryAsp + astralChargingCost
+        
+        if (char.hasAe && totalAspCost > char.currentAe) {
+            throw IllegalStateException("Nicht genug AsP (benötigt $totalAspCost, verfügbar ${char.currentAe})")
         }
         
         // Führe Brauprobe durch
@@ -258,12 +262,13 @@ class PotionViewModel(
             availableLaboratory = laboratory,
             voluntaryHandicap = voluntaryHandicap,
             substitutions = substitutions,
+            magicalMasteryAsp = magicalMasteryAsp,
             astralCharging = astralCharging
         )
         
         // AsP abziehen (falls verwendet)
-        if (char.hasAe && aspCost > 0) {
-            val updatedChar = char.copy(currentAe = char.currentAe - aspCost)
+        if (char.hasAe && totalAspCost > 0) {
+            val updatedChar = char.copy(currentAe = char.currentAe - totalAspCost)
             repository.updateCharacter(updatedChar)
         }
         
@@ -275,14 +280,15 @@ class PotionViewModel(
         }
         
         // Trank zur Datenbank hinzufügen
-        // Beim Brauen ist die Kategorie immer bekannt
+        // Beim Brauen sind Name und Kategorie immer bekannt
         val potion = Potion(
             characterId = characterId,
             recipeId = recipe.id,
             actualQuality = result.quality,
             appearance = appearance,
             expiryDate = recipe.shelfLife,
-            categoryKnown = true  // Gebraute Tränke haben bekannte Kategorie
+            nameKnown = true,      // Gebraute Tränke haben bekannten Namen
+            categoryKnown = true   // Gebraute Tränke haben bekannte Kategorie
         )
         repository.insertPotion(potion)
         

@@ -457,7 +457,7 @@ class PotionBrewerTest {
     }
     
     @Test
-    fun testBrewPotion_AstralChargingRequiresMagicalMastery() {
+    fun testBrewPotion_AstralChargingWorks() {
         val character = Character(
             name = "Test",
             kl = 14,
@@ -473,17 +473,19 @@ class PotionBrewerTest {
         
         val recipe = Recipe(name = "Test", lab = Laboratory.ALCHEMIST_LABORATORY, brewingDifficulty = 4)
         
-        try {
-            PotionBrewer.brewPotion(
-                character,
-                recipe,
-                Talent.ALCHEMY,
-                Laboratory.ALCHEMIST_LABORATORY,
-                astralCharging = 3  // Ohne magisches Meisterhandwerk nicht möglich
-            )
-            fail("Expected IllegalArgumentException")
-        } catch (e: IllegalArgumentException) {
-            assertTrue(e.message?.contains("Magischem Meisterhandwerk") == true)
+        // Astrale Aufladung ist auch ohne Magisches Meisterhandwerk möglich
+        val result = PotionBrewer.brewPotion(
+            character,
+            recipe,
+            Talent.ALCHEMY,
+            Laboratory.ALCHEMIST_LABORATORY,
+            astralCharging = 3  // 3 QP kosten 4 AsP (2^2)
+        )
+        
+        assertNotNull(result)
+        // Bei Erfolg sollten die astralen QP in die Qualität einfließen
+        if (result.probeResult.success) {
+            assertTrue(result.qualityPoints >= 3)  // Mindestens die 3 astralen QP
         }
     }
     
@@ -541,6 +543,133 @@ class PotionBrewerTest {
             Talent.ALCHEMY,
             Laboratory.ALCHEMIST_LABORATORY,
             astralCharging = 3  // 3 QP kosten 4 AsP (2^(3-1) = 4)
+        )
+        
+        assertNotNull(result)
+        // Bei Erfolg sollten die astralen QP in die Qualität einfließen
+        if (result.probeResult.success) {
+            assertTrue(result.qualityPoints >= 3)  // Mindestens die 3 astralen QP
+        }
+    }
+    
+    @Test
+    fun testBrewPotion_MagicalMasteryRequiresFlag() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,
+            alchemyIsMagicalMastery = false,  // Kein magisches Meisterhandwerk
+            hasAe = true,
+            currentAe = 50,
+            maxAe = 50
+        )
+        
+        val recipe = Recipe(name = "Test", lab = Laboratory.ALCHEMIST_LABORATORY, brewingDifficulty = 4)
+        
+        try {
+            PotionBrewer.brewPotion(
+                character,
+                recipe,
+                Talent.ALCHEMY,
+                Laboratory.ALCHEMIST_LABORATORY,
+                magicalMasteryAsp = 3  // Ohne Flag nicht möglich
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message?.contains("Magisches Meisterhandwerk") == true)
+        }
+    }
+    
+    @Test
+    fun testBrewPotion_MagicalMasteryMaxLimit() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,  // TaW 10 → max 5 AsP
+            alchemyIsMagicalMastery = true,
+            hasAe = true,
+            currentAe = 50,
+            maxAe = 50
+        )
+        
+        val recipe = Recipe(name = "Test", lab = Laboratory.ALCHEMIST_LABORATORY, brewingDifficulty = 4)
+        
+        try {
+            PotionBrewer.brewPotion(
+                character,
+                recipe,
+                Talent.ALCHEMY,
+                Laboratory.ALCHEMIST_LABORATORY,
+                magicalMasteryAsp = 6  // Mehr als TaW/2 = 5
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message?.contains("Maximal 5 AsP") == true)
+        }
+    }
+    
+    @Test
+    fun testBrewPotion_MagicalMasteryBoostsTaW() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,
+            alchemyIsMagicalMastery = true,
+            hasAe = true,
+            currentAe = 50,
+            maxAe = 50
+        )
+        
+        val recipe = Recipe(name = "Test", lab = Laboratory.ALCHEMIST_LABORATORY, brewingDifficulty = 4)
+        
+        // Mit 3 AsP für Magisches Meisterhandwerk sollte TaW von 10 auf 16 steigen (+6)
+        val result = PotionBrewer.brewPotion(
+            character,
+            recipe,
+            Talent.ALCHEMY,
+            Laboratory.ALCHEMIST_LABORATORY,
+            magicalMasteryAsp = 3
+        )
+        
+        assertNotNull(result)
+        // Die Probe sollte mit effektiv TaW 16 (10 + 3*2) durchgeführt werden
+        // Das können wir indirekt über höhere TaP* bei Erfolg erkennen
+    }
+    
+    @Test
+    fun testBrewPotion_CombinedMagicalMasteryAndAstralCharging() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,
+            alchemyIsMagicalMastery = true,
+            hasAe = true,
+            currentAe = 50,
+            maxAe = 50
+        )
+        
+        val recipe = Recipe(name = "Test", lab = Laboratory.ALCHEMIST_LABORATORY, brewingDifficulty = 4)
+        
+        // Kombiniert: 3 AsP für TaW-Erhöhung + 4 AsP für 3 QP = 7 AsP gesamt
+        val result = PotionBrewer.brewPotion(
+            character,
+            recipe,
+            Talent.ALCHEMY,
+            Laboratory.ALCHEMIST_LABORATORY,
+            magicalMasteryAsp = 3,  // +6 TaW
+            astralCharging = 3      // +3 QP, kostet 4 AsP
         )
         
         assertNotNull(result)

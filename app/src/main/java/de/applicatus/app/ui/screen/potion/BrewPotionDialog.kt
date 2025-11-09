@@ -39,10 +39,25 @@ fun BrewPotionDialog(
     var selectedLaboratory by remember { mutableStateOf(character.defaultLaboratory ?: Laboratory.ARCANE) }
     var voluntaryHandicap by remember { mutableStateOf(0) }
     var substitutions by remember { mutableStateOf(listOf<Substitution>()) }
+    var magicalMasteryAsp by remember { mutableStateOf(0) }
     var astralCharging by remember { mutableStateOf(0) }
     
     var brewingResult by remember { mutableStateOf<PotionBrewer.BrewingResult?>(null) }
+    var brewedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    // Talentwert und Magisches Meisterhandwerk ermitteln
+    val skillValue = when (selectedTalent) {
+        Talent.ALCHEMY -> character.alchemySkill
+        Talent.COOKING_POTIONS -> character.cookingPotionsSkill
+        else -> 0
+    }
+    
+    val isMagicalMastery = when (selectedTalent) {
+        Talent.ALCHEMY -> character.alchemyIsMagicalMastery
+        Talent.COOKING_POTIONS -> character.cookingPotionsIsMagicalMastery
+        else -> false
+    }
     
     // Filter Rezepte basierend auf Talent
     val filteredRecipes = knownRecipes.filter { recipe ->
@@ -72,9 +87,13 @@ fun BrewPotionDialog(
     // Berechne max freiwilligen Handicap
     val maxVoluntaryHandicap = selectedRecipe?.let { PotionBrewer.calculateMaxVoluntaryHandicap(it) } ?: 0
     
-    // Berechne AsP-Kosten
-    val aspCost = PotionBrewer.calculateAspCostForQualityPoints(astralCharging)
-    val maxAstralCharging = PotionBrewer.calculateMaxQualityPointsFromAsp(character.currentAe)
+    // Berechne AsP-Kosten für beide Systeme
+    val maxMagicalMasteryAsp = skillValue / 2  // Max TaW/2 AsP für Magisches Meisterhandwerk
+    val astralChargingCost = PotionBrewer.calculateAspCostForQualityPoints(astralCharging)
+    val totalAspCost = magicalMasteryAsp + astralChargingCost
+    val maxAstralCharging = PotionBrewer.calculateMaxQualityPointsFromAsp(
+        if (character.hasAe) character.currentAe - magicalMasteryAsp else 0
+    )
     
     // Prüfe, ob Brauen möglich ist
     val canBrew = selectedRecipe?.let { 
@@ -95,16 +114,24 @@ fun BrewPotionDialog(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
-                        // Spieler sieht nur minimale Info
+                        // Spieler sieht Name, Aussehen und Kategorie (aber keine Details zu QP/Qualität)
                         Text(
                             text = "Brauprobe abgeschlossen!",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Der Trank wurde erfolgreich gebraut.\nName und Aussehen sind dir bekannt.",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        if (brewedRecipe != null) {
+                            Text(
+                                text = "Gebrauter Trank: ${brewedRecipe!!.name}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Gruppe: ${brewedRecipe!!.gruppe}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             } else {
@@ -365,18 +392,56 @@ fun BrewPotionDialog(
                         }
                     }
                     
-                    // Astrale Aufladung (nur mit Magischem Meisterhandwerk)
-                    val isMagicalMastery = when (selectedTalent) {
-                        Talent.ALCHEMY -> character.alchemyIsMagicalMastery
-                        Talent.COOKING_POTIONS -> character.cookingPotionsIsMagicalMastery
-                        else -> false
-                    }
-                    
+                    // Magisches Meisterhandwerk (nur wenn verfügbar und AE vorhanden)
                     if (character.hasAe && isMagicalMastery) {
                         item {
-                            Text("Astrale Aufladung (Magisches Meisterhandwerk)", style = MaterialTheme.typography.titleMedium)
+                            Text("Magisches Meisterhandwerk (+2 TaW pro AsP)", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "AsP: ${character.currentAe}/${character.maxAe}",
+                                "Max ${maxMagicalMasteryAsp} AsP (TaW $skillValue → max ${skillValue * 2})",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Button(
+                                    onClick = { 
+                                        if (magicalMasteryAsp > 0) magicalMasteryAsp--
+                                    },
+                                    enabled = magicalMasteryAsp > 0
+                                ) {
+                                    Text("-")
+                                }
+                                Column(
+                                    modifier = Modifier.width(120.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "$magicalMasteryAsp AsP",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "+${magicalMasteryAsp * 2} TaW",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Button(
+                                    onClick = { magicalMasteryAsp++ },
+                                    enabled = magicalMasteryAsp < maxMagicalMasteryAsp && magicalMasteryAsp < character.currentAe
+                                ) {
+                                    Text("+")
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Astrale Aufladung (immer verfügbar wenn AE vorhanden)
+                    if (character.hasAe) {
+                        item {
+                            Text("Astrale Aufladung (Qualitätspunkte)", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Verbleibende AsP: ${character.currentAe - magicalMasteryAsp}/${character.maxAe}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Row(
@@ -401,13 +466,13 @@ fun BrewPotionDialog(
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                     Text(
-                                        text = "$aspCost AsP",
+                                        text = "$astralChargingCost AsP",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
                                 Button(
                                     onClick = { astralCharging++ },
-                                    enabled = astralCharging < maxAstralCharging
+                                    enabled = astralCharging < maxAstralCharging && totalAspCost < character.currentAe
                                 ) {
                                     Text("+")
                                 }
@@ -468,9 +533,11 @@ fun BrewPotionDialog(
                                         laboratory = selectedLaboratory,
                                         voluntaryHandicap = voluntaryHandicap,
                                         substitutions = substitutions,
+                                        magicalMasteryAsp = magicalMasteryAsp,
                                         astralCharging = astralCharging
                                     )
                                     brewingResult = result
+                                    brewedRecipe = selectedRecipe
                                     errorMessage = null
                                 } catch (e: Exception) {
                                     errorMessage = e.message ?: "Fehler beim Brauen"

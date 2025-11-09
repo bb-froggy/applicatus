@@ -93,7 +93,8 @@ object PotionBrewer {
      * @param availableLaboratory Das verfügbare Labor
      * @param voluntaryHandicap Freiwilliger Handicap (0 oder min. 2)
      * @param substitutions Liste der Substitutionen
-     * @param astralCharging Anzahl der Qualitätspunkte durch astrale Aufladung
+     * @param magicalMasteryAsp AsP für Magisches Meisterhandwerk (TaW-Erhöhung: +2 TaW pro AsP, max TaW/2 AsP)
+     * @param astralCharging Anzahl der Qualitätspunkte durch astrale Aufladung (2^(n-1) AsP)
      * @return Ergebnis der Brauprobe
      */
     fun brewPotion(
@@ -103,6 +104,7 @@ object PotionBrewer {
         availableLaboratory: Laboratory,
         voluntaryHandicap: Int = 0,
         substitutions: List<Substitution> = emptyList(),
+        magicalMasteryAsp: Int = 0,
         astralCharging: Int = 0
     ): BrewingResult {
         require(talent == Talent.ALCHEMY || talent == Talent.COOKING_POTIONS) {
@@ -142,22 +144,34 @@ object PotionBrewer {
             else -> false
         }
         
-        // AsP-Kosten für astrale Aufladung berechnen
-        val aspCost = calculateAspCostForQualityPoints(astralCharging)
-        
-        // Bei Magischem Meisterhandwerk müssen AsP bezahlt werden
-        if (isMagicalMastery && astralCharging > 0) {
+        // Magisches Meisterhandwerk: +2 TaW pro AsP, max bis 2x TaW (also max TaW/2 AsP)
+        val maxMagicalMasteryAsp = skillValue / 2
+        if (magicalMasteryAsp > 0) {
+            require(isMagicalMastery) {
+                "Magisches Meisterhandwerk ist für dieses Talent nicht verfügbar"
+            }
             require(character.hasAe) {
                 "Charakter hat keine Astralenergie"
             }
-            require(character.currentAe >= aspCost) {
-                "Nicht genug Astralenergie für ${astralCharging} QP (benötigt ${aspCost} AsP, verfügbar ${character.currentAe} AsP)"
+            require(magicalMasteryAsp <= maxMagicalMasteryAsp) {
+                "Maximal $maxMagicalMasteryAsp AsP für Magisches Meisterhandwerk bei TaW $skillValue"
+            }
+            require(character.currentAe >= magicalMasteryAsp) {
+                "Nicht genug Astralenergie (benötigt $magicalMasteryAsp AsP, verfügbar ${character.currentAe} AsP)"
             }
         }
         
-        // Ohne Magisches Meisterhandwerk ist astrale Aufladung nicht möglich
-        if (!isMagicalMastery && astralCharging > 0) {
-            throw IllegalArgumentException("Astrale Aufladung ist nur mit Magischem Meisterhandwerk möglich")
+        // AsP-Kosten für astrale Aufladung berechnen (2^(n-1))
+        val astralChargingCost = calculateAspCostForQualityPoints(astralCharging)
+        val totalAspCost = magicalMasteryAsp + astralChargingCost
+        
+        if (astralCharging > 0) {
+            require(character.hasAe) {
+                "Charakter hat keine Astralenergie"
+            }
+            require(character.currentAe >= totalAspCost) {
+                "Nicht genug Astralenergie für ${astralCharging} QP (benötigt gesamt ${totalAspCost} AsP, verfügbar ${character.currentAe} AsP)"
+            }
         }
         
         // Modifikatoren berechnen
@@ -166,12 +180,13 @@ object PotionBrewer {
         val substitutionModifier = substitutions.sumOf { it.type.modifier }
         val totalModifier = laborModifier + brewingDifficultyModifier + voluntaryHandicap + substitutionModifier
         
-        // Probe durchführen
+        // Probe durchführen (mit Magischem Meisterhandwerk falls verwendet)
         val probeResult = ProbeChecker.performTalentProbe(
             talent = talent,
             character = character,
             talentwert = skillValue,
-            difficulty = totalModifier
+            difficulty = totalModifier,
+            astralEnergyCost = magicalMasteryAsp
         )
         
         // Qualitätspunkte berechnen
