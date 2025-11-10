@@ -32,13 +32,14 @@ fun StructureAnalysisDialog(
         mutableStateOf(
             when {
                 character.hasAnalys && character.hasAe && character.maxAe > 0 -> StructureAnalysisMethod.ANALYS_SPELL
-                character.hasAlchemy -> StructureAnalysisMethod.BY_SIGHT
-                else -> StructureAnalysisMethod.BY_SIGHT  // Fallback auf Augenschein
+                character.hasAlchemy -> StructureAnalysisMethod.BY_SIGHT_ALCHEMY
+                character.hasCookingPotions -> StructureAnalysisMethod.BY_SIGHT_COOKING
+                else -> StructureAnalysisMethod.BY_SIGHT_ALCHEMY  // Fallback
             }
         )
     }
     
-    var acceptHarderProbe by remember { mutableStateOf(false) }
+    var acceptHarderProbe by remember { mutableStateOf(true) }
     var astralEnergyCost by remember { mutableStateOf(0) }  // AE-Ausgabe für Magisches Meisterhandwerk
     var probeResult by remember { mutableStateOf<StructureAnalysisProbeResult?>(null) }
     var finalResult by remember { mutableStateOf<StructureAnalysisFinalResult?>(null) }
@@ -179,9 +180,15 @@ fun StructureAnalysisDialog(
                             }
                             if (result.methodBonus > 0) {
                                 val methodBonusText = when (selectedMethod) {
-                                    StructureAnalysisMethod.ANALYS_SPELL -> "• Magiekunde-Bonus: -${result.methodBonus}"
-                                    StructureAnalysisMethod.BY_SIGHT -> "• Sinnenschärfe-Bonus: -${result.methodBonus}"
-                                    StructureAnalysisMethod.LABORATORY -> "• Wissenstalent-Bonus: -${result.methodBonus}"
+                                    StructureAnalysisMethod.ANALYS_SPELL -> 
+                                        "• Magiekunde-Bonus: -${result.methodBonus}"
+                                    StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+                                    StructureAnalysisMethod.BY_SIGHT_COOKING -> 
+                                        "• Sinnenschärfe-Bonus: -${result.methodBonus}"
+                                    StructureAnalysisMethod.LABORATORY_ALCHEMY,
+                                    StructureAnalysisMethod.LABORATORY_COOKING -> 
+                                        "• Wissenstalent-Bonus: -${result.methodBonus}"
+                                    else -> "• Bonus: -${result.methodBonus}"  // Fallback für legacy
                                 }
                                 Text(
                                     text = methodBonusText,
@@ -189,7 +196,8 @@ fun StructureAnalysisDialog(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
-                            if (acceptHarderProbe && selectedMethod == StructureAnalysisMethod.LABORATORY) {
+                            if (acceptHarderProbe && (selectedMethod == StructureAnalysisMethod.LABORATORY_ALCHEMY || 
+                                                      selectedMethod == StructureAnalysisMethod.LABORATORY_COOKING)) {
                                 Text(
                                     text = "• Trank nicht verbrauchen: +3",
                                     style = MaterialTheme.typography.bodySmall,
@@ -225,7 +233,8 @@ fun StructureAnalysisDialog(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             
-                            if (selectedMethod == StructureAnalysisMethod.BY_SIGHT && result.success) {
+                            if ((selectedMethod == StructureAnalysisMethod.BY_SIGHT_ALCHEMY || 
+                                 selectedMethod == StructureAnalysisMethod.BY_SIGHT_COOKING) && result.success) {
                                 Text(
                                     text = "Effektiv: ${result.effectiveTap} TaP* (aufgerundet, max 8)",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -256,9 +265,15 @@ fun StructureAnalysisDialog(
                         if (character.hasAnalys && character.hasAe && character.maxAe > 0) {
                             add(StructureAnalysisMethod.ANALYS_SPELL)
                         }
+                        // Alchimie-Methoden
                         if (character.hasAlchemy) {
-                            add(StructureAnalysisMethod.BY_SIGHT)
-                            add(StructureAnalysisMethod.LABORATORY)
+                            add(StructureAnalysisMethod.BY_SIGHT_ALCHEMY)
+                            add(StructureAnalysisMethod.LABORATORY_ALCHEMY)
+                        }
+                        // Kochen (Tränke)-Methoden
+                        if (character.hasCookingPotions) {
+                            add(StructureAnalysisMethod.BY_SIGHT_COOKING)
+                            add(StructureAnalysisMethod.LABORATORY_COOKING)
                         }
                     }
                     
@@ -276,7 +291,7 @@ fun StructureAnalysisDialog(
                                     color = MaterialTheme.colorScheme.error
                                 )
                                 Text(
-                                    text = "Der Charakter benötigt entweder Alchimie oder ANALYS ARKANSTRUKTUR (mit AE)",
+                                    text = "Der Charakter benötigt entweder Alchimie, Kochen (Tränke) oder ANALYS ARKANSTRUKTUR (mit AE)",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -284,9 +299,17 @@ fun StructureAnalysisDialog(
                     } else {
                         availableMethods.forEach { method ->
                             val methodText = when (method) {
-                                StructureAnalysisMethod.ANALYS_SPELL -> "ANALYS (${character.analysZfw} ZfW)"
-                                StructureAnalysisMethod.BY_SIGHT -> "Augenschein (${character.alchemySkill} TaW, ½ TaP*, max 8)"
-                                StructureAnalysisMethod.LABORATORY -> "Labor (${character.alchemySkill} TaW)"
+                                StructureAnalysisMethod.ANALYS_SPELL -> 
+                                    "ANALYS (${character.analysZfw} ZfW)"
+                                StructureAnalysisMethod.BY_SIGHT_ALCHEMY -> 
+                                    "Augenschein - Alchimie (${character.alchemySkill} TaW, ½ TaP*, max 8)"
+                                StructureAnalysisMethod.BY_SIGHT_COOKING -> 
+                                    "Augenschein - Kochen (Tränke) (${character.cookingPotionsSkill} TaW, ½ TaP*, max 8)"
+                                StructureAnalysisMethod.LABORATORY_ALCHEMY -> 
+                                    "Labor - Alchimie (${character.alchemySkill} TaW)"
+                                StructureAnalysisMethod.LABORATORY_COOKING -> 
+                                    "Labor - Kochen (Tränke) (${character.cookingPotionsSkill} TaW)"
+                                else -> method.name  // Fallback für legacy
                             }
                             
                             Row(
@@ -302,7 +325,8 @@ fun StructureAnalysisDialog(
                         }
                     }
                     
-                    if (selectedMethod == StructureAnalysisMethod.LABORATORY) {
+                    if (selectedMethod == StructureAnalysisMethod.LABORATORY_ALCHEMY || 
+                        selectedMethod == StructureAnalysisMethod.LABORATORY_COOKING) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -318,10 +342,12 @@ fun StructureAnalysisDialog(
                         }
                     }
                     
-                    // AE-Ausgabe für Magisches Meisterhandwerk (nur bei Alchimie-Methoden und wenn Charakter AE hat)
+                    // AE-Ausgabe für Magisches Meisterhandwerk (nur bei Alchimie-/Kochen-Methoden und wenn Charakter AE hat)
                     val canUseMagicalMastery = character.hasAe && character.currentAe > 0 && 
-                        ((selectedMethod == StructureAnalysisMethod.BY_SIGHT && character.alchemyIsMagicalMastery) ||
-                         (selectedMethod == StructureAnalysisMethod.LABORATORY && character.alchemyIsMagicalMastery))
+                        ((selectedMethod == StructureAnalysisMethod.BY_SIGHT_ALCHEMY || 
+                          selectedMethod == StructureAnalysisMethod.LABORATORY_ALCHEMY) && character.alchemyIsMagicalMastery ||
+                         (selectedMethod == StructureAnalysisMethod.BY_SIGHT_COOKING || 
+                          selectedMethod == StructureAnalysisMethod.LABORATORY_COOKING) && character.cookingPotionsIsMagicalMastery)
                     
                     if (canUseMagicalMastery) {
                         Divider()
@@ -337,9 +363,16 @@ fun StructureAnalysisDialog(
                                     text = "Magisches Meisterhandwerk",
                                     style = MaterialTheme.typography.titleSmall
                                 )
-                                val maxAe = (character.alchemySkill + 1) / 2  // ⌈TaW/2⌉
+                                val effectiveTaw = when (selectedMethod) {
+                                    StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+                                    StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
+                                    StructureAnalysisMethod.BY_SIGHT_COOKING,
+                                    StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
+                                    else -> 0
+                                }
+                                val maxAe = (effectiveTaw + 1) / 2  // ⌈TaW/2⌉
                                 Text(
-                                    text = "AE ausgeben um TaW zu erhöhen (+2 TaW pro AE, max. ${character.alchemySkill * 2} TaW = $maxAe AE)",
+                                    text = "AE ausgeben um TaW zu erhöhen (+2 TaW pro AE, max. ${effectiveTaw * 2} TaW = $maxAe AE)",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 
@@ -374,8 +407,17 @@ fun StructureAnalysisDialog(
                                     
                                     IconButton(
                                         onClick = { astralEnergyCost++ },
-                                        enabled = astralEnergyCost < character.currentAe && 
-                                                 astralEnergyCost < (character.alchemySkill + 1) / 2  // Max ⌈TaW/2⌉
+                                        enabled = {
+                                            val taw = when (selectedMethod) {
+                                                StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+                                                StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
+                                                StructureAnalysisMethod.BY_SIGHT_COOKING,
+                                                StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
+                                                else -> 0
+                                            }
+                                            astralEnergyCost < character.currentAe && 
+                                            astralEnergyCost < (taw + 1) / 2  // Max ⌈TaW/2⌉
+                                        }()
                                     ) {
                                         Text("+", style = MaterialTheme.typography.titleMedium)
                                     }
@@ -384,9 +426,16 @@ fun StructureAnalysisDialog(
                                 if (astralEnergyCost > 0) {
                                     Divider(modifier = Modifier.padding(vertical = 8.dp))
                                     
-                                    val effectiveTaw = minOf(character.alchemySkill + (astralEnergyCost * 2), character.alchemySkill * 2)
+                                    val baseTaw = when (selectedMethod) {
+                                        StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+                                        StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
+                                        StructureAnalysisMethod.BY_SIGHT_COOKING,
+                                        StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
+                                        else -> 0
+                                    }
+                                    val effectiveTaw = minOf(baseTaw + (astralEnergyCost * 2), baseTaw * 2)
                                     Text(
-                                        text = "Effektiver TaW: $effectiveTaw (Basis: ${character.alchemySkill}, Bonus: +${astralEnergyCost * 2})",
+                                        text = "Effektiver TaW: $effectiveTaw (Basis: $baseTaw, Bonus: +${astralEnergyCost * 2})",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )

@@ -168,11 +168,29 @@ object ElixirAnalyzer {
         acceptHarderProbe: Boolean = false,
         astralEnergyCost: Int = 0  // AE-Kosten für Magisches Meisterhandwerk
     ): StructureAnalysisProbeResult {
-        // Bestimme Talentwert/ZfW basierend auf Methode
-        val baseTaw = when (method) {
-            StructureAnalysisMethod.ANALYS_SPELL -> character.analysZfw
-            StructureAnalysisMethod.BY_SIGHT -> character.alchemySkill
-            StructureAnalysisMethod.LABORATORY -> character.alchemySkill
+        // Bestimme Talentwert/ZfW und Talent basierend auf Methode
+        val baseTaw: Int
+        val talent: Talent?
+        
+        when (method) {
+            StructureAnalysisMethod.ANALYS_SPELL -> {
+                baseTaw = character.analysZfw
+                talent = null  // Kein Talent, sondern Zauber
+            }
+            StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+            StructureAnalysisMethod.LABORATORY_ALCHEMY,
+            @Suppress("DEPRECATION")
+            StructureAnalysisMethod.BY_SIGHT,
+            @Suppress("DEPRECATION")
+            StructureAnalysisMethod.LABORATORY -> {
+                baseTaw = character.alchemySkill
+                talent = Talent.ALCHEMY
+            }
+            StructureAnalysisMethod.BY_SIGHT_COOKING,
+            StructureAnalysisMethod.LABORATORY_COOKING -> {
+                baseTaw = character.cookingPotionsSkill
+                talent = Talent.COOKING_POTIONS
+            }
         }
         
         // Basis-Analyseerschwernis
@@ -194,11 +212,17 @@ object ElixirAnalyzer {
                 } else 0
                 difficulty -= methodBonus
             }
+            StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+            StructureAnalysisMethod.BY_SIGHT_COOKING,
+            @Suppress("DEPRECATION")
             StructureAnalysisMethod.BY_SIGHT -> {
                 // Je 3 volle TaP in Sinnenschärfe → 1 Punkt Erleichterung
                 methodBonus = character.sensoryAcuitySkill / 3
                 difficulty -= methodBonus
             }
+            StructureAnalysisMethod.LABORATORY_ALCHEMY,
+            StructureAnalysisMethod.LABORATORY_COOKING,
+            @Suppress("DEPRECATION")
             StructureAnalysisMethod.LABORATORY -> {
                 // Magiekunde oder Pflanzenkunde (höherer Wert)
                 val loreSkill = maxOf(character.magicalLoreSkill, character.herbalLoreSkill)
@@ -225,10 +249,17 @@ object ElixirAnalyzer {
                     difficulty = difficulty
                 )
             }
-            StructureAnalysisMethod.BY_SIGHT, StructureAnalysisMethod.LABORATORY -> {
-                // Alchimie: Probe auf MU/KL/FF
+            StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+            StructureAnalysisMethod.BY_SIGHT_COOKING,
+            StructureAnalysisMethod.LABORATORY_ALCHEMY,
+            StructureAnalysisMethod.LABORATORY_COOKING,
+            @Suppress("DEPRECATION")
+            StructureAnalysisMethod.BY_SIGHT,
+            @Suppress("DEPRECATION")
+            StructureAnalysisMethod.LABORATORY -> {
+                // Talent-Probe (Alchimie oder Kochen (Tränke))
                 ProbeChecker.performTalentProbe(
-                    talent = Talent.ALCHEMY,
+                    talent = talent!!,
                     character = character,
                     talentwert = baseTaw,
                     difficulty = difficulty,
@@ -245,12 +276,28 @@ object ElixirAnalyzer {
                     Pair("KL", character.kl),
                     Pair("IN", character.inValue)
                 )
-            StructureAnalysisMethod.BY_SIGHT, StructureAnalysisMethod.LABORATORY -> 
+            StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+            StructureAnalysisMethod.LABORATORY_ALCHEMY,
+            @Suppress("DEPRECATION")
+            StructureAnalysisMethod.BY_SIGHT,
+            @Suppress("DEPRECATION")
+            StructureAnalysisMethod.LABORATORY -> {
+                // Alchimie: MU/KL/FF
                 Triple(
                     Pair("MU", character.mu),
                     Pair("KL", character.kl),
                     Pair("FF", character.ff)
                 )
+            }
+            StructureAnalysisMethod.BY_SIGHT_COOKING,
+            StructureAnalysisMethod.LABORATORY_COOKING -> {
+                // Kochen (Tränke): KL/IN/FF
+                Triple(
+                    Pair("KL", character.kl),
+                    Pair("IN", character.inValue),
+                    Pair("FF", character.ff)
+                )
+            }
         }
         
         if (!probeResult.success) {
@@ -271,6 +318,9 @@ object ElixirAnalyzer {
         
         // Effektive TaP* (bei Augenschein nur die Hälfte aufgerundet, max 8)
         val effectiveTap = when (method) {
+            StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+            StructureAnalysisMethod.BY_SIGHT_COOKING,
+            @Suppress("DEPRECATION")
             StructureAnalysisMethod.BY_SIGHT -> minOf((probeResult.qualityPoints + 1) / 2, 8)
             else -> probeResult.qualityPoints
         }
@@ -282,7 +332,9 @@ object ElixirAnalyzer {
                 append("Doppel-1! ")
             }
             append("Strukturanalyse-Probe erfolgreich mit ${probeResult.qualityPoints} TaP*")
-            if (method == StructureAnalysisMethod.BY_SIGHT) {
+            if (method == StructureAnalysisMethod.BY_SIGHT_ALCHEMY || 
+                method == StructureAnalysisMethod.BY_SIGHT_COOKING ||
+                @Suppress("DEPRECATION") method == StructureAnalysisMethod.BY_SIGHT) {
                 append(" (effektiv $effectiveTap TaP* aufgerundet)")
             }
             append(".")
@@ -349,7 +401,10 @@ object ElixirAnalyzer {
         val newFacilitation = (totalTap + 1) / 2
         
         // Wurde der Trank verbraucht?
-        val potionConsumed = method == StructureAnalysisMethod.LABORATORY && !acceptHarderProbe
+        val potionConsumed = (method == StructureAnalysisMethod.LABORATORY_ALCHEMY || 
+                             method == StructureAnalysisMethod.LABORATORY_COOKING ||
+                             @Suppress("DEPRECATION") method == StructureAnalysisMethod.LABORATORY) && 
+                             !acceptHarderProbe
         
         val message = buildString {
             appendLine("Strukturanalyse abgeschlossen mit $totalTap TaP*!")
