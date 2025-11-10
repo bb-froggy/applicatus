@@ -170,6 +170,12 @@ class CharacterListViewModel(
         }
     }
     
+    fun moveCharacterToGroup(characterId: Long, targetGroupId: Long) {
+        viewModelScope.launch {
+            repository.moveCharacterToGroup(characterId, targetGroupId)
+        }
+    }
+    
     /**
      * Importiert einen Charakter aus einer JSON-Datei und legt einen neuen Charakter an.
      */

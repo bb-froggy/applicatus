@@ -184,6 +184,13 @@ class ApplicatusRepository(
     
     suspend fun updateGroupDerianDate(groupId: Long, date: String) = groupDao.updateCurrentDate(groupId, date)
     
+    suspend fun moveCharacterToGroup(characterId: Long, targetGroupId: Long) {
+        val character = characterDao.getCharacterById(characterId)
+        character?.let {
+            characterDao.updateCharacter(it.copy(groupId = targetGroupId))
+        }
+    }
+    
     /**
      * Stellt sicher, dass eine Standard-Gruppe existiert.
      * Falls keine Gruppe vorhanden ist, wird "Meine Gruppe" erstellt.

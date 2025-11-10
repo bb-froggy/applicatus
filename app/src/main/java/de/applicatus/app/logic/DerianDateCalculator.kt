@@ -18,8 +18,22 @@ object DerianDateCalculator {
         "Firun", "Tsa", "Phex", "Peraine", "Ingerimm", "Rahja", "Namenlose Tage"
     )
     
+    // Derische Wochentage (7-Tage-Woche)
+    private val weekdays = listOf(
+        "Windstag",     // 1. Tag der Woche
+        "Erdstag",      // 2. Tag
+        "Markttag",     // 3. Tag
+        "Praiostag",    // 4. Tag
+        "Rohalstag",    // 5. Tag
+        "Feuertag",     // 6. Tag
+        "Wassertag"     // 7. Tag
+    )
+    
     // Namenlose Tage als spezieller "Monat" Index
     private const val NAMELESS_DAYS_INDEX = 12
+    
+    // Mondphasen-Zyklus: 28 Tage (Mada)
+    private const val MADA_CYCLE = 28
     
     /**
      * Gibt die Anzahl der Tage für einen Monat zurück
@@ -195,4 +209,55 @@ object DerianDateCalculator {
      * Gibt die Liste aller derischen Monate zurück
      */
     fun getMonths(): List<String> = months
+    
+    /**
+     * Berechnet den Wochentag für ein derisches Datum
+     * Derische Woche hat 7 Tage (Windstag bis Wassertag)
+     * 
+     * @param date Datum im Format "Tag Monat Jahr BF"
+     * @return Name des Wochentags
+     */
+    fun getWeekday(date: String): String {
+        val totalDays = parseDateToDays(date) ?: return "Windstag"
+        // Der erste Tag (1 Praios 1 BF) ist ein Windstag
+        val weekdayIndex = (totalDays - 1) % 7
+        return weekdays[weekdayIndex]
+    }
+    
+    /**
+     * Mondphase als Enum
+     */
+    enum class MoonPhase(val symbol: String, val displayName: String) {
+        NEW_MOON("🌑", "Neumond"),
+        WAXING_CRESCENT("🌒", "Zunehmende Sichel"),
+        FIRST_QUARTER("🌓", "Erstes Viertel"),
+        WAXING_GIBBOUS("🌔", "Zunehmender Mond"),
+        FULL_MOON("🌕", "Vollmond"),
+        WANING_GIBBOUS("🌖", "Abnehmender Mond"),
+        LAST_QUARTER("🌗", "Letztes Viertel"),
+        WANING_CRESCENT("🌘", "Abnehmende Sichel")
+    }
+    
+    /**
+     * Berechnet die Mondphase von Mada
+     * Mada hat einen 28-Tage-Zyklus
+     * 
+     * @param date Datum im Format "Tag Monat Jahr BF"
+     * @return Mondphase von Mada
+     */
+    fun getMadaPhase(date: String): MoonPhase {
+        val totalDays = parseDateToDays(date) ?: return MoonPhase.NEW_MOON
+        val dayInCycle = totalDays % MADA_CYCLE
+        
+        return when (dayInCycle) {
+            0 -> MoonPhase.NEW_MOON
+            in 1..3 -> MoonPhase.WAXING_CRESCENT
+            in 4..6 -> MoonPhase.FIRST_QUARTER
+            in 7..10 -> MoonPhase.WAXING_GIBBOUS
+            in 11..14 -> MoonPhase.FULL_MOON
+            in 15..17 -> MoonPhase.WANING_GIBBOUS
+            in 18..20 -> MoonPhase.LAST_QUARTER
+            else -> MoonPhase.WANING_CRESCENT
+        }
+    }
 }

@@ -3,8 +3,10 @@ package de.applicatus.app.ui.screen
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,9 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CharacterListScreen(
     viewModel: CharacterListViewModel,
@@ -45,7 +48,10 @@ fun CharacterListScreen(
     val isDateEditMode by remember { derivedStateOf { viewModel.isDateEditMode } }
     
     var showAddDialog by remember { mutableStateOf(false) }
+    var showAddGroupDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var draggedCharacter by remember { mutableStateOf<Character?>(null) }
+    var showMoveDialog by remember { mutableStateOf(false) }
     
     // File picker für JSON-Import
     val importLauncher = rememberLauncherForActivityResult(
@@ -96,8 +102,23 @@ fun CharacterListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Neuer Charakter")
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Neue Gruppe erstellen
+                SmallFloatingActionButton(
+                    onClick = { showAddGroupDialog = true },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Neue Gruppe")
+                }
+                
+                // Neuer Charakter
+                FloatingActionButton(onClick = { showAddDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Neuer Charakter")
+                }
             }
         }
     ) { padding ->
@@ -156,7 +177,11 @@ fun CharacterListScreen(
                     CharacterListItem(
                         character = character,
                         onClick = { onCharacterClick(character.id) },
-                        onDelete = { viewModel.deleteCharacter(character) }
+                        onDelete = { viewModel.deleteCharacter(character) },
+                        onLongPress = {
+                            draggedCharacter = character
+                            showMoveDialog = true
+                        }
                     )
                 }
                 
@@ -207,6 +232,35 @@ fun CharacterListScreen(
                     applicatusModifier = applicatusModifier
                 )
                 showAddDialog = false
+            }
+        )
+    }
+    
+    // Dialog zum Erstellen einer neuen Gruppe
+    if (showAddGroupDialog) {
+        AddGroupDialog(
+            onDismiss = { showAddGroupDialog = false },
+            onConfirm = { groupName ->
+                viewModel.addGroup(groupName)
+                showAddGroupDialog = false
+            }
+        )
+    }
+    
+    // Dialog zum Verschieben eines Charakters
+    if (showMoveDialog && draggedCharacter != null) {
+        MoveCharacterDialog(
+            character = draggedCharacter!!,
+            groups = groups,
+            currentGroupId = draggedCharacter!!.groupId,
+            onDismiss = { 
+                showMoveDialog = false
+                draggedCharacter = null
+            },
+            onConfirm = { targetGroupId ->
+                viewModel.moveCharacterToGroup(draggedCharacter!!.id, targetGroupId)
+                showMoveDialog = false
+                draggedCharacter = null
             }
         )
     }
@@ -309,12 +363,13 @@ fun CharacterListScreen(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun CharacterListItem(
     character: Character,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     
@@ -360,7 +415,10 @@ fun CharacterListItem(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onClick)
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongPress
+                    )
             ) {
                 Row(
                     modifier = Modifier
@@ -696,24 +754,60 @@ fun DerianDateCard(
                     Text("Datum speichern")
                 }
             } else {
-                // Nutzungsmodus: +/- Buttons
-                Row(
+                // Nutzungsmodus: Datum mit Wochentag und Mondphasen
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    IconButton(onClick = onDecrement) {
-                        Text("-", style = MaterialTheme.typography.headlineMedium)
-                    }
-                    
+                    // Wochentag
                     Text(
-                        text = currentDate,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        text = de.applicatus.app.logic.DerianDateCalculator.getWeekday(currentDate),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                     
-                    IconButton(onClick = onIncrement) {
-                        Text("+", style = MaterialTheme.typography.headlineMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Datum mit +/- Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onDecrement) {
+                            Text("-", style = MaterialTheme.typography.headlineMedium)
+                        }
+                        
+                        Text(
+                            text = currentDate,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        
+                        IconButton(onClick = onIncrement) {
+                            Text("+", style = MaterialTheme.typography.headlineMedium)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Mondphase (Mada)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val madaPhase = de.applicatus.app.logic.DerianDateCalculator.getMadaPhase(currentDate)
+                        Text(
+                            text = madaPhase.symbol,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Mada",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
@@ -723,7 +817,7 @@ fun DerianDateCard(
 
 @Composable
 fun GroupSelector(
-    groups: List<de.applicatus.app.data.model.character.Group>,
+    groups: List<Group>,
     selectedGroupId: Long?,
     onSelectGroup: (Long) -> Unit
 ) {
@@ -787,4 +881,127 @@ fun GroupSelector(
             }
         }
     }
+}
+
+@Composable
+fun AddGroupDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var groupName by remember { mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Neue Gruppe erstellen") },
+        text = {
+            Column {
+                Text(
+                    text = "Gib einen Namen für die neue Gruppe ein:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = groupName,
+                    onValueChange = { groupName = it },
+                    label = { Text("Gruppenname") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { 
+                    if (groupName.isNotBlank()) {
+                        onConfirm(groupName.trim())
+                    }
+                },
+                enabled = groupName.isNotBlank()
+            ) {
+                Text("Erstellen")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
+}
+
+@Composable
+fun MoveCharacterDialog(
+    character: Character,
+    groups: List<Group>,
+    currentGroupId: Long?,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit
+) {
+    var selectedGroupId by remember { mutableStateOf(currentGroupId) }
+    val currentGroup = groups.find { it.id == currentGroupId }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Charakter verschieben") },
+        text = {
+            Column {
+                Text(
+                    text = "Verschiebe '${character.name}' in eine andere Gruppe:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Aktuelle Gruppe: ${currentGroup?.name ?: "Keine"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Liste der verfügbaren Gruppen
+                groups.forEach { group ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedGroupId = group.id }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedGroupId == group.id,
+                            onClick = { selectedGroupId = group.id }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = group.name,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = group.currentDerianDate,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { 
+                    selectedGroupId?.let { onConfirm(it) }
+                },
+                enabled = selectedGroupId != null && selectedGroupId != currentGroupId
+            ) {
+                Text("Verschieben")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
 }
