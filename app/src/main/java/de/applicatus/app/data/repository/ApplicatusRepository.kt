@@ -22,6 +22,7 @@ import de.applicatus.app.data.model.spell.SpellSlot
 import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 
 class ApplicatusRepository(
     private val spellDao: SpellDao,
@@ -175,6 +176,22 @@ class ApplicatusRepository(
     fun getGroupById(groupId: Long): Flow<Group?> = groupDao.getGroupById(groupId)
     
     suspend fun getGroupByIdOnce(groupId: Long): Group? = groupDao.getGroupByIdOnce(groupId)
+    
+    /**
+     * Ermittelt die Gruppe eines Charakters.
+     * Gibt die Gruppe zurück, zu der der Charakter gehört, oder die Standard-Gruppe.
+     */
+    fun getGroupForCharacter(characterId: Long): Flow<Group?> = flow {
+        val character = characterDao.getCharacterById(characterId)
+        if (character != null) {
+            val groupId = character.groupId ?: ensureDefaultGroupExists()
+            groupDao.getGroupById(groupId).collect { group ->
+                emit(group)
+            }
+        } else {
+            emit(null)
+        }
+    }
     
     suspend fun insertGroup(group: Group): Long = groupDao.insertGroup(group)
     

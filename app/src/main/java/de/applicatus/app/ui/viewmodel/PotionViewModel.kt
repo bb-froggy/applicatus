@@ -76,9 +76,17 @@ class PotionViewModel(
             repository.getCharacterByIdFlow(characterId).collect { currentChar ->
                 if (currentChar != null) {
                     repository.allCharacters.collect { allChars ->
-                        // Alle Charaktere in derselben Gruppe außer dem aktuellen
-                        _groupCharacters.value = allChars.filter { 
-                            it.group == currentChar.group && it.id != currentChar.id 
+                        // Prüfe ob es einen Spielleiter-Charakter gibt
+                        val hasGameMaster = allChars.any { it.isGameMaster }
+                        
+                        // Wenn ein Spielleiter existiert: Alle anderen Charaktere anzeigen
+                        // Sonst: Nur Charaktere aus derselben Gruppe
+                        _groupCharacters.value = if (hasGameMaster) {
+                            allChars.filter { it.id != currentChar.id }
+                        } else {
+                            allChars.filter { 
+                                it.group == currentChar.group && it.id != currentChar.id 
+                            }
                         }
                     }
                 }
@@ -88,7 +96,7 @@ class PotionViewModel(
     
     fun transferPotionToCharacter(potion: Potion, targetCharacterId: Long) {
         viewModelScope.launch {
-            // Prüfe ob Zielcharakter in gleicher Gruppe ist
+            // Prüfe ob Zielcharakter existiert
             val currentChar = _character.value
             val targetChar = repository.getCharacterById(targetCharacterId)
             
@@ -96,8 +104,13 @@ class PotionViewModel(
                 return@launch
             }
             
-            if (currentChar.group != targetChar.group) {
-                return@launch // Nur innerhalb der Gruppe erlaubt
+            // Prüfe ob es einen Spielleiter gibt
+            val allChars = repository.allCharacters.first()
+            val hasGameMaster = allChars.any { it.isGameMaster }
+            
+            // Gruppen-Einschränkung nur ohne Spielleiter
+            if (!hasGameMaster && currentChar.group != targetChar.group) {
+                return@launch // Nur innerhalb der Gruppe erlaubt (wenn kein Spielleiter)
             }
             
             // Prüfe ob Trank mit dieser GUID bereits beim Ziel existiert
@@ -279,6 +292,15 @@ class PotionViewModel(
             recipe.appearance
         }
         
+        // Berechne Ablaufdatum basierend auf aktuellem derischen Datum und Haltbarkeit
+        val group = repository.getGroupForCharacter(char.id).first() 
+            ?: throw IllegalStateException("Gruppe nicht gefunden")
+        val currentDate = group.currentDerianDate
+        val calculatedExpiryDate = de.applicatus.app.logic.DerianDateCalculator.calculateExpiryDate(
+            currentDate, 
+            recipe.shelfLife
+        )
+        
         // Trank zur Datenbank hinzufügen
         // Beim Brauen sind Name und Kategorie immer bekannt
         val potion = Potion(
@@ -286,7 +308,7 @@ class PotionViewModel(
             recipeId = recipe.id,
             actualQuality = result.quality,
             appearance = appearance,
-            expiryDate = recipe.shelfLife,
+            expiryDate = calculatedExpiryDate,
             nameKnown = true,      // Gebraute Tränke haben bekannten Namen
             categoryKnown = true   // Gebraute Tränke haben bekannte Kategorie
         )
