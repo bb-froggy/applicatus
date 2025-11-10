@@ -10,6 +10,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import de.applicatus.app.data.dao.CharacterDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
+import de.applicatus.app.data.dao.ItemDao
+import de.applicatus.app.data.dao.LocationDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
@@ -18,6 +20,8 @@ import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.model.character.Group
+import de.applicatus.app.data.model.inventory.Item
+import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.data.model.potion.RecipeKnowledge
@@ -28,8 +32,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class],
-    version = 17,
+    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -42,6 +46,8 @@ abstract class ApplicatusDatabase : RoomDatabase() {
     abstract fun globalSettingsDao(): GlobalSettingsDao
     abstract fun recipeKnowledgeDao(): RecipeKnowledgeDao
     abstract fun groupDao(): GroupDao
+    abstract fun itemDao(): ItemDao
+    abstract fun locationDao(): LocationDao
     
     companion object {
         @Volatile
@@ -420,6 +426,84 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Locations-Tabelle erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS locations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        isDefault INTEGER NOT NULL DEFAULT 0,
+                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // 2. Items-Tabelle erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        locationId INTEGER,
+                        name TEXT NOT NULL,
+                        stone INTEGER NOT NULL DEFAULT 0,
+                        ounces INTEGER NOT NULL DEFAULT 0,
+                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
+                        FOREIGN KEY(locationId) REFERENCES locations(id) ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                
+                // 3. Indices erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_locations_characterId ON locations(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
+                
+                // 4. Potion-Tabelle erweitern mit locationId
+                database.execSQL("ALTER TABLE potions ADD COLUMN locationId INTEGER")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_locationId ON potions(locationId)")
+                
+                // 5. Standard-Locations für alle bestehenden Charaktere erstellen
+                val charactersCursor = database.query("SELECT id FROM characters")
+                while (charactersCursor.moveToNext()) {
+                    val characterId = charactersCursor.getLong(0)
+                    
+                    // "Am Körper" Location
+                    database.execSQL("""
+                        INSERT INTO locations (characterId, name, isDefault, sortOrder) 
+                        VALUES (?, 'Am Körper', 1, 0)
+                    """.trimIndent(), arrayOf(characterId))
+                    
+                    val bodyLocationIdCursor = database.query("SELECT last_insert_rowid()")
+                    var bodyLocationId: Long = 0
+                    if (bodyLocationIdCursor.moveToFirst()) {
+                        bodyLocationId = bodyLocationIdCursor.getLong(0)
+                    }
+                    bodyLocationIdCursor.close()
+                    
+                    // "Rucksack" Location
+                    database.execSQL("""
+                        INSERT INTO locations (characterId, name, isDefault, sortOrder) 
+                        VALUES (?, 'Rucksack', 1, 1)
+                    """.trimIndent(), arrayOf(characterId))
+                    
+                    val backpackLocationIdCursor = database.query("SELECT last_insert_rowid()")
+                    var backpackLocationId: Long = 0
+                    if (backpackLocationIdCursor.moveToFirst()) {
+                        backpackLocationId = backpackLocationIdCursor.getLong(0)
+                    }
+                    backpackLocationIdCursor.close()
+                    
+                    // Alle bestehenden Tränke des Charakters in "Rucksack" legen
+                    database.execSQL("""
+                        UPDATE potions SET locationId = ? WHERE characterId = ?
+                    """.trimIndent(), arrayOf(backpackLocationId, characterId))
+                }
+                charactersCursor.close()
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -427,7 +511,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

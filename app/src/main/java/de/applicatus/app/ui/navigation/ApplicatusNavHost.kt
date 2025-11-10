@@ -13,6 +13,7 @@ import de.applicatus.app.ui.screen.spell.SpellStorageScreen
 import de.applicatus.app.ui.screen.CharacterHomeScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
 import de.applicatus.app.ui.screen.NearbySyncScreen
+import de.applicatus.app.ui.screen.inventory.InventoryScreen
 import de.applicatus.app.ui.screen.potion.PotionScreen
 import de.applicatus.app.ui.screen.potion.RecipeKnowledgeScreen
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
@@ -71,6 +72,9 @@ fun ApplicatusNavHost(
                 },
                 onNavigateToPotions = { charId ->
                     navController.navigate(Screen.PotionScreen.createRoute(charId))
+                },
+                onNavigateToInventory = { charId ->
+                    navController.navigate(Screen.InventoryScreen.createRoute(charId))
                 }
             )
         }
@@ -122,6 +126,20 @@ fun ApplicatusNavHost(
                 characterId = characterId,
                 viewModelFactory = RecipeKnowledgeViewModelFactory(repository, characterId),
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.InventoryScreen.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            InventoryScreen(
+                characterId = characterId,
+                onNavigateBack = { navController.popBackStack() },
+                application = context.applicationContext as de.applicatus.app.ApplicatusApplication
             )
         }
         

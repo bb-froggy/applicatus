@@ -29,6 +29,17 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 - **Rezeptwissen**: Tracken Sie, welche Rezepte Ihr Charakter kennt
 - **Spielleiter-Integration**: Im Spielleiter-Modus werden alle Informationen angezeigt
 
+### Packesel (Inventarverwaltung)
+- **Lagerorte**: Verwalten Sie Gegenstände an verschiedenen Orten
+  - Standard-Orte: "Am Körper" und "Rucksack"
+  - Beliebig viele eigene Orte hinzufügbar (z.B. "Pferd", "Wagen")
+- **Gegenstände**: 
+  - Freitext-Name
+  - Gewicht in Stein und/oder Unzen (1 Stein = 40 Unzen)
+  - Zuordnung zu einem Ort
+- **Tränke-Integration**: Alle Tränke werden automatisch als Gegenstände angezeigt (je 4 Unzen)
+- **Gewichtsberechnung**: Automatische Berechnung des Gesamtgewichts pro Ort
+
 ### Export/Import & Synchronisation
 - **JSON-Export/Import**: 
   - Charaktere als JSON-Datei exportieren/importieren

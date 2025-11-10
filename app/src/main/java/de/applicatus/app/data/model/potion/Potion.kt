@@ -26,7 +26,7 @@ import java.util.UUID
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("recipeId"), Index("characterId")]
+    indices = [Index("recipeId"), Index("characterId"), Index("locationId")]
 )
 data class Potion(
     @PrimaryKey(autoGenerate = true)
@@ -34,6 +34,7 @@ data class Potion(
     val guid: String = UUID.randomUUID().toString(),    // Eindeutige GUID für Import/Export und Trank-Übergabe
     val characterId: Long,                              // Zugehöriger Charakter
     val recipeId: Long,                                 // Zugehöriges Rezept
+    val locationId: Long? = null,                       // Lagerort (null = nicht zugeordnet)
     
     // Tatsächliche Eigenschaften (vom Spielleiter/Brauprozess bestimmt)
     val actualQuality: PotionQuality,                   // Tatsächliche Qualität (A-F, M)

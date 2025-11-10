@@ -4,6 +4,8 @@ import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.dao.CharacterDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
+import de.applicatus.app.data.dao.ItemDao
+import de.applicatus.app.data.dao.LocationDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
@@ -12,6 +14,9 @@ import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.model.character.Group
+import de.applicatus.app.data.model.inventory.Item
+import de.applicatus.app.data.model.inventory.ItemWithLocation
+import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
@@ -32,7 +37,9 @@ class ApplicatusRepository(
     private val potionDao: PotionDao,
     private val globalSettingsDao: GlobalSettingsDao,
     private val recipeKnowledgeDao: RecipeKnowledgeDao,
-    private val groupDao: GroupDao
+    private val groupDao: GroupDao,
+    private val itemDao: ItemDao,
+    private val locationDao: LocationDao
 ) {
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
@@ -228,4 +235,45 @@ class ApplicatusRepository(
         }
         return defaultGroupId ?: 1L
     }
+    
+    // Locations
+    fun getLocationsForCharacter(characterId: Long): Flow<List<Location>> =
+        locationDao.getLocationsForCharacter(characterId)
+    
+    suspend fun getLocationById(locationId: Long): Location? =
+        locationDao.getLocationById(locationId)
+    
+    suspend fun insertLocation(location: Location): Long =
+        locationDao.insert(location)
+    
+    suspend fun updateLocation(location: Location) =
+        locationDao.update(location)
+    
+    suspend fun deleteLocation(location: Location) =
+        locationDao.delete(location)
+    
+    suspend fun createDefaultLocationsForCharacter(characterId: Long) =
+        locationDao.createDefaultLocations(characterId)
+    
+    // Items
+    fun getItemsForCharacter(characterId: Long): Flow<List<Item>> =
+        itemDao.getItemsForCharacter(characterId)
+    
+    fun getItemsWithLocationForCharacter(characterId: Long): Flow<List<ItemWithLocation>> =
+        itemDao.getItemsWithLocationForCharacter(characterId)
+    
+    fun getItemsForLocation(locationId: Long): Flow<List<Item>> =
+        itemDao.getItemsForLocation(locationId)
+    
+    suspend fun getItemById(itemId: Long): Item? =
+        itemDao.getItemById(itemId)
+    
+    suspend fun insertItem(item: Item): Long =
+        itemDao.insert(item)
+    
+    suspend fun updateItem(item: Item) =
+        itemDao.update(item)
+    
+    suspend fun deleteItem(item: Item) =
+        itemDao.delete(item)
 }

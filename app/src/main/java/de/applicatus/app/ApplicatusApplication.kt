@@ -18,7 +18,9 @@ class ApplicatusApplication : Application() {
             database.potionDao(),
             database.globalSettingsDao(),
             database.recipeKnowledgeDao(),
-            database.groupDao()
+            database.groupDao(),
+            database.itemDao(),
+            database.locationDao()
         )
     }
     

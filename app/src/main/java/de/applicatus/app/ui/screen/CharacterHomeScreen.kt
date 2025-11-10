@@ -28,7 +28,8 @@ fun CharacterHomeScreen(
     viewModelFactory: CharacterHomeViewModelFactory,
     onNavigateBack: () -> Unit,
     onNavigateToSpellStorage: (Long) -> Unit,
-    onNavigateToPotions: (Long) -> Unit
+    onNavigateToPotions: (Long) -> Unit,
+    onNavigateToInventory: (Long) -> Unit
 ) {
     val viewModel: CharacterHomeViewModel = viewModel(factory = viewModelFactory)
     val character by viewModel.character.collectAsState()
@@ -99,6 +100,13 @@ fun CharacterHomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.witch_kitchen))
+                }
+                
+                Button(
+                    onClick = { onNavigateToInventory(characterId) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Packesel")
                 }
             }
         }

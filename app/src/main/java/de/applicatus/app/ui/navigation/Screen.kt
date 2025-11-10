@@ -14,6 +14,9 @@ sealed class Screen(val route: String) {
     object RecipeKnowledgeScreen : Screen("recipe_knowledge/{characterId}") {
         fun createRoute(characterId: Long) = "recipe_knowledge/$characterId"
     }
+    object InventoryScreen : Screen("inventory/{characterId}") {
+        fun createRoute(characterId: Long) = "inventory/$characterId"
+    }
     object NearbySync : Screen("nearby_sync?characterId={characterId}&characterName={characterName}") {
         // Mit characterId für Senden von spezifischem Charakter
         fun createRoute(characterId: Long, characterName: String) = 

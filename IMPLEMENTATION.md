@@ -152,18 +152,23 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Volumenpunkte für Zauberspeicher (1-100, max. 100 gesamt)
   - ✅ Applicatus-Würfelergebnis
 - ✅ **SpellSlotWithSpell**: View-Objekt für Join zwischen Slot und Zauber
-- ✅ **Potion**: Trank mit Name, Rezept-Referenz, Qualität, Analyse-Status
+- ✅ **Potion**: Trank mit Name, Rezept-Referenz, Qualität, Analyse-Status, **locationId**
 - ✅ **Recipe**: Trank-Rezept mit Name, Beschreibung, Wirkung
 - ✅ **PotionAnalysisStatus**: Status der Trank-Analyse (Intensität, Struktur, verstanden)
 - ✅ **RecipeKnowledge**: Verknüpfung zwischen Charakter und bekannten Rezepten
+- ✅ **Weight**: Gewicht in Stein und Unzen (1 Stein = 40 Unzen)
+- ✅ **Location**: Lagerort für Gegenstände (Am Körper, Rucksack, eigene Orte)
+- ✅ **Item**: Gegenstand mit Name, Gewicht, Lagerort
+- ✅ **ItemWithLocation**: View-Objekt für Items mit Location-Namen
 
 ### 3. Datenbank (data/)
-- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao
-- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter
+- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao, **ItemDao, LocationDao**
+- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter, **Weight-Converter**
 - ✅ **ApplicatusDatabase**: Room-Datenbank mit automatischer Initialisierung
   - ✅ Migration von Version 1 zu 2 (neue Felder)
   - ✅ Migration von Version 2 zu 3 (Alchimie-Features)
   - ✅ Migration von Version 3 zu 4 (LE/AE/KE, Spielleiter-Modus)
+  - ✅ Migration von Version 17 zu 18 (Inventar-Feature)
 - ✅ **ApplicatusRepository**: Repository-Pattern für Datenzugriff (inkl. Bereinigung von Rezeptwissen beim Import)
 - ✅ **InitialSpells**: 235+ vordefinierte Zauber (magierzauber.txt + hexenzauber.txt)
 - ✅ **InitialRecipes**: 30+ vordefinierte Trank-Rezepte (Rezepte.csv)
@@ -243,6 +248,12 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Rezepte hinzufügen/entfernen
   - ✅ Filterung nach bekannten/unbekannten Rezepten
 
+- ✅ **InventoryViewModel**: Verwaltung des Inventars (Packesel)
+  - ✅ Locations und Items verwalten
+  - ✅ Tränke als virtuelle Items integrieren
+  - ✅ Gewichtsberechnung pro Location
+  - ✅ Items zwischen Orten verschieben
+
 ### 6. UI-Screens (ui/screen/)
 - ✅ **CharacterListScreen**: 
   - ✅ Liste aller Charaktere mit Eigenschaftswerten
@@ -310,12 +321,20 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Permission-Handling
   - ✅ Anleitungstext
 
+- ✅ **InventoryScreen** (Packesel):
+  - ✅ Liste aller Locations mit Gesamtgewicht
+  - ✅ Items pro Location
+  - ✅ Tränke als virtuelle Items
+  - ✅ Dialoge zum Hinzufügen/Bearbeiten von Locations und Items
+  - ✅ Gewichtsanzeige in Stein und Unzen
+
 ### 7. Navigation (ui/navigation/)
 - ✅ **Screen**: Sealed Class für Routes
 - ✅ **ApplicatusNavHost**: Jetpack Compose Navigation
   - CharacterList → CharacterHome mit characterId-Parameter
   - CharacterHome → SpellStorage mit characterId-Parameter
   - CharacterHome → Potion (Hexenküche) mit characterId-Parameter
+  - CharacterHome → **Inventory (Packesel)** mit characterId-Parameter
   - Potion → RecipeKnowledge mit characterId-Parameter
   - CharacterHome → NearbySync mit characterId-Parameter
 
@@ -418,6 +437,30 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Rezepte als bekannt markieren
   - ✅ Filterung nach bekannten/unbekannten Rezepten
   - ✅ Automatisches Hinzufügen bei erfolgreicher Analyse
+
+### Packesel (Inventarverwaltung)
+- ✅ **Lagerorte**:
+  - ✅ Standard-Orte: "Am Körper" und "Rucksack" (automatisch erstellt)
+  - ✅ Eigene Orte hinzufügen/löschen
+  - ✅ Gesamtgewicht pro Ort
+  
+- ✅ **Gegenstände**:
+  - ✅ Freitext-Name
+  - ✅ Gewicht in Stein und/oder Unzen (1 Stein = 40 Unzen)
+  - ✅ Zuordnung zu einem Ort
+  - ✅ Hinzufügen, Bearbeiten, Löschen
+  - ✅ Zwischen Orten verschieben
+  
+- ✅ **Tränke-Integration**:
+  - ✅ Alle Tränke werden automatisch als Gegenstände angezeigt
+  - ✅ Festes Gewicht: 4 Unzen pro Trank
+  - ✅ Kennzeichnung durch Icon
+  - ✅ Verwaltung über Hexenküche
+  
+- ✅ **Gewichtsberechnung**:
+  - ✅ Automatische Berechnung pro Ort
+  - ✅ Anzeige in Stein und Unzen
+  - ✅ Berücksichtigung von Items und Tränken
 
 ### Export/Import & Synchronisation
 - ✅ **JSON-Export/Import**:

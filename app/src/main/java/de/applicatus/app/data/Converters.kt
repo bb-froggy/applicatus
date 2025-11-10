@@ -1,6 +1,7 @@
 package de.applicatus.app.data
 
 import androidx.room.TypeConverter
+import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.data.model.spell.SlotType
 
@@ -83,5 +84,16 @@ class Converters {
     @TypeConverter
     fun toLaboratory(value: String?): Laboratory? {
         return value?.let { Laboratory.valueOf(it) }
+    }
+    
+    // Weight Converters (stored as total ounces)
+    @TypeConverter
+    fun fromWeight(value: Weight): Int {
+        return value.toOunces()
+    }
+    
+    @TypeConverter
+    fun toWeight(value: Int): Weight {
+        return Weight.fromOunces(value)
     }
 }
