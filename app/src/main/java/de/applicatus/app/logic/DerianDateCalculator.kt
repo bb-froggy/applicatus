@@ -219,8 +219,8 @@ object DerianDateCalculator {
      */
     fun getWeekday(date: String): String {
         val totalDays = parseDateToDays(date) ?: return "Windstag"
-        // Der erste Tag (1 Praios 1 BF) ist ein Windstag
-        val weekdayIndex = (totalDays - 1) % 7
+        // Der erste Tag (1 Praios 0 BF) ist ein Praiostag
+        val weekdayIndex = (totalDays + 2) % 7
         return weekdays[weekdayIndex]
     }
     

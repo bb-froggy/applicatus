@@ -137,39 +137,37 @@ fun CharacterListScreen(
         ) {
             // Für jede Gruppe: Datum-Card und Charaktere
             groupedCharactersWithGroup.forEach { (group, charactersInGroup) ->
-                // Derisches Datum der Gruppe anzeigen
+                // Gruppenname als Überschrift mit Datum darunter
                 item {
-                    DerianDateCard(
-                        groupName = group.name,
-                        currentDate = group.currentDerianDate,
-                        isEditMode = isDateEditMode && viewModel.selectedGroupId == group.id,
-                        onToggleEditMode = { 
-                            viewModel.selectGroup(group.id)
-                            viewModel.toggleDateEditMode() 
-                        },
-                        onUpdateDate = { 
-                            viewModel.selectGroup(group.id)
-                            viewModel.updateDerianDate(it) 
-                        },
-                        onIncrement = { 
-                            viewModel.selectGroup(group.id)
-                            viewModel.incrementDerianDate() 
-                        },
-                        onDecrement = { 
-                            viewModel.selectGroup(group.id)
-                            viewModel.decrementDerianDate() 
-                        }
-                    )
-                }
-                
-                // Gruppenname als Überschrift
-                item {
-                    Text(
-                        text = group.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                    )
+                    Column {
+                        Text(
+                            text = group.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        )
+                        
+                        DerianDateCard(
+                            currentDate = group.currentDerianDate,
+                            isEditMode = isDateEditMode && viewModel.selectedGroupId == group.id,
+                            onToggleEditMode = { 
+                                viewModel.selectGroup(group.id)
+                                viewModel.toggleDateEditMode() 
+                            },
+                            onUpdateDate = { 
+                                viewModel.selectGroup(group.id)
+                                viewModel.updateDerianDate(it) 
+                            },
+                            onIncrement = { 
+                                viewModel.selectGroup(group.id)
+                                viewModel.incrementDerianDate() 
+                            },
+                            onDecrement = { 
+                                viewModel.selectGroup(group.id)
+                                viewModel.decrementDerianDate() 
+                            }
+                        )
+                    }
                 }
                 
                 // Charaktere dieser Gruppe
@@ -686,7 +684,6 @@ fun AddCharacterDialog(
 
 @Composable
 fun DerianDateCard(
-    groupName: String,
     currentDate: String,
     isEditMode: Boolean,
     onToggleEditMode: () -> Unit,
@@ -707,40 +704,25 @@ fun DerianDateCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = groupName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "Derisches Datum",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                }
-                
-                TextButton(onClick = onToggleEditMode) {
-                    Text(if (isEditMode) "Fertig" else "Bearbeiten")
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
             if (isEditMode) {
                 // Bearbeitungsmodus: Vollständige Datumsbearbeitung
-                OutlinedTextField(
-                    value = editingDate,
-                    onValueChange = { editingDate = it },
-                    label = { Text("Datum (z.B. 15 Praios 1040 BF)") },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = editingDate,
+                        onValueChange = { editingDate = it },
+                        label = { Text("Datum (z.B. 15 Praios 1040 BF)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = onToggleEditMode) {
+                        Text("Fertig")
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -754,60 +736,57 @@ fun DerianDateCard(
                     Text("Datum speichern")
                 }
             } else {
-                // Nutzungsmodus: Datum mit Wochentag und Mondphasen
-                Column(
+                // Nutzungsmodus: Kompakte Anzeige
+                // Erste Zeile: Mondphase, Wochentag, Bearbeiten-Button
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Wochentag
-                    Text(
-                        text = de.applicatus.app.logic.DerianDateCalculator.getWeekday(currentDate),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // Datum mit +/- Buttons
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        IconButton(onClick = onDecrement) {
-                            Text("-", style = MaterialTheme.typography.headlineMedium)
-                        }
-                        
-                        Text(
-                            text = currentDate,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        
-                        IconButton(onClick = onIncrement) {
-                            Text("+", style = MaterialTheme.typography.headlineMedium)
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Mondphase (Mada)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        // Mondphase
                         val madaPhase = de.applicatus.app.logic.DerianDateCalculator.getMadaPhase(currentDate)
                         Text(
                             text = madaPhase.symbol,
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        // Wochentag
                         Text(
-                            text = "Mada",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            text = de.applicatus.app.logic.DerianDateCalculator.getWeekday(currentDate),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
+                    }
+                    
+                    TextButton(onClick = onToggleEditMode) {
+                        Text("Bearbeiten")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Zweite Zeile: Datum mit +/- Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onDecrement) {
+                        Text("-", style = MaterialTheme.typography.headlineMedium)
+                    }
+                    
+                    Text(
+                        text = currentDate,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    
+                    IconButton(onClick = onIncrement) {
+                        Text("+", style = MaterialTheme.typography.headlineMedium)
                     }
                 }
             }
