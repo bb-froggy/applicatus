@@ -9,6 +9,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import de.applicatus.app.data.dao.CharacterDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
+import de.applicatus.app.data.dao.GroupDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
@@ -16,6 +17,7 @@ import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.GlobalSettings
+import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.data.model.potion.RecipeKnowledge
@@ -26,8 +28,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class],
-    version = 16,
+    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class],
+    version = 17,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -39,6 +41,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
     abstract fun potionDao(): PotionDao
     abstract fun globalSettingsDao(): GlobalSettingsDao
     abstract fun recipeKnowledgeDao(): RecipeKnowledgeDao
+    abstract fun groupDao(): GroupDao
     
     companion object {
         @Volatile
@@ -352,6 +355,71 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Groups-Tabelle erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS groups (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        currentDerianDate TEXT NOT NULL DEFAULT '1 Praios 1040 BF'
+                    )
+                """.trimIndent())
+                
+                // 2. Standard-Gruppe erstellen und deren ID ermitteln
+                database.execSQL("INSERT INTO groups (name, currentDerianDate) VALUES ('Meine Gruppe', '1 Praios 1040 BF')")
+                val cursor = database.query("SELECT last_insert_rowid()")
+                var defaultGroupId: Long = 1
+                if (cursor.moveToFirst()) {
+                    defaultGroupId = cursor.getLong(0)
+                }
+                cursor.close()
+                
+                // 3. Für jede eindeutige Gruppe aus characters eine neue Group erstellen
+                val groupCursor = database.query("SELECT DISTINCT 'group' FROM characters WHERE 'group' != 'Meine Gruppe'")
+                val groupMapping = mutableMapOf<String, Long>()
+                groupMapping["Meine Gruppe"] = defaultGroupId
+                
+                while (groupCursor.moveToNext()) {
+                    val groupName = groupCursor.getString(0)
+                    if (groupName.isNotEmpty()) {
+                        database.execSQL("INSERT INTO groups (name, currentDerianDate) VALUES (?, '1 Praios 1040 BF')", arrayOf(groupName))
+                        val idCursor = database.query("SELECT last_insert_rowid()")
+                        if (idCursor.moveToFirst()) {
+                            groupMapping[groupName] = idCursor.getLong(0)
+                        }
+                        idCursor.close()
+                    }
+                }
+                groupCursor.close()
+                
+                // 4. Hole aktuelles derisches Datum aus global_settings
+                val settingsCursor = database.query("SELECT currentDerianDate FROM global_settings WHERE id = 1")
+                var currentDate = "1 Praios 1040 BF"
+                if (settingsCursor.moveToFirst()) {
+                    currentDate = settingsCursor.getString(0)
+                }
+                settingsCursor.close()
+                
+                // 5. Setze das globale Datum auf die Standard-Gruppe
+                database.execSQL("UPDATE groups SET currentDerianDate = ? WHERE id = ?", arrayOf(currentDate, defaultGroupId))
+                
+                // 6. groupId-Feld zu characters hinzufügen
+                database.execSQL("ALTER TABLE characters ADD COLUMN groupId INTEGER")
+                
+                // 7. groupId für bestehende Charaktere setzen
+                groupMapping.forEach { (groupName, groupId) ->
+                    database.execSQL("UPDATE characters SET groupId = ? WHERE 'group' = ?", arrayOf(groupId, groupName))
+                }
+                
+                // 8. Charaktere ohne groupId auf Standard-Gruppe setzen
+                database.execSQL("UPDATE characters SET groupId = ? WHERE groupId IS NULL", arrayOf(defaultGroupId))
+                
+                // 9. Index für groupId erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -359,7 +427,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

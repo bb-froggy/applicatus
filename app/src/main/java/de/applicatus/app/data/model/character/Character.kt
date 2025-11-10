@@ -1,11 +1,24 @@
 package de.applicatus.app.data.model.character
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import de.applicatus.app.data.model.potion.Laboratory
 import java.util.UUID
 
-@Entity(tableName = "characters")
+@Entity(
+    tableName = "characters",
+    foreignKeys = [
+        ForeignKey(
+            entity = Group::class,
+            parentColumns = ["id"],
+            childColumns = ["groupId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("groupId")]
+)
 data class Character(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -57,5 +70,6 @@ data class Character(
     // Spieler/Spielleiter-Modus
     val isGameMaster: Boolean = false,   // Ist der Nutzer Spielleiter? (zeigt alle Infos)
     // Gruppe
-    val group: String = "Meine Gruppe"   // Gruppenname für Zusammenarbeit (z.B. Trank-Übergabe)
+    val groupId: Long? = null,           // Foreign Key zur Gruppe (null = Standard-Gruppe wird verwendet)
+    val group: String = "Meine Gruppe"   // Gruppenname für Zusammenarbeit (z.B. Trank-Übergabe) - deprecated, wird durch groupId ersetzt
 )

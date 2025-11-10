@@ -38,7 +38,8 @@ fun CharacterListScreen(
 ) {
     val context = LocalContext.current
     val characters by viewModel.characters.collectAsState()
-    val globalSettings by viewModel.globalSettings.collectAsState()
+    val groups by viewModel.groups.collectAsState()
+    val currentGroup by viewModel.currentGroup.collectAsState()
     val importState = viewModel.importState
     val spellSyncState = viewModel.spellSyncState
     val isDateEditMode by remember { derivedStateOf { viewModel.isDateEditMode } }
@@ -112,7 +113,7 @@ fun CharacterListScreen(
             // Derisches Datum anzeigen
             item {
                 DerianDateCard(
-                    currentDate = globalSettings?.currentDerianDate ?: "1 Praios 1040 BF",
+                    currentDate = currentGroup?.currentDerianDate ?: "1 Praios 1040 BF",
                     isEditMode = isDateEditMode,
                     onToggleEditMode = { viewModel.toggleDateEditMode() },
                     onUpdateDate = { viewModel.updateDerianDate(it) },
@@ -120,6 +121,18 @@ fun CharacterListScreen(
                     onDecrement = { viewModel.decrementDerianDate() }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+            
+            // Gruppen-Auswahl (wenn mehrere Gruppen existieren)
+            if (groups.size > 1) {
+                item {
+                    GroupSelector(
+                        groups = groups,
+                        selectedGroupId = viewModel.selectedGroupId,
+                        onSelectGroup = { viewModel.selectGroup(it) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
             
             groupedCharacters.forEach { (group, charactersInGroup) ->
@@ -161,11 +174,25 @@ fun CharacterListScreen(
     
     if (showAddDialog) {
         AddCharacterDialog(
+            groups = groups,
+            selectedGroupId = viewModel.selectedGroupId,
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, group, mu, kl, inValue, ch, ff, ge, ko, kk, hasApplicatus, applicatusZfw, applicatusModifier ->
+            onConfirm = { name, groupId, mu, kl, inValue, ch, ff, ge, ko, kk, hasApplicatus, applicatusZfw, applicatusModifier ->
                 viewModel.addCharacter(
-                    name, group, mu, kl, inValue, ch, ff, ge, ko, kk,
-                    hasApplicatus, applicatusZfw, applicatusModifier
+                    name = name,
+                    groupId = groupId,
+                    group = groups.find { it.id == groupId }?.name ?: "Meine Gruppe",
+                    mu = mu,
+                    kl = kl,
+                    inValue = inValue,
+                    ch = ch,
+                    ff = ff,
+                    ge = ge,
+                    ko = ko,
+                    kk = kk,
+                    hasApplicatus = hasApplicatus,
+                    applicatusZfw = applicatusZfw,
+                    applicatusModifier = applicatusModifier
                 )
                 showAddDialog = false
             }
@@ -393,11 +420,13 @@ fun CharacterListItem(
 
 @Composable
 fun AddCharacterDialog(
+    groups: List<de.applicatus.app.data.model.character.Group>,
+    selectedGroupId: Long?,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Int, Int, Int, Int, Int, Int, Int, Int, Boolean, Int, Int) -> Unit
+    onConfirm: (String, Long?, Int, Int, Int, Int, Int, Int, Int, Int, Boolean, Int, Int) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var group by remember { mutableStateOf("Meine Gruppe") }
+    var groupId by remember { mutableStateOf(selectedGroupId) }
     var mu by remember { mutableStateOf("8") }
     var kl by remember { mutableStateOf("8") }
     var inValue by remember { mutableStateOf("8") }
@@ -427,13 +456,35 @@ fun AddCharacterDialog(
                     )
                 }
                 item {
-                    OutlinedTextField(
-                        value = group,
-                        onValueChange = { group = it },
-                        label = { Text("Gruppe") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Text("Gruppe:", style = MaterialTheme.typography.titleSmall)
+                }
+                item {
+                    // Gruppen-Dropdown
+                    var expanded by remember { mutableStateOf(false) }
+                    val currentGroupName = groups.find { it.id == groupId }?.name ?: "Meine Gruppe"
+                    
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(currentGroupName)
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            groups.forEach { group ->
+                                DropdownMenuItem(
+                                    text = { Text(group.name) },
+                                    onClick = {
+                                        groupId = group.id
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
                 item {
                     Text("Eigenschaften:", style = MaterialTheme.typography.titleSmall)
@@ -536,7 +587,7 @@ fun AddCharacterDialog(
                     if (name.isNotBlank()) {
                         onConfirm(
                             name,
-                            group,
+                            groupId,
                             mu.toIntOrNull() ?: 8,
                             kl.toIntOrNull() ?: 8,
                             inValue.toIntOrNull() ?: 8,
@@ -645,6 +696,74 @@ fun DerianDateCard(
                         Text("+", style = MaterialTheme.typography.headlineMedium)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun GroupSelector(
+    groups: List<de.applicatus.app.data.model.character.Group>,
+    selectedGroupId: Long?,
+    onSelectGroup: (Long) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedGroup = groups.find { it.id == selectedGroupId }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Gruppe",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = selectedGroup?.name ?: "Meine Gruppe",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            
+            Text(
+                text = "▼",
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+        
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            groups.forEach { group ->
+                DropdownMenuItem(
+                    text = { 
+                        Text(
+                            text = group.name,
+                            style = if (group.id == selectedGroupId) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.bodyMedium
+                            }
+                        )
+                    },
+                    onClick = {
+                        onSelectGroup(group.id)
+                        expanded = false
+                    }
+                )
             }
         }
     }

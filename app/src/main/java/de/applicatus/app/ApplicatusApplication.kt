@@ -17,15 +17,17 @@ class ApplicatusApplication : Application() {
             database.recipeDao(),
             database.potionDao(),
             database.globalSettingsDao(),
-            database.recipeKnowledgeDao()
+            database.recipeKnowledgeDao(),
+            database.groupDao()
         )
     }
     
     override fun onCreate() {
         super.onCreate()
-        // Stelle sicher, dass GlobalSettings beim Start existieren
+        // Stelle sicher, dass GlobalSettings und Standard-Gruppe beim Start existieren
         CoroutineScope(Dispatchers.IO).launch {
             repository.ensureGlobalSettingsExist()
+            repository.ensureDefaultGroupExists()
         }
     }
 }

@@ -11,11 +11,12 @@ import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.model.character.Character
-import de.applicatus.app.data.model.character.GlobalSettings
+import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -35,6 +36,10 @@ class CharacterListViewModel(
     
     // Edit Mode für derisches Datum
     var isDateEditMode by mutableStateOf(false)
+        private set
+    
+    // Ausgewählte Gruppe für Datumsanzeige
+    var selectedGroupId by mutableStateOf<Long?>(null)
         private set
     
     sealed class SpellSyncState {
@@ -58,15 +63,44 @@ class CharacterListViewModel(
             initialValue = emptyList()
         )
     
-    val globalSettings: StateFlow<GlobalSettings?> = repository.globalSettings
+    val groups: StateFlow<List<Group>> = repository.allGroups
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = emptyList()
         )
+    
+    // Aktuelle Gruppe basierend auf selectedGroupId
+    val currentGroup: StateFlow<Group?> = groups.map { groupList ->
+        if (selectedGroupId != null) {
+            groupList.find { it.id == selectedGroupId }
+        } else {
+            groupList.firstOrNull()
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
+    init {
+        // Setze Standard-Gruppe als ausgewählt
+        viewModelScope.launch {
+            groups.collect { groupList ->
+                if (selectedGroupId == null && groupList.isNotEmpty()) {
+                    selectedGroupId = groupList.first().id
+                }
+            }
+        }
+    }
+    
+    fun selectGroup(groupId: Long) {
+        selectedGroupId = groupId
+    }
     
     fun addCharacter(
         name: String,
+        groupId: Long? = null,
         group: String = "Meine Gruppe",
         mu: Int = 8,
         kl: Int = 8,
@@ -81,9 +115,16 @@ class CharacterListViewModel(
         applicatusModifier: Int = 0
     ) {
         viewModelScope.launch {
+            // Falls keine groupId übergeben wurde, verwende selectedGroupId oder erstelle neue Gruppe
+            val finalGroupId = groupId ?: selectedGroupId ?: run {
+                // Erstelle neue Gruppe mit dem Namen aus dem group-Parameter
+                repository.insertGroup(Group(name = group))
+            }
+            
             val character = Character(
                 name = name,
-                group = group,
+                groupId = finalGroupId,
+                group = group,  // Deprecated, aber behalten für Kompatibilität
                 mu = mu,
                 kl = kl,
                 inValue = inValue,
@@ -96,15 +137,36 @@ class CharacterListViewModel(
                 applicatusZfw = applicatusZfw,
                 applicatusModifier = applicatusModifier
             )
-            val characterId = repository.insertCharacter(character)
-            // Keine automatische Initialisierung von Slots mehr
-            // Benutzer fügt Slots selbst im Bearbeitungsmodus hinzu
+            repository.insertCharacter(character)
         }
     }
     
     fun deleteCharacter(character: Character) {
         viewModelScope.launch {
             repository.deleteCharacter(character)
+        }
+    }
+    
+    fun addGroup(name: String) {
+        viewModelScope.launch {
+            val groupId = repository.insertGroup(Group(name = name))
+            selectedGroupId = groupId
+        }
+    }
+    
+    fun updateGroup(group: Group) {
+        viewModelScope.launch {
+            repository.updateGroup(group)
+        }
+    }
+    
+    fun deleteGroup(groupId: Long) {
+        viewModelScope.launch {
+            repository.deleteGroup(groupId)
+            // Wähle erste verfügbare Gruppe nach Löschung
+            groups.value.firstOrNull { it.id != groupId }?.let {
+                selectedGroupId = it.id
+            }
         }
     }
     
@@ -167,30 +229,31 @@ class CharacterListViewModel(
         spellSyncState = SpellSyncState.Idle
     }
     
-    // Derisches Datum verwalten
+    // Derisches Datum verwalten (pro Gruppe)
     fun toggleDateEditMode() {
         isDateEditMode = !isDateEditMode
     }
     
     fun updateDerianDate(newDate: String) {
         viewModelScope.launch {
-            repository.updateCurrentDerianDate(newDate)
+            val groupId = selectedGroupId ?: return@launch
+            repository.updateGroupDerianDate(groupId, newDate)
         }
     }
     
     fun incrementDerianDate() {
         viewModelScope.launch {
-            val settings = globalSettings.value ?: return@launch
-            val currentDate = settings.currentDerianDate
+            val group = currentGroup.value ?: return@launch
+            val currentDate = group.currentDerianDate
             val newDate = DerianDateCalculator.calculateExpiryDate(currentDate, "1 Tag")
-            repository.updateCurrentDerianDate(newDate)
+            repository.updateGroupDerianDate(group.id, newDate)
         }
     }
     
     fun decrementDerianDate() {
         viewModelScope.launch {
-            val settings = globalSettings.value ?: return@launch
-            val currentDate = settings.currentDerianDate
+            val group = currentGroup.value ?: return@launch
+            val currentDate = group.currentDerianDate
             
             // Parse aktuelles Datum
             val parts = currentDate.split(" ")
@@ -228,7 +291,7 @@ class CharacterListViewModel(
             
             val newMonthName = months[monthIndex]
             val newDate = "$day $newMonthName $currentYear $era"
-            repository.updateCurrentDerianDate(newDate)
+            repository.updateGroupDerianDate(group.id, newDate)
         }
     }
 }

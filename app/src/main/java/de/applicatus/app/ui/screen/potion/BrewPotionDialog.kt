@@ -20,6 +20,7 @@ import de.applicatus.app.data.model.potion.Substitution
 import de.applicatus.app.data.model.potion.SubstitutionType
 import de.applicatus.app.data.model.talent.Talent
 import de.applicatus.app.logic.PotionBrewer
+import de.applicatus.app.ui.component.PotionBrewAnimation
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import kotlinx.coroutines.launch
 
@@ -45,6 +46,7 @@ fun BrewPotionDialog(
     var brewingResult by remember { mutableStateOf<PotionBrewer.BrewingResult?>(null) }
     var brewedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showBrewAnimation by remember { mutableStateOf(false) }
     
     // Talentwert und Magisches Meisterhandwerk ermitteln
     val skillValue = when (selectedTalent) {
@@ -104,7 +106,23 @@ fun BrewPotionDialog(
         onDismissRequest = onDismiss,
         title = { Text("Trank brauen") },
         text = {
-            if (brewingResult != null) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Animation über dem Inhalt
+                if (showBrewAnimation) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .align(Alignment.Center),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        PotionBrewAnimation(
+                            onAnimationEnd = { showBrewAnimation = false }
+                        )
+                    }
+                }
+                
+                // Dialog-Inhalt
+                if (brewingResult != null) {
                 // Ergebnis anzeigen
                 Column(modifier = Modifier.fillMaxWidth()) {
                     if (character.isGameMaster) {
@@ -515,6 +533,7 @@ fun BrewPotionDialog(
                     }
                 }
             }
+            }
         },
         confirmButton = {
             if (brewingResult != null) {
@@ -539,6 +558,8 @@ fun BrewPotionDialog(
                                     brewingResult = result
                                     brewedRecipe = selectedRecipe
                                     errorMessage = null
+                                    // Animation starten nach erfolgreichem Brauen
+                                    showBrewAnimation = true
                                 } catch (e: Exception) {
                                     errorMessage = e.message ?: "Fehler beim Brauen"
                                 }

@@ -3,6 +3,7 @@ package de.applicatus.app.data.repository
 import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.dao.CharacterDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
+import de.applicatus.app.data.dao.GroupDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
@@ -10,6 +11,7 @@ import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.GlobalSettings
+import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
@@ -28,7 +30,8 @@ class ApplicatusRepository(
     private val recipeDao: RecipeDao,
     private val potionDao: PotionDao,
     private val globalSettingsDao: GlobalSettingsDao,
-    private val recipeKnowledgeDao: RecipeKnowledgeDao
+    private val recipeKnowledgeDao: RecipeKnowledgeDao,
+    private val groupDao: GroupDao
 ) {
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
@@ -165,4 +168,40 @@ class ApplicatusRepository(
 
     suspend fun deleteRecipeKnowledgeForCharacter(characterId: Long) =
         recipeKnowledgeDao.deleteKnowledgeForCharacter(characterId)
+    
+    // Groups
+    val allGroups: Flow<List<Group>> = groupDao.getAllGroups()
+    
+    fun getGroupById(groupId: Long): Flow<Group?> = groupDao.getGroupById(groupId)
+    
+    suspend fun getGroupByIdOnce(groupId: Long): Group? = groupDao.getGroupByIdOnce(groupId)
+    
+    suspend fun insertGroup(group: Group): Long = groupDao.insertGroup(group)
+    
+    suspend fun updateGroup(group: Group) = groupDao.updateGroup(group)
+    
+    suspend fun deleteGroup(groupId: Long) = groupDao.deleteGroup(groupId)
+    
+    suspend fun updateGroupDerianDate(groupId: Long, date: String) = groupDao.updateCurrentDate(groupId, date)
+    
+    /**
+     * Stellt sicher, dass eine Standard-Gruppe existiert.
+     * Falls keine Gruppe vorhanden ist, wird "Meine Gruppe" erstellt.
+     * @return ID der Standard-Gruppe
+     */
+    suspend fun ensureDefaultGroupExists(): Long {
+        val groups = groupDao.getAllGroups()
+        // Prüfe ob bereits Gruppen existieren
+        var defaultGroupId: Long? = null
+        groups.collect { list ->
+            if (list.isEmpty()) {
+                // Erstelle Standard-Gruppe
+                defaultGroupId = groupDao.insertGroup(Group(name = "Meine Gruppe"))
+            } else {
+                // Verwende erste Gruppe als Standard
+                defaultGroupId = list.first().id
+            }
+        }
+        return defaultGroupId ?: 1L
+    }
 }
