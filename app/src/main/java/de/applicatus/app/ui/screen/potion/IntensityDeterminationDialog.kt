@@ -162,10 +162,46 @@ fun IntensityDeterminationDialog(
                     
                     Button(
                         onClick = {
-                            val updatedPotion = potion.copy(
-                                intensityQuality = result!!.intensityQuality,
-                                intensityDeterminationZfp = result!!.zfp
-                            )
+                            val intensityQuality = result!!.intensityQuality
+                            val intensityZfp = result!!.zfp
+                            
+                            // Wenn bereits WEAK_OR_STRONG bekannt ist, verfeinere direkt
+                            val shouldRefine = potion.knownQualityLevel == KnownQualityLevel.WEAK_OR_STRONG && 
+                                              intensityQuality != IntensityQuality.UNKNOWN
+                            
+                            val updatedPotion = if (shouldRefine) {
+                                // Verfeinere die Qualität direkt
+                                val refinedQuality = when {
+                                    potion.actualQuality == PotionQuality.A || potion.actualQuality == PotionQuality.B -> 
+                                        RefinedQuality.VERY_WEAK
+                                    potion.actualQuality == PotionQuality.C || potion.actualQuality == PotionQuality.D -> 
+                                        RefinedQuality.MEDIUM
+                                    potion.actualQuality == PotionQuality.E || potion.actualQuality == PotionQuality.F -> 
+                                        RefinedQuality.VERY_STRONG
+                                    potion.actualQuality == PotionQuality.M -> {
+                                        // Bei M verwenden wir die Intensität als Hinweis
+                                        when (intensityQuality) {
+                                            IntensityQuality.WEAK -> RefinedQuality.VERY_WEAK
+                                            IntensityQuality.STRONG -> RefinedQuality.VERY_STRONG
+                                            else -> RefinedQuality.MEDIUM
+                                        }
+                                    }
+                                    else -> RefinedQuality.UNKNOWN
+                                }
+                                
+                                potion.copy(
+                                    intensityQuality = intensityQuality,
+                                    intensityDeterminationZfp = intensityZfp,
+                                    knownQualityLevel = KnownQualityLevel.VERY_WEAK_MEDIUM_OR_VERY_STRONG,
+                                    refinedQuality = refinedQuality
+                                )
+                            } else {
+                                potion.copy(
+                                    intensityQuality = intensityQuality,
+                                    intensityDeterminationZfp = intensityZfp
+                                )
+                            }
+                            
                             viewModel.updatePotion(updatedPotion)
                             onComplete()
                         },

@@ -373,6 +373,7 @@ object ElixirAnalyzer {
         val knownQualityLevel: KnownQualityLevel
         var refinedQuality = RefinedQuality.UNKNOWN
         var knownExactQuality: PotionQuality? = null
+        var updatedIntensity = currentIntensity  // Kann durch Strukturanalyse aktualisiert werden
         
         when {
             totalTap >= 13 -> {
@@ -382,12 +383,16 @@ object ElixirAnalyzer {
             }
             totalTap >= 4 && currentIntensity != IntensityQuality.UNKNOWN -> {
                 // Verfeinerte Qualität (sehr schwach / mittel / sehr stark)
+                // Intensität ist bereits bekannt, wird jetzt verfeinert
                 knownQualityLevel = KnownQualityLevel.VERY_WEAK_MEDIUM_OR_VERY_STRONG
                 refinedQuality = determineRefinedQuality(actualQuality, currentIntensity)
             }
             totalTap >= 4 -> {
-                // Qualität wie bei Intensitätsbestimmung
+                // Grobe Qualität bekannt (schwach/stark = ABC vs DEF)
+                // ABER: Keine vorherige Intensitätsbestimmung
                 knownQualityLevel = KnownQualityLevel.WEAK_OR_STRONG
+                // Leite Intensität aus der tatsächlichen Qualität ab
+                updatedIntensity = determineIntensityFromQuality(actualQuality, false)
             }
             else -> {
                 knownQualityLevel = KnownQualityLevel.UNKNOWN
@@ -423,7 +428,12 @@ object ElixirAnalyzer {
                         appendLine("✓ Verfeinerte Qualität erkannt: ${refinedQualityToString(refinedQuality)}")
                     }
                     KnownQualityLevel.WEAK_OR_STRONG -> {
-                        appendLine("✓ Grobe Qualität erkannt (schwach/stark)")
+                        val intensityStr = when (updatedIntensity) {
+                            IntensityQuality.WEAK -> "schwach (A, B oder C)"
+                            IntensityQuality.STRONG -> "stark (D, E oder F)"
+                            else -> "schwach/stark"
+                        }
+                        appendLine("✓ Grobe Qualität erkannt: $intensityStr")
                     }
                     else -> {}
                 }
@@ -444,7 +454,7 @@ object ElixirAnalyzer {
             totalTap = totalTap,
             categoryKnown = categoryKnown,
             knownQualityLevel = knownQualityLevel,
-            intensityQuality = currentIntensity,
+            intensityQuality = updatedIntensity,  // Verwende die aktualisierte Intensität
             refinedQuality = refinedQuality,
             knownExactQuality = knownExactQuality,
             shelfLifeKnown = shelfLifeKnown,
