@@ -220,7 +220,8 @@ object DerianDateCalculator {
     fun getWeekday(date: String): String {
         val totalDays = parseDateToDays(date) ?: return "Windstag"
         // Der erste Tag (1 Praios 0 BF) ist ein Praiostag
-        val weekdayIndex = (totalDays + 2) % 7
+        // Sichere Modulo-Berechnung für negative Zahlen
+        val weekdayIndex = ((totalDays + 2) % 7 + 7) % 7
         return weekdays[weekdayIndex]
     }
     
@@ -247,16 +248,18 @@ object DerianDateCalculator {
      */
     fun getMadaPhase(date: String): MoonPhase {
         val totalDays = parseDateToDays(date) ?: return MoonPhase.NEW_MOON
-        val dayInCycle = totalDays % MADA_CYCLE
+        // Sichere Modulo-Berechnung für negative Zahlen
+        val dayInCycle = (totalDays % MADA_CYCLE + MADA_CYCLE) % MADA_CYCLE
         
         return when (dayInCycle) {
-            0 -> MoonPhase.NEW_MOON
-            in 1..3 -> MoonPhase.WAXING_CRESCENT
-            in 4..6 -> MoonPhase.FIRST_QUARTER
-            in 7..10 -> MoonPhase.WAXING_GIBBOUS
-            in 11..14 -> MoonPhase.FULL_MOON
-            in 15..17 -> MoonPhase.WANING_GIBBOUS
-            in 18..20 -> MoonPhase.LAST_QUARTER
+            in 0..3 -> MoonPhase.WANING_GIBBOUS
+            in 4..8 -> MoonPhase.LAST_QUARTER
+            in 9..12 -> MoonPhase.WANING_CRESCENT
+            13 -> MoonPhase.NEW_MOON
+            in 14..17 -> MoonPhase.WAXING_CRESCENT
+            in 18..22 -> MoonPhase.FIRST_QUARTER
+            in 23..26 -> MoonPhase.WAXING_GIBBOUS
+            27 -> MoonPhase.FULL_MOON
             else -> MoonPhase.WANING_CRESCENT
         }
     }

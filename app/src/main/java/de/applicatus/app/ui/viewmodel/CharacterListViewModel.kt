@@ -84,11 +84,31 @@ class CharacterListViewModel(
     )
     
     init {
-        // Setze Standard-Gruppe als ausgewählt
+        // Setze Standard-Gruppe als ausgewählt und korrigiere ungültige Daten
         viewModelScope.launch {
             groups.collect { groupList ->
                 if (selectedGroupId == null && groupList.isNotEmpty()) {
                     selectedGroupId = groupList.first().id
+                }
+                
+                // Korrigiere ungültige Daten (z.B. negative Jahre oder Jahr 0)
+                groupList.forEach { group ->
+                    val date = group.currentDerianDate
+                    val parts = date.split(" ")
+                    
+                    if (parts.size >= 3) {
+                        val yearPart = if (parts.size >= 5 && parts[1] == "Namenlose" && parts[2] == "Tage") {
+                            parts[3]
+                        } else {
+                            parts[2]
+                        }
+                        
+                        val year = yearPart.toIntOrNull()
+                        if (year != null && year < 1) {
+                            // Korrigiere auf Standarddatum
+                            repository.updateGroupDerianDate(group.id, "1 Praios 1 BF")
+                        }
+                    }
                 }
             }
         }
@@ -289,10 +309,19 @@ class CharacterListViewModel(
                     // Zum letzten Monat (Namenlose Tage) des vorherigen Jahres
                     monthIndex = 12 // Namenlose Tage
                     currentYear--
+                    
+                    // Verhindere negative Jahre (minimum 1 BF)
+                    if (currentYear < 1) {
+                        currentYear = 1
+                        monthIndex = 0 // Praios
+                        day = 1
+                    }
                 }
                 
-                // Letzter Tag des neuen Monats
-                day = if (monthIndex == 12) 5 else 30
+                // Letzter Tag des neuen Monats (nur wenn Jahr nicht auf Minimum gesetzt wurde)
+                if (currentYear > 1 || monthIndex > 0 || day > 1) {
+                    day = if (monthIndex == 12) 5 else 30
+                }
             }
             
             val newMonthName = months[monthIndex]
