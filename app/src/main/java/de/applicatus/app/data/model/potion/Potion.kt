@@ -41,6 +41,7 @@ data class Potion(
     val expiryDate: String,                             // Haltbarkeit (derisches Datum als String)
     
     // Wissen des Charakters über das Elixier (durch Analyse gewonnen)
+    val nameKnown: Boolean = false,                     // Ist der Name bekannt? (beim Brauen oder durch Rezeptwissen)
     val categoryKnown: Boolean = false,                 // Ist die Kategorie bekannt? (ab Strukturanalyse Erfolg)
     val knownQualityLevel: KnownQualityLevel = KnownQualityLevel.UNKNOWN,  // Wie genau ist die Qualität bekannt?
     val intensityQuality: IntensityQuality = IntensityQuality.UNKNOWN,     // Ergebnis der Intensitätsbestimmung (schwach/stark)

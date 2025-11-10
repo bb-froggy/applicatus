@@ -121,12 +121,19 @@ fun PotionScreen(
             ) {
                 items(potions) { potionWithRecipe ->
                     val recipeKnowledge by viewModel.getRecipeKnowledge(potionWithRecipe.recipe.id).collectAsState(null)
-                    val isRecipeKnown = recipeKnowledge?.knowledgeLevel == de.applicatus.app.data.model.potion.RecipeKnowledgeLevel.UNDERSTOOD
+                    val isRecipeKnown = recipeKnowledge?.knowledgeLevel == de.applicatus.app.data.model.potion.RecipeKnowledgeLevel.KNOWN || 
+                                       recipeKnowledge?.knowledgeLevel == de.applicatus.app.data.model.potion.RecipeKnowledgeLevel.UNDERSTOOD
+                    
+                    // Name ist bekannt wenn:
+                    // 1. Selbst gebraut (nameKnown = true) ODER
+                    // 2. Strukturanalyse durchgeführt (categoryKnown = true) UND Rezept bekannt/verstanden
+                    val isNameKnown = potionWithRecipe.potion.nameKnown || 
+                                     (potionWithRecipe.potion.categoryKnown && isRecipeKnown)
                     
                     PotionCard(
                         potionWithRecipe = potionWithRecipe,
                         isGameMaster = character?.isGameMaster ?: false,
-                        isRecipeKnown = isRecipeKnown,
+                        isNameKnown = isNameKnown,
                         groupCharacters = groupCharacters,
                         onDelete = { showDeleteDialog = potionWithRecipe },
                         onAnalyze = { showAnalysisDialog = potionWithRecipe },
@@ -215,7 +222,7 @@ fun PotionScreen(
 private fun PotionCard(
     potionWithRecipe: PotionWithRecipe,
     isGameMaster: Boolean,
-    isRecipeKnown: Boolean,
+    isNameKnown: Boolean,
     groupCharacters: List<de.applicatus.app.data.model.character.Character> = emptyList(),
     onDelete: () -> Unit,
     onAnalyze: () -> Unit,
@@ -247,7 +254,7 @@ private fun PotionCard(
                         )
                     } else {
                         Text(
-                            text = if (isRecipeKnown) potionWithRecipe.recipe.name else "Unbekannter Trank",
+                            text = if (isNameKnown) potionWithRecipe.recipe.name else "Unbekannter Trank",
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
