@@ -101,7 +101,11 @@ fun CharacterListScreen(
             }
         }
     ) { padding ->
-        val groupedCharacters = characters.groupBy { it.group }.toSortedMap()
+        // Gruppiere Charaktere nach groupId und mappe sie auf die entsprechenden Group-Objekte
+        val groupedCharactersWithGroup = characters.groupBy { it.groupId }.mapNotNull { (groupId, chars) ->
+            val group = groups.find { it.id == groupId }
+            group?.let { it to chars }
+        }.sortedBy { it.first.name }
         
         LazyColumn(
             modifier = Modifier
@@ -110,47 +114,55 @@ fun CharacterListScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Derisches Datum anzeigen
-            item {
-                DerianDateCard(
-                    currentDate = currentGroup?.currentDerianDate ?: "1 Praios 1040 BF",
-                    isEditMode = isDateEditMode,
-                    onToggleEditMode = { viewModel.toggleDateEditMode() },
-                    onUpdateDate = { viewModel.updateDerianDate(it) },
-                    onIncrement = { viewModel.incrementDerianDate() },
-                    onDecrement = { viewModel.decrementDerianDate() }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            
-            // Gruppen-Auswahl (wenn mehrere Gruppen existieren)
-            if (groups.size > 1) {
+            // Für jede Gruppe: Datum-Card und Charaktere
+            groupedCharactersWithGroup.forEach { (group, charactersInGroup) ->
+                // Derisches Datum der Gruppe anzeigen
                 item {
-                    GroupSelector(
-                        groups = groups,
-                        selectedGroupId = viewModel.selectedGroupId,
-                        onSelectGroup = { viewModel.selectGroup(it) }
+                    DerianDateCard(
+                        groupName = group.name,
+                        currentDate = group.currentDerianDate,
+                        isEditMode = isDateEditMode && viewModel.selectedGroupId == group.id,
+                        onToggleEditMode = { 
+                            viewModel.selectGroup(group.id)
+                            viewModel.toggleDateEditMode() 
+                        },
+                        onUpdateDate = { 
+                            viewModel.selectGroup(group.id)
+                            viewModel.updateDerianDate(it) 
+                        },
+                        onIncrement = { 
+                            viewModel.selectGroup(group.id)
+                            viewModel.incrementDerianDate() 
+                        },
+                        onDecrement = { 
+                            viewModel.selectGroup(group.id)
+                            viewModel.decrementDerianDate() 
+                        }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
-            }
-            
-            groupedCharacters.forEach { (group, charactersInGroup) ->
+                
+                // Gruppenname als Überschrift
                 item {
                     Text(
-                        text = group,
+                        text = group.name,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                     )
                 }
                 
+                // Charaktere dieser Gruppe
                 items(charactersInGroup, key = { it.id }) { character ->
                     CharacterListItem(
                         character = character,
                         onClick = { onCharacterClick(character.id) },
                         onDelete = { viewModel.deleteCharacter(character) }
                     )
+                }
+                
+                // Abstand zwischen Gruppen
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -616,6 +628,7 @@ fun AddCharacterDialog(
 
 @Composable
 fun DerianDateCard(
+    groupName: String,
     currentDate: String,
     isEditMode: Boolean,
     onToggleEditMode: () -> Unit,
@@ -641,11 +654,18 @@ fun DerianDateCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Derisches Datum",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Column {
+                    Text(
+                        text = groupName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Derisches Datum",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                }
                 
                 TextButton(onClick = onToggleEditMode) {
                     Text(if (isEditMode) "Fertig" else "Bearbeiten")
