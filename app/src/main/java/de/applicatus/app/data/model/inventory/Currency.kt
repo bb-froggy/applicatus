@@ -18,13 +18,18 @@ data class Currency(
     }
     
     /**
-     * Berechnet das Gewicht der Münzen
-     * 10 Münzen = 1 Unze (egal welche Sorte)
+     * Berechnet das Gewicht der Münzen nach DSA-Regeln
+     * - 1 Dukaten = 1 Unze
+     * - 1 Silbertaler, Heller, Kreuzer = 1 Skrupel = 1/5 Unze (5 Silbertaler = 1 Unze)
      */
     fun toWeight(): Weight {
-        val totalCoins = dukaten + silbertaler + heller + kreuzer
-        val ounces = (totalCoins + 9) / 10 // Aufrunden
-        return Weight.fromOunces(ounces)
+        // Berechne Gesamtgewicht in Unzen (mit Bruchrechnung)
+        val totalOunces = dukaten * 1.0 +           // 1 D = 1 Unze
+                         silbertaler * 0.2 +        // 1 S = 1/5 Unze
+                         heller * 0.2 +             // 1 H = 1/5 Unze
+                         kreuzer * 0.2              // 1 K = 1/5 Unze
+        
+        return Weight.fromOunces(kotlin.math.ceil(totalOunces).toInt())
     }
     
     /**

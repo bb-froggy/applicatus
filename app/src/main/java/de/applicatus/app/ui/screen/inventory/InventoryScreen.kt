@@ -49,7 +49,7 @@ fun InventoryScreen(
     var selectedLocationForNewItem by remember { mutableStateOf<Long?>(null) }
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<Item?>(null) }
-    var editingPurse by remember { mutableStateOf<Item?>(null) }
+    var isEditMode by remember { mutableStateOf(false) }
     
     // Drag-and-Drop-State
     var draggedItem by remember { mutableStateOf<ItemWithLocation?>(null) }
@@ -66,6 +66,13 @@ fun InventoryScreen(
                     }
                 },
                 actions = {
+                    // Bearbeitungsmodus Toggle
+                    IconButton(onClick = { isEditMode = !isEditMode }) {
+                        Icon(
+                            if (isEditMode) Icons.Default.Check else Icons.Default.Edit,
+                            if (isEditMode) "Bearbeitung beenden" else "Bearbeiten"
+                        )
+                    }
                     IconButton(onClick = { showAddLocationDialog = true }) {
                         Icon(Icons.Default.Add, "Ort hinzufügen")
                     }
@@ -168,33 +175,21 @@ fun InventoryScreen(
                             items = itemsByLocation[location] ?: emptyList(),
                             totalWeight = weightByLocation[location.id] ?: Weight.ZERO,
                             draggedItem = draggedItem,
+                            isEditMode = isEditMode,
                             onAddItem = {
                                 selectedLocationForNewItem = location.id
                                 showAddItemDialog = true
                             },
                             onEditItem = { item ->
-                                if (item.isPurse) {
-                                    editingPurse = Item(
-                                        id = item.id,
-                                        characterId = item.characterId,
-                                        locationId = item.locationId,
-                                        name = item.name,
-                                        weight = item.weight,
-                                        sortOrder = item.sortOrder,
-                                        isPurse = true,
-                                        kreuzerAmount = item.kreuzerAmount
-                                    )
-                                } else {
-                                    editingItem = Item(
-                                        id = item.id,
-                                        characterId = item.characterId,
-                                        locationId = item.locationId,
-                                        name = item.name,
-                                        weight = item.weight,
-                                        sortOrder = item.sortOrder
-                                    )
-                                    showEditItemDialog = true
-                                }
+                                editingItem = Item(
+                                    id = item.id,
+                                    characterId = item.characterId,
+                                    locationId = item.locationId,
+                                    name = item.name,
+                                    weight = item.weight,
+                                    sortOrder = item.sortOrder
+                                )
+                                showEditItemDialog = true
                             },
                             onDeleteItem = { item ->
                                 if (item.id > 0) { // Echte Items (keine Tränke)
@@ -241,6 +236,9 @@ fun InventoryScreen(
                             },
                             onRegisterDropTarget = { id, target ->
                                 dropTargets[id] = target
+                            },
+                            onPurseAmountChange = { itemId, newAmount ->
+                                viewModel.updatePurseAmount(itemId, newAmount)
                             }
                         )
                     }
@@ -255,33 +253,21 @@ fun InventoryScreen(
                             items = itemsWithoutLocation,
                             totalWeight = weightByLocation[null] ?: Weight.ZERO,
                             draggedItem = draggedItem,
+                            isEditMode = isEditMode,
                             onAddItem = {
                                 selectedLocationForNewItem = null
                                 showAddItemDialog = true
                             },
                             onEditItem = { item ->
-                                if (item.isPurse) {
-                                    editingPurse = Item(
-                                        id = item.id,
-                                        characterId = item.characterId,
-                                        locationId = item.locationId,
-                                        name = item.name,
-                                        weight = item.weight,
-                                        sortOrder = item.sortOrder,
-                                        isPurse = true,
-                                        kreuzerAmount = item.kreuzerAmount
-                                    )
-                                } else {
-                                    editingItem = Item(
-                                        id = item.id,
-                                        characterId = item.characterId,
-                                        locationId = item.locationId,
-                                        name = item.name,
-                                        weight = item.weight,
-                                        sortOrder = item.sortOrder
-                                    )
-                                    showEditItemDialog = true
-                                }
+                                editingItem = Item(
+                                    id = item.id,
+                                    characterId = item.characterId,
+                                    locationId = item.locationId,
+                                    name = item.name,
+                                    weight = item.weight,
+                                    sortOrder = item.sortOrder
+                                )
+                                showEditItemDialog = true
                             },
                             onDeleteItem = { item ->
                                 if (item.id > 0) {
@@ -320,6 +306,9 @@ fun InventoryScreen(
                             },
                             onRegisterDropTarget = { id, target ->
                                 dropTargets[id] = target
+                            },
+                            onPurseAmountChange = { itemId, newAmount ->
+                                viewModel.updatePurseAmount(itemId, newAmount)
                             }
                         )
                     }
@@ -396,17 +385,6 @@ fun InventoryScreen(
                 viewModel.updateItem(updatedItem)
                 showEditItemDialog = false
                 editingItem = null
-            }
-        )
-    }
-    
-    if (editingPurse != null) {
-        EditPurseDialog(
-            item = editingPurse!!,
-            onDismiss = { editingPurse = null },
-            onConfirm = { kreuzerAmount ->
-                viewModel.updatePurseAmount(editingPurse!!.id, kreuzerAmount)
-                editingPurse = null
             }
         )
     }

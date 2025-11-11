@@ -24,6 +24,7 @@ fun LocationCard(
     items: List<ItemWithLocation>,
     totalWeight: Weight,
     draggedItem: ItemWithLocation?,
+    isEditMode: Boolean,
     onAddItem: () -> Unit,
     onEditItem: (ItemWithLocation) -> Unit,
     onDeleteItem: (ItemWithLocation) -> Unit,
@@ -32,7 +33,8 @@ fun LocationCard(
     onStartDrag: (ItemWithLocation) -> Unit,
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (ItemWithLocation, Offset) -> Unit,
-    onRegisterDropTarget: (String, LocationDropTarget) -> Unit
+    onRegisterDropTarget: (String, LocationDropTarget) -> Unit,
+    onPurseAmountChange: (Long, Int) -> Unit
 ) {
     var cardPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
@@ -182,11 +184,13 @@ fun LocationCard(
                     ItemRow(
                         item = item,
                         isBeingDragged = draggedItem?.id == item.id,
+                        isEditMode = isEditMode,
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
                         onStartDrag = { onStartDrag(item) },
                         onDragUpdate = onDragUpdate,
-                        onDragEnd = { offset -> onDragEnd(item, offset) }
+                        onDragEnd = { offset -> onDragEnd(item, offset) },
+                        onPurseAmountChange = { newAmount -> onPurseAmountChange(item.id, newAmount) }
                     )
                 }
             }
