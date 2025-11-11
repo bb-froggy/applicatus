@@ -7,7 +7,13 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 ### Charakterverwaltung
 - **Charaktererstellung**: Erstellen und verwalten Sie mehrere Charaktere mit ihren Eigenschaftswerten (MU, KL, IN, CH, FF, GE, KO, KK)
 - **Energien**: Verwaltung von Lebensenergie (LE), Astralenergie (AE) und Karmaenergie (KE)
-- **Talente**: Unterstützung für Alchimie-relevante Talente (Alchimie, Kochen, Selbstbeherrschung, Sinnenschärfe, Magiekunde, Pflanzenkunde)
+- **Talente**: Unterstützung für Alchimie-relevante Talente mit **Magischem Meisterhandwerk**
+  - Alchimie (mit optionalem Magischen Meisterhandwerk)
+  - Kochen (Tränke) (mit optionalem Magischen Meisterhandwerk)
+  - Selbstbeherrschung, Sinnenschärfe
+  - Magiekunde, Pflanzenkunde
+- **Labor-System**: Standard-Labor pro Charakter (Archaisch, Hexenküche, Labor)
+- **Gruppen-System**: Charaktere können zu Spielgruppen gehören (ermöglicht Trank-Übergabe)
 - **Spielleiter-Modus**: Optionaler Modus, der alle versteckten Informationen anzeigt (Trank-Rezepte, Analyseergebnisse, etc.)
 
 ### Zauberspeicher
@@ -21,7 +27,24 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 
 ### Hexenküche (Alchimie)
 - **Trankverwaltung**: Verwalten Sie selbst gebraute Tränke mit Qualitätsstufen
-- **Rezeptverwaltung**: Über 30 vordefinierte Trank-Rezepte
+- **Trank-Brauen**: 
+  - Vollständige Brauproben nach DSA 4.1-Regeln
+  - Rezeptauswahl aus bekannten Rezepten
+  - Talent-Auswahl (Alchimie, Kochen Tränke)
+  - Labor-Modifikatoren (Archaisch, Hexenküche, Labor)
+  - Freiwilliger Handicap und Substitutionen
+  - **Magisches Meisterhandwerk**: 
+    - Zusätzliche Qualitätspunkte durch AsP-Einsatz (2^(n-1) AsP)
+    - Astrale Aufladung für Bonus-Wirkungen
+  - Qualitätsberechnung: A (13+), B (10-12), C (7-9), D (4-6), E (1-3), F (≤0), M (Meisterwerk)
+  - Brau-Animation
+  - Automatische Haltbarkeitsdatum-Berechnung (derischer Kalender)
+- **Rezeptverwaltung**: Über 30 vordefinierte Trank-Rezepte mit detaillierten Informationen
+  - Rezeptwissen-Level: UNKNOWN, BASIC, FULL
+  - Brau- und Analyseschwierigkeit
+  - Labor-Anforderungen
+  - Preise und Verbreitung
+  - Haltbarkeit
 - **Trank-Analyse**: 
   - ODEM ARCANUM zur Intensitätsbestimmung
   - ANALYS ARKANSTRUKTUR + Alchimie-Probe zur Strukturanalyse
@@ -43,8 +66,8 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 ### Export/Import & Synchronisation
 - **JSON-Export/Import**: 
   - Charaktere als JSON-Datei exportieren/importieren
-  - Enthält alle Charakterdaten, Slots, Tränke (inklusive Analyse-Status) und bekannte Rezepte
-  - Versionskontrolle mit Warnungen bei Versionsunterschieden
+  - Enthält alle Charakterdaten, Slots, Tränke (inklusive Analyse-Status), Rezeptwissen und Gruppen-Zugehörigkeit
+  - Versionskontrolle (v5) mit Warnungen bei Versionsunterschieden
 - **Nearby Connections**: 
   - Direkte Geräte-zu-Gerät-Übertragung via Bluetooth/WLAN
   - Keine Internetverbindung erforderlich
@@ -85,29 +108,35 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
 app/
 ├── data/
 │   ├── model/           # Datenmodelle
-│   │   ├── character/   # Character mit Energien, Talenten, Zaubern
+│   │   ├── character/   # Character, Group, GlobalSettings
 │   │   ├── spell/       # Spell, SystemSpell (ODEM, ANALYS)
 │   │   ├── talent/      # Talent-Enum mit Eigenschaftsproben
-│   │   └── potion/      # Potion, Recipe, PotionAnalysisStatus, RecipeKnowledge
+│   │   ├── potion/      # Potion, Recipe, RecipeKnowledge, PotionQuality, Laboratory, etc.
+│   │   └── inventory/   # Item, Location, Weight, Currency
 │   ├── dao/             # Room DAOs
 │   ├── repository/      # Repository-Pattern
 │   ├── export/          # Export/Import-Logik (JSON, DTOs)
 │   ├── nearby/          # Nearby Connections Service
-│   └── InitialSpells.kt # Vordefinierte Zauber
+│   ├── InitialSpells.kt # Vordefinierte Zauber
+│   └── InitialRecipes.kt # Vordefinierte Rezepte
 ├── logic/
 │   ├── ProbeChecker.kt      # Zentrale Proben-Logik (Talente, Zauber, System-Zauber)
 │   ├── SpellChecker.kt      # Zauberprobe mit Applicatus-Unterstützung
 │   ├── ElixirAnalyzer.kt    # Alchimie-Analysen (ODEM, ANALYS, Alchimie)
-│   ├── PotionAnalyzer.kt    # Trank-Analyse-Logik
+│   ├── PotionBrewer.kt      # Trank-Brau-Logik mit Magischem Meisterhandwerk
+│   ├── PotionHelper.kt      # Hilfsfunktionen für Trank-Verwaltung
+│   ├── DerianDateCalculator.kt # Derischer Kalender
 │   └── RegenerationCalculator.kt # LE/AE/KE-Regeneration
 ├── ui/
 │   ├── screen/          # Composable Screens
 │   │   ├── spell/       # Zauberspeicher-Screens
-│   │   ├── potion/      # Hexenküche-Screens (Tränke, Rezepte, Analyse)
+│   │   ├── potion/      # Hexenküche-Screens (Tränke, Rezepte, Analyse, Brauen)
+│   │   ├── inventory/   # Inventar-Screens (Packesel)
 │   │   ├── CharacterHomeScreen.kt
 │   │   ├── CharacterListScreen.kt
 │   │   └── NearbySyncScreen.kt
 │   ├── viewmodel/       # ViewModels
+│   ├── component/       # UI-Komponenten (SpellAnimation, PotionBrewAnimation)
 │   └── navigation/      # Navigation
 └── MainActivity.kt
 ```
@@ -141,17 +170,84 @@ Beim Einspeichern eines Zaubers wird eine Probe durchgeführt:
 
 **1. Intensitätsbestimmung (ODEM ARCANUM)**:
 - Zauberprobe auf KL/IN/IN mit ODEM-ZfW
-- Bestimmt die magische Intensität des Tranks
+- Bestimmt die magische Intensität des Tranks (schwach/stark)
+- Gibt Erleichterung für nachfolgende Strukturanalysen
 
 **2. Strukturanalyse (ANALYS + Alchimie)**:
 - ANALYS ARKANSTRUKTUR: Zauberprobe auf KL/KL/IN
 - Alchimie-Probe: Talentprobe auf MU/KL/FF
-- Bei 19+ TaP* gesamt: Rezept vollständig verstanden
+- Erleichterung aus Intensitätsbestimmung oder vorheriger Strukturanalyse (halbe Punkte aufgerundet)
+- Bei 13+ TaP* gesamt: Verfeinerte Qualität bekannt (z.B. "stark, hochwertig")
+- Bei 19+ TaP* gesamt: Rezept vollständig verstanden (FULL Rezeptwissen)
 
 **3. Alternative Analysemethoden**:
 - **Augenschein**: Sinnenschärfe-Probe (KL/IN/IN)
 - **Labor**: Magiekunde oder Pflanzenkunde (KL/KL/IN bzw. KL/FF/KK)
 - **Strukturanalyse-Serie**: Mehrere ANALYS-Proben mit Selbstbeherrschung
+
+### Trank-Brauen
+
+**1. Vorbereitung**:
+- Rezept auswählen (nur bekannte Rezepte mit FULL-Wissen können gebraut werden)
+- Talent wählen (Alchimie oder Kochen Tränke)
+- Labor wählen (Archaisch +1, Hexenküche ±0, Labor -1)
+- Optional: Freiwilliger Handicap (2 bis 1.5x Brauschwierigkeit)
+- Optional: Substitutionen hinzufügen (Hochwertiger Ersatz -2/+50%, Minderwertiger +2/-50%)
+
+**2. Magisches Meisterhandwerk** (nur mit alchemyIsMagicalMastery oder cookingPotionsIsMagicalMastery):
+- **AsP-Einsatz für Qualitätspunkte**: 
+  - 1 QP = 1 AsP, 2 QP = 2 AsP, 3 QP = 4 AsP, 4 QP = 8 AsP, etc.
+  - Formel: 2^(n-1) AsP pro n Qualitätspunkten
+  - Erhöht die Trank-Qualität direkt
+- **Astrale Aufladung**: 
+  - Zusätzliche AsP für magische Bonus-Wirkungen
+  - Separate Eingabe
+
+**3. Brauprobe**:
+- Talentprobe mit zwei W20-Würfeln (Qualitätswürfel 1 & 2)
+- Qualitätspunkte = TaW - Gesamterschwierigkeit - Überwürfe + Magisches Meisterhandwerk
+- Gesamterschwierigkeit = Brauschwierigkeit + Labor + Freiwilliger Handicap + Substitutionen
+
+**4. Qualitätsberechnung**:
+- **A (hervorragend)**: 13+ QP
+- **B (gut)**: 10-12 QP
+- **C (durchschnittlich)**: 7-9 QP
+- **D (mäßig)**: 4-6 QP
+- **E (schlecht)**: 1-3 QP
+- **F (unbrauchbar)**: ≤0 QP
+- **M (Meisterwerk)**: Beide Würfel = 1 (unabhängig von QP)
+
+**5. Haltbarkeitsdatum**:
+- Automatische Berechnung nach derischem Kalender
+- Basis-Haltbarkeit aus Rezept
+  - Feste Zeiträume: "3 Monde", "1 Jahr", "2 Wochen"
+  - **Würfelnotationen**: "3W6+2 Wochen", "2W6-1 Tage", "1W6 Monde"
+- Berücksichtigt Göttermonate (30 Tage) und Namenlose Tage
+
+### Derischer Kalender
+
+Der derische Kalender wird für Haltbarkeitsdaten verwendet:
+- **12 Göttermonate** à 30 Tage: Praios, Rondra, Efferd, Travia, Boron, Hesinde, Firun, Tsa, Phex, Peraine, Ingerimm, Rahja
+- **5 Namenlose Tage** zwischen Rahja und Praios
+- **Jahr** = 365 Tage (360 + 5)
+- **Wochentage**: Windstag, Erdstag, Markttag, Praiostag, Rohalstag, Feuertag, Wassertag
+- **Mondphasen**: 28 Tage = 1 Mada
+
+**Würfelnotations-Unterstützung**:
+Die Haltbarkeit kann mit Würfelnotationen variabel gestaltet werden:
+- Format: `<Anzahl>W<Würfelgröße>[+/-Modifikator] <Einheit>`
+- Beispiele:
+  - "3W6+2 Wochen" → Würfelt 3W6, addiert 2, Ergebnis in Wochen (5-20 Wochen)
+  - "2W6-1 Tage" → Würfelt 2W6, subtrahiert 1, Ergebnis in Tagen (1-11 Tage)
+  - "1W6 Monde" → Würfelt 1W6, Ergebnis in Monden (1-6 Monde)
+- Jeder Trank erhält bei der Herstellung eine individuell gewürfelte Haltbarkeit
+- Unterstützte Einheiten: Tage, Wochen, Monde/Monate, Jahre
+
+**Gruppen-System**:
+- Charaktere können zu Spielgruppen gehören
+- Jede Gruppe hat ihr eigenes derisches Datum
+- Ermöglicht parallele Kampagnen
+- Unterstützt Trank-Übergabe zwischen Charakteren der gleichen Gruppe
 
 ### Spielleiter-Modus
 

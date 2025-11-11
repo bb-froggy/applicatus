@@ -1,5 +1,7 @@
 package de.applicatus.app.logic
 
+import kotlin.random.Random
+
 /**
  * Utility-Klasse für derische Datumsberechnungen
  * 
@@ -35,6 +37,9 @@ object DerianDateCalculator {
     // Mondphasen-Zyklus: 28 Tage (Mada)
     private const val MADA_CYCLE = 28
     
+    // Regex für Würfelnotationen: z.B. "3W6+2", "2W20-5", "1W10"
+    private val diceRegex = Regex("""(\d+)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE)
+    
     /**
      * Gibt die Anzahl der Tage für einen Monat zurück
      */
@@ -43,10 +48,74 @@ object DerianDateCalculator {
     }
     
     /**
+     * Parst und würfelt eine Würfelnotation
+     * 
+     * @param diceNotation Würfelnotation (z.B. "3W6+2", "2W20-5", "1W10")
+     * @return Gewürfeltes Ergebnis oder null bei ungültiger Notation
+     */
+    fun rollDice(diceNotation: String): Int? {
+        val match = diceRegex.matchEntire(diceNotation.trim()) ?: return null
+        
+        val numDice = match.groupValues[1].toIntOrNull() ?: return null
+        val diceSize = match.groupValues[2].toIntOrNull() ?: return null
+        val modifier = match.groupValues[3].ifEmpty { "+0" }.toIntOrNull() ?: 0
+        
+        if (numDice < 1 || diceSize < 1) return null
+        
+        // Würfle alle Würfel und summiere
+        var total = 0
+        repeat(numDice) {
+            total += Random.nextInt(1, diceSize + 1)
+        }
+        
+        return total + modifier
+    }
+    
+    /**
+     * Extrahiert die Zeiteinheit aus einer Haltbarkeitsangabe
+     * 
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen")
+     * @return Zeiteinheit (z.B. "Monde", "Wochen") oder null
+     */
+    private fun extractTimeUnit(shelfLife: String): String? {
+        val parts = shelfLife.trim().split(" ")
+        if (parts.size < 2) return null
+        
+        // Die Zeiteinheit ist immer das letzte Wort
+        return parts.last()
+    }
+    
+    /**
+     * Berechnet die Anzahl aus einer Haltbarkeitsangabe
+     * Unterstützt sowohl feste Zahlen als auch Würfelnotationen
+     * 
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen")
+     * @return Berechnete Anzahl oder null bei Fehler
+     */
+    fun parseShelfLifeAmount(shelfLife: String): Int? {
+        val parts = shelfLife.trim().split(" ")
+        if (parts.isEmpty()) return null
+        
+        val amountPart = if (parts.size > 1) {
+            // Bei mehreren Teilen ist der erste Teil die Menge
+            parts.dropLast(1).joinToString(" ")
+        } else {
+            return null
+        }
+        
+        // Prüfe auf Würfelnotation
+        return if (diceRegex.matches(amountPart)) {
+            rollDice(amountPart)
+        } else {
+            amountPart.toIntOrNull()
+        }
+    }
+    
+    /**
      * Berechnet das Haltbarkeitsdatum eines Tranks
      * 
      * @param currentDate Aktuelles Datum im Format "Tag Monat Jahr BF" (z.B. "15 Praios 1040 BF")
-     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "1 Jahr", "2 Wochen")
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "1 Jahr", "2 Wochen", "3W6+2 Wochen")
      * @return Haltbarkeitsdatum im gleichen Format
      */
     fun calculateExpiryDate(currentDate: String, shelfLife: String): String {
@@ -81,12 +150,9 @@ object DerianDateCalculator {
                 return currentDate
             }
             
-            // Parse Haltbarkeit
-            val shelfLifeParts = shelfLife.trim().split(" ")
-            if (shelfLifeParts.size < 2) return currentDate
-            
-            val amount = shelfLifeParts[0].toIntOrNull() ?: return currentDate
-            val unit = shelfLifeParts[1].lowercase()
+            // Parse Haltbarkeit (unterstützt Würfelnotationen)
+            val amount = parseShelfLifeAmount(shelfLife) ?: return currentDate
+            val unit = extractTimeUnit(shelfLife)?.lowercase() ?: return currentDate
             
             // Berechne Tage zum Addieren
             val daysToAdd = when {

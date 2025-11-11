@@ -179,6 +179,28 @@ Zentrale Klasse für die Brau-Logik:
 - `canBrew()`: Prüft, ob Brauen möglich ist
 - `formatBrewingResult()`: Formatiert Ergebnis für Anzeige
 
+### DerianDateCalculator (logic/)
+
+Utility-Klasse für derische Datumsberechnungen:
+- `calculateExpiryDate()`: Berechnet Haltbarkeitsdatum (unterstützt Würfelnotationen)
+- `rollDice()`: Würfelt Würfelnotationen (z.B. "3W6+2")
+- `parseShelfLifeAmount()`: Parst Haltbarkeitsangaben (fix oder Würfel)
+- `parseDateToDays()`: Konvertiert Datum zu Tageszahl
+- `isExpired()`: Prüft, ob ein Datum abgelaufen ist
+- `getWeekday()`: Berechnet den Wochentag
+- `getMadaPhase()`: Berechnet die Mondphase
+
+**Würfelnotations-Unterstützung**:
+Die Haltbarkeit kann nun auch mit Würfelnotationen angegeben werden:
+- Format: `<Anzahl>W<Würfelgröße>[+/-Modifikator] <Einheit>`
+- Beispiele:
+  - "3W6+2 Wochen" → Würfelt 3W6, addiert 2, Ergebnis in Wochen
+  - "2W6-1 Tage" → Würfelt 2W6, subtrahiert 1, Ergebnis in Tagen
+  - "1W6 Monde" → Würfelt 1W6, Ergebnis in Monden
+  - "3 Monde" → Fixe Angabe (wie bisher)
+- Unterstützte Einheiten: Tage, Wochen, Monde/Monate, Jahre
+
+
 ### Laboratory (model/potion/)
 
 Enum mit drei Stufen:

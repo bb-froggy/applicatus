@@ -53,6 +53,18 @@ methodBonus = character.sensoryAcuitySkill / 3  // Abrundung ist hier korrekt!
 - **Division durch 3 (Berechnung)**: Kaufmännisch runden → `(wert + 1) / 3`
 - **"Je 3 Punkte" (Schwellenwerte)**: Nur volle 3 Punkte → `wert / 3` (normale Division)
 
+### DSA-Regelkonformität: AsP-Kosten für Qualitätspunkte
+
+Beim Brauen von Tränken mit Magischem Meisterhandwerk können zusätzliche Qualitätspunkte durch AsP-Einsatz erkauft werden:
+- **Formel**: AsP-Kosten = 2^(n-1), wobei n = Anzahl der Qualitätspunkte
+- **Beispiele**: 
+  - 1 QP = 1 AsP (2^0)
+  - 2 QP = 2 AsP (2^1)
+  - 3 QP = 4 AsP (2^2)
+  - 4 QP = 8 AsP (2^3)
+
+**Implementierung**: `2.0.pow(qualityPoints - 1).toInt()`
+
 ### Build-Prozess und Testing
 
 **WICHTIG: Immer nach Code-Änderungen einen Build durchführen!**
@@ -142,33 +154,50 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - Pflanzenkunde (KL/FF/KK), Selbstbeherrschung (MU/MU/KO), Sinnenschärfe (KL/IN/IN)
 - ✅ **Character**: Charakter mit 8 Eigenschaftswerten (MU, KL, IN, CH, FF, GE, KO, KK)
   - ✅ Applicatus-Support (hasApplicatus, applicatusZfw, applicatusModifier)
-  - ✅ Alchimie-Talente (hasAlchemy, alchemySkill, hasCookingPotions, cookingPotionsSkill, etc.)
+  - ✅ Alchimie-Talente (hasAlchemy, alchemySkill, alchemyIsMagicalMastery, hasCookingPotions, cookingPotionsSkill, cookingPotionsIsMagicalMastery, etc.)
   - ✅ System-Zauber (hasOdem, odemZfw, hasAnalys, analysZfw)
+  - ✅ Labor-System (defaultLaboratory für Brauproben)
   - ✅ Energien (LE, AE, KE mit aktuell/max/regenBonus)
   - ✅ Spielleiter-Modus (isGameMaster)
+  - ✅ Gruppen-System (groupId, group)
+  - ✅ GUID für Import/Export
 - ✅ **SlotType**: Enum für Slot-Typen (APPLICATUS, SPELL_STORAGE)
 - ✅ **SpellSlot**: Zauberslot mit ZfW, Modifikator, Variante, Füllstatus, ZfP*
   - ✅ SlotType (Applicatus oder Zauberspeicher)
   - ✅ Volumenpunkte für Zauberspeicher (1-100, max. 100 gesamt)
   - ✅ Applicatus-Würfelergebnis
 - ✅ **SpellSlotWithSpell**: View-Objekt für Join zwischen Slot und Zauber
-- ✅ **Potion**: Trank mit Name, Rezept-Referenz, Qualität, Analyse-Status, **locationId**
-- ✅ **Recipe**: Trank-Rezept mit Name, Beschreibung, Wirkung
-- ✅ **PotionAnalysisStatus**: Status der Trank-Analyse (Intensität, Struktur, verstanden)
+- ✅ **Potion**: Trank mit Name, Rezept-Referenz, Qualität, Analyse-Status, **locationId**, **GUID**, **Haltbarkeitsdatum**
+  - ✅ Tatsächliche Eigenschaften (actualQuality, appearance, expiryDate)
+  - ✅ Wissens-Status (nameKnown, categoryKnown, knownQualityLevel, intensityQuality, refinedQuality, knownExactQuality)
+  - ✅ Strukturanalyse-Status (structureAnalysisTap, bestStructureAnalysisFacilitation)
+- ✅ **Recipe**: Trank-Rezept mit Name, Beschreibung, Wirkung, **Brauschwierigkeit**, **Labor-Anforderung**, **Zutatenpreise**, **Verbreitung**, **Haltbarkeit**
+- ✅ **PotionQuality**: Enum für Trank-Qualität (A-F, M für Meisterwerk)
+- ✅ **IntensityQuality**: Enum für Intensitätsbestimmung (UNKNOWN, WEAK, STRONG)
+- ✅ **RefinedQuality**: Enum für verfeinerte Qualität (UNKNOWN, WEAK_LOW, WEAK_HIGH, STRONG_LOW, STRONG_HIGH)
+- ✅ **KnownQualityLevel**: Enum für Qualitätswissen (UNKNOWN, INTENSITY, REFINED, EXACT)
+- ✅ **Laboratory**: Enum für Labore (ARCANE, WITCHES_KITCHEN, LABORATORY)
+- ✅ **Substitution**: Ersatzstoffe für Brauen (Art, Modifier)
+- ✅ **SubstitutionType**: Enum für Ersatzstoff-Typen
 - ✅ **RecipeKnowledge**: Verknüpfung zwischen Charakter und bekannten Rezepten
+- ✅ **RecipeKnowledgeLevel**: Enum für Rezeptwissen-Level (UNKNOWN, BASIC, FULL)
 - ✅ **Weight**: Gewicht in Stein und Unzen (1 Stein = 40 Unzen)
+- ✅ **Currency**: Währung (Dukaten, Silbertaler, Heller, Kreuzer)
 - ✅ **Location**: Lagerort für Gegenstände (Am Körper, Rucksack, eigene Orte)
 - ✅ **Item**: Gegenstand mit Name, Gewicht, Lagerort
 - ✅ **ItemWithLocation**: View-Objekt für Items mit Location-Namen
+- ✅ **Group**: Spielgruppe mit eigenem derischen Datum
+- ✅ **GlobalSettings**: Globale App-Einstellungen (derisches Datum)
 
 ### 3. Datenbank (data/)
-- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao, **ItemDao, LocationDao**
-- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter, **Weight-Converter**
+- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao, **ItemDao, LocationDao, GroupDao, GlobalSettingsDao**
+- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter, **Weight-Converter, Currency-Converter, Laboratory-Converter**
 - ✅ **ApplicatusDatabase**: Room-Datenbank mit automatischer Initialisierung
   - ✅ Migration von Version 1 zu 2 (neue Felder)
   - ✅ Migration von Version 2 zu 3 (Alchimie-Features)
   - ✅ Migration von Version 3 zu 4 (LE/AE/KE, Spielleiter-Modus)
   - ✅ Migration von Version 17 zu 18 (Inventar-Feature)
+  - ✅ Migration zu aktueller Version (Gruppen, Brauen, erweiterte Analyse)
 - ✅ **ApplicatusRepository**: Repository-Pattern für Datenzugriff (inkl. Bereinigung von Rezeptwissen beim Import)
 - ✅ **InitialSpells**: 235+ vordefinierte Zauber (magierzauber.txt + hexenzauber.txt)
 - ✅ **InitialRecipes**: 30+ vordefinierte Trank-Rezepte (Rezepte.csv)
@@ -199,11 +228,26 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Mehrere unabhängige Strukturanalysen mit kumulativer Verbesserung der Erleichterung
   - ✅ Berechnung von Analyseergebnissen
 
-- ✅ **PotionAnalyzer**: Tranksanalyse-Implementierung (nutzt ProbeChecker)
-  - ✅ Analyse nach verschiedenen Methoden (ODEM, Augenschein, Labor, Strukturanalyse)
-  - ✅ Bestimmung des Analysestatus
-  - ✅ Rezept-Verständnis bei 19+ TaP*
-  - ✅ Vollständige Integration mit PotionAnalysisStatus
+- ✅ **PotionBrewer**: Trank-Brau-Implementierung (nutzt ProbeChecker)
+  - ✅ Brauproben mit Talenten (Alchimie, Kochen Tränke)
+  - ✅ Labor-Modifikatoren (Archaisch, Hexenküche, Labor)
+  - ✅ Freiwilliger Handicap (2 bis 1.5x Brauschwierigkeit)
+  - ✅ Substitutionen (Hochwertiger/Minderwertiger Ersatz)
+  - ✅ **Magisches Meisterhandwerk**:
+    - ✅ Zusätzliche Qualitätspunkte durch AsP-Einsatz (2^(n-1) AsP pro QP)
+    - ✅ Astrale Aufladung (zusätzliche Wirkungen)
+  - ✅ Qualitätsberechnung (A-F, M für Meisterwerk)
+  - ✅ Haltbarkeitsdatum-Berechnung (derischer Kalender)
+
+- ✅ **DerianDateCalculator**: Derischer Kalender-Implementierung
+  - ✅ 12 Göttermonate à 30 Tage + 5 Namenlose Tage
+  - ✅ Datumsberechnungen (Haltbarkeitsdatum, etc.)
+  - ✅ Wochentags-Berechnung
+  - ✅ Mondphasen-Zyklus (28 Tage = 1 Mada)
+
+- ✅ **PotionHelper**: Hilfsfunktionen für Trank-Verwaltung
+  - ✅ Qualitäts-Level-Bestimmung
+  - ✅ Display-Namen für Qualitäten
 
 - ✅ **RegenerationCalculator**: Regenerations-Berechnung (nutzt ProbeChecker)
   - ✅ LE-Regeneration mit KO-Probe
@@ -239,13 +283,16 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 
 - ✅ **PotionViewModel**: Verwaltung der Tränke
   - ✅ Tränke hinzufügen, bearbeiten, löschen
-  - ✅ Analyse-Status-Verwaltung
+  - ✅ **Tränke brauen** mit vollständiger Brauprobe
+  - ✅ Analyse-Status-Verwaltung (Intensität, Struktur, Qualität)
   - ✅ Rezept-Verknüpfung
   - ✅ Integration mit Spielleiter-Modus
+  - ✅ Haltbarkeitsdatum-Verwaltung
 
 - ✅ **RecipeKnowledgeViewModel**: Verwaltung des Rezeptwissens
   - ✅ Bekannte Rezepte pro Charakter
   - ✅ Rezepte hinzufügen/entfernen
+  - ✅ **Rezeptwissen-Level** (UNKNOWN, BASIC, FULL)
   - ✅ Filterung nach bekannten/unbekannten Rezepten
 
 - ✅ **InventoryViewModel**: Verwaltung des Inventars (Packesel)
@@ -299,6 +346,16 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Liste aller Tränke mit Qualität und Analyse-Status
   - ✅ Anzeige von Rezeptnamen (nur für Spielleiter oder analysierte Tränke)
   - ✅ FAB zum Hinzufügen neuer Tränke
+  - ✅ **BrewPotionDialog**: Vollständiges Brauen von Tränken
+    - ✅ Rezeptauswahl (nur bekannte Rezepte)
+    - ✅ Talent-Auswahl (Alchimie, Kochen Tränke)
+    - ✅ Labor-Auswahl mit Modifikatoren
+    - ✅ Freiwilliger Handicap
+    - ✅ Substitutionen verwalten
+    - ✅ Magisches Meisterhandwerk (AsP-Einsatz, Astrale Aufladung)
+    - ✅ Brau-Animation
+    - ✅ Qualitätsberechnung mit zwei W20-Würfeln
+    - ✅ Automatische Haltbarkeitsdatum-Berechnung
   - ✅ Trank bearbeiten/löschen
   - ✅ Analyse-Dialoge:
     - ✅ IntensityDeterminationDialog (ODEM ARCANUM)
@@ -311,7 +368,8 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Liste aller Rezepte (bekannte und unbekannte)
   - ✅ Filterung nach bekannten/unbekannten Rezepten
   - ✅ Rezepte als bekannt markieren/entfernen
-  - ✅ Rezept-Details (Name, Beschreibung, Wirkung)
+  - ✅ **Rezeptwissen-Level** anzeigen und ändern
+  - ✅ Rezept-Details (Name, Beschreibung, Wirkung, **Brauschwierigkeit, Analyseschwierigkeit, Labor, Preise, Verbreitung, Haltbarkeit**)
   - ✅ Spielleiter sieht alle Rezepte, Spieler nur bekannte
 
 - ✅ **NearbySyncScreen**:
@@ -419,7 +477,27 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   - ✅ Tränke erstellen mit Name, Rezept, Qualität
   - ✅ Tränke bearbeiten und löschen
   - ✅ Analyse-Status pro Trank
+  - ✅ **Haltbarkeitsdatum** (automatisch berechnet)
   - ✅ Spielleiter sieht alle Infos, Spieler nur analysierte
+  
+- ✅ **Trank-Brauen**:
+  - ✅ Rezeptauswahl aus bekannten Rezepten
+  - ✅ Talent-Auswahl (Alchimie, Kochen Tränke)
+  - ✅ Labor-Modifikatoren (Archaisch +1, Hexenküche ±0, Labor -1)
+  - ✅ Freiwilliger Handicap (min. 2, max. 1.5x Brauschwierigkeit)
+  - ✅ Substitutionen:
+    - ✅ Hochwertiger Ersatz (-2 Erschwernis, +50% Kosten)
+    - ✅ Minderwertiger Ersatz (+2 Erschwernis, -50% Kosten)
+  - ✅ **Magisches Meisterhandwerk** (nur mit alchemyIsMagicalMastery oder cookingPotionsIsMagicalMastery):
+    - ✅ Zusätzliche Qualitätspunkte durch AsP-Einsatz (Kosten: 2^(n-1) AsP)
+    - ✅ Astrale Aufladung (Bonus-Wirkungen durch zusätzliche AsP)
+  - ✅ Qualitätsberechnung:
+    - ✅ Zwei W20-Würfel (Qualitätswürfel 1 & 2)
+    - ✅ QP = TaW - Erschwernis - Überwürfe + MagischeMeisterhandwerk-Bonus
+    - ✅ Qualität: A (13+), B (10-12), C (7-9), D (4-6), E (1-3), F (≤0)
+    - ✅ Meisterwerk (M): Beide Würfel = 1
+  - ✅ Brau-Animation
+  - ✅ Automatische Haltbarkeitsdatum-Berechnung
   
 - ✅ **Trank-Analyse**:
   - ✅ **Intensitätsbestimmung**: ODEM ARCANUM (KL/IN/IN)
@@ -433,7 +511,7 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
   
 - ✅ **Rezeptverwaltung**:
   - ✅ 30+ vordefinierte Rezepte (Rezepte.csv)
-  - ✅ Rezeptwissen pro Charakter
+  - ✅ Rezeptwissen pro Charakter mit Levels (UNKNOWN, BASIC, FULL)
   - ✅ Rezepte als bekannt markieren
   - ✅ Filterung nach bekannten/unbekannten Rezepten
   - ✅ Automatisches Hinzufügen bei erfolgreicher Analyse
@@ -465,8 +543,8 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 ### Export/Import & Synchronisation
 - ✅ **JSON-Export/Import**:
   - ✅ Charaktere als JSON exportieren
-  - ✅ Inklusive Slots, Tränke, Analyse-Status, Rezeptwissen
-  - ✅ Versionskontrolle (DataModelVersion)
+  - ✅ Inklusive Slots, Tränke, Analyse-Status, Rezeptwissen, **Gruppen-Zugehörigkeit**
+  - ✅ Versionskontrolle (DataModelVersion = 5)
   - ✅ Kompatibilitätsprüfung
   - ✅ Warnung bei Versionsunterschieden
   - ✅ Warnung beim Überschreiben
@@ -603,12 +681,71 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 - ✅ **Spielleiter-Modus wird NICHT übertragen** (bleibt lokal)
 
 ### Datenmodell-Versionierung
-- ✅ **Versionsnummer**: Aktuelle Version 4 des Datenmodells
+- ✅ **Versionsnummer**: Aktuelle Version 5 des Datenmodells
 - ✅ **Kompatibilitätscheck**: Prüfung bei Import/Sync
 - ✅ **Warnungen**: 
   - Bei älteren Versionen (Import möglich mit Warnung)
   - Bei neueren Versionen (Import blockiert, App-Update nötig)
   - Beim Überschreiben mit älterer Version
+- ✅ **Versions-Historie**:
+  - v1: Initiale Version
+  - v2: Applicatus-Unterstützung, SlotType, Volumenpunkte
+  - v3: Alchemie-, Energie-, Trank- und Rezeptwissen-Daten
+  - v4: Gruppen für Charaktere, GUID für Tränke (Trank-Übergabe)
+  - v5: Magisches Meisterhandwerk für Alchimie und Kochen (Tränke)
+
+## 🆕 Neue Features (Version 5 - Trank-Brauen & Magisches Meisterhandwerk)
+
+### Trank-Brauen-System
+- ✅ **Vollständige Brauprobe-Implementierung**:
+  - Rezeptauswahl aus bekannten Rezepten
+  - Talent-Auswahl (Alchimie, Kochen Tränke)
+  - Labor-Modifikatoren
+  - Freiwilliger Handicap (2 bis 1.5x Brauschwierigkeit)
+  - Substitutionen (Hochwertiger/Minderwertiger Ersatz)
+- ✅ **Qualitätsberechnung**:
+  - Zwei W20-Würfel für Qualitätswürfel
+  - Qualitätspunkte = TaW - Erschwernis - Überwürfe
+  - Qualitätsstufen: A (13+), B (10-12), C (7-9), D (4-6), E (1-3), F (≤0)
+  - Meisterwerk (M): Beide Würfel = 1
+- ✅ **Haltbarkeitsdatum**:
+  - Automatische Berechnung nach derischem Kalender
+  - Unterstützt Monde, Wochen, Jahre
+
+### Magisches Meisterhandwerk
+- ✅ **AsP-Einsatz für zusätzliche Qualitätspunkte**:
+  - Kosten: 2^(n-1) AsP pro n Qualitätspunkten
+  - Nur verfügbar mit alchemyIsMagicalMastery oder cookingPotionsIsMagicalMastery
+  - Erhöht die Trank-Qualität
+- ✅ **Astrale Aufladung**:
+  - Zusätzliche AsP für magische Bonus-Wirkungen
+  - Separate Eingabe in der UI
+
+### Derischer Kalender
+- ✅ **DerianDateCalculator**:
+  - 12 Göttermonate à 30 Tage
+  - 5 Namenlose Tage (zwischen Rahja und Praios)
+  - Wochentags-Berechnung (7-Tage-Woche)
+  - Mondphasen-Zyklus (28 Tage = 1 Mada)
+- ✅ **GlobalSettings & Gruppen**:
+  - Globales derisches Datum
+  - Gruppen-spezifische Daten
+  - Unterstützt parallele Spielgruppen
+
+### Erweiterte Trank-Analyse
+- ✅ **Qualitätsstufen-System**:
+  - IntensityQuality (WEAK, STRONG)
+  - RefinedQuality (WEAK_LOW, WEAK_HIGH, STRONG_LOW, STRONG_HIGH)
+  - KnownQualityLevel (UNKNOWN, INTENSITY, REFINED, EXACT)
+- ✅ **Rezeptwissen-Level**:
+  - UNKNOWN: Rezept unbekannt
+  - BASIC: Grundlegendes Wissen (Name, grobe Wirkung)
+  - FULL: Vollständiges Wissen (alle Details, kann brauen)
+
+### UI-Verbesserungen
+- ✅ **BrewPotionDialog**: Kompletter Dialog für Trank-Brauen
+- ✅ **PotionBrewAnimation**: Animierte Brau-Sequenz
+- ✅ **Erweiterte Rezept-Details**: Preise, Verbreitung, Haltbarkeit, Labor-Anforderungen
 
 ## 🆕 Neue Features (Version 4 - Alchimie & Spielleiter-Modus)
 
@@ -648,11 +785,20 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
   - Karmaenergie (KE): Aktuell/Max
   - Meisterliche Regeneration-Support
 - ✅ **Talente (für Alchimie relevant)**:
-  - Alchimie, Kochen (Tränke), Selbstbeherrschung
-  - Sinnenschärfe, Magiekunde, Pflanzenkunde
+  - Alchimie (mit Magischem Meisterhandwerk-Option)
+  - Kochen (Tränke) (mit Magischem Meisterhandwerk-Option)
+  - Selbstbeherrschung, Sinnenschärfe
+  - Magiekunde, Pflanzenkunde
 - ✅ **System-Zauber**:
   - ODEM ARCANUM (KL/IN/IN)
   - ANALYS ARKANSTRUKTUR (KL/KL/IN)
+- ✅ **Labor-System**:
+  - Standard-Labor pro Charakter
+  - Drei Labor-Typen: Archaisch (+1), Hexenküche (±0), Labor (-1)
+- ✅ **Gruppen-System**:
+  - Charaktere können zu Gruppen gehören
+  - Gruppen haben eigenes derisches Datum
+  - Ermöglicht Trank-Übergabe zwischen Charakteren
 
 ### Regeneration
 - ✅ **LE-Regeneration**: KO-Probe mit Bonus
