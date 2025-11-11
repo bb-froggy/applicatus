@@ -249,6 +249,9 @@ class ApplicatusRepository(
     suspend fun updateLocation(location: Location) =
         locationDao.update(location)
     
+    suspend fun updateLocationIsCarried(locationId: Long, isCarried: Boolean) =
+        locationDao.updateIsCarried(locationId, isCarried)
+    
     suspend fun deleteLocation(location: Location) =
         locationDao.delete(location)
     

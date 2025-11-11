@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -428,43 +428,45 @@ abstract class ApplicatusDatabase : RoomDatabase() {
         
         private val MIGRATION_17_18 = object : Migration(17, 18) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // 1. Locations-Tabelle erstellen
+                // 1. Locations-Tabelle erstellen (OHNE DEFAULT-Werte in der Tabellendefinition)
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS locations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
                         name TEXT NOT NULL,
-                        isDefault INTEGER NOT NULL DEFAULT 0,
-                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        isDefault INTEGER NOT NULL,
+                        sortOrder INTEGER NOT NULL,
                         FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE
                     )
                 """.trimIndent())
                 
-                // 2. Items-Tabelle erstellen
+                // Index für characterId erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_locations_characterId ON locations(characterId)")
+                
+                // 2. Items-Tabelle erstellen (OHNE DEFAULT-Werte in der Tabellendefinition)
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS items (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
                         locationId INTEGER,
                         name TEXT NOT NULL,
-                        stone INTEGER NOT NULL DEFAULT 0,
-                        ounces INTEGER NOT NULL DEFAULT 0,
-                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        stone INTEGER NOT NULL,
+                        ounces INTEGER NOT NULL,
+                        sortOrder INTEGER NOT NULL,
                         FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
                         FOREIGN KEY(locationId) REFERENCES locations(id) ON DELETE SET NULL
                     )
                 """.trimIndent())
                 
-                // 3. Indices erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_locations_characterId ON locations(characterId)")
+                // Indices für items erstellen
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
                 
-                // 4. Potion-Tabelle erweitern mit locationId
+                // 3. Potion-Tabelle erweitern mit locationId
                 database.execSQL("ALTER TABLE potions ADD COLUMN locationId INTEGER")
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_locationId ON potions(locationId)")
                 
-                // 5. Standard-Locations für alle bestehenden Charaktere erstellen
+                // 4. Standard-Locations für alle bestehenden Charaktere erstellen
                 val charactersCursor = database.query("SELECT id FROM characters")
                 while (charactersCursor.moveToNext()) {
                     val characterId = charactersCursor.getLong(0)
@@ -504,6 +506,27 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Locations-Tabelle erweitern um isCarried
+                database.execSQL("ALTER TABLE locations ADD COLUMN isCarried INTEGER NOT NULL DEFAULT 0")
+                
+                // 2. "Am Körper" umbenennen zu "Rüstung/Kleidung" und als getragen markieren
+                database.execSQL("""
+                    UPDATE locations 
+                    SET name = 'Rüstung/Kleidung', isCarried = 1 
+                    WHERE name = 'Am Körper' AND isDefault = 1
+                """)
+                
+                // 3. "Rucksack" als getragen markieren
+                database.execSQL("""
+                    UPDATE locations 
+                    SET isCarried = 1 
+                    WHERE name = 'Rucksack' AND isDefault = 1
+                """)
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -511,7 +534,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

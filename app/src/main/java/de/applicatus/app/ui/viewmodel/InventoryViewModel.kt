@@ -91,6 +91,52 @@ class InventoryViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
     
     /**
+     * Berechnet das getragene Gesamtgewicht
+     * Rüstung/Kleidung zählt nur halb
+     */
+    val carriedWeight: StateFlow<Weight> =
+        combine(locations, weightByLocation) { locs, weights ->
+            var totalOunces = 0
+            locs.filter { it.isCarried }.forEach { location ->
+                val locationWeight = weights[location.id]?.toOunces() ?: 0
+                // Rüstung/Kleidung zählt nur halb
+                if (location.name == "Rüstung/Kleidung" && location.isDefault) {
+                    totalOunces += locationWeight / 2
+                } else {
+                    totalOunces += locationWeight
+                }
+            }
+            Weight.fromOunces(totalOunces)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Weight.ZERO)
+    
+    /**
+     * Tragfähigkeit: Körperkraft in Stein
+     */
+    val carryingCapacity: StateFlow<Weight> =
+        character.map { char ->
+            val kk = char?.kk ?: 10
+            Weight(stone = kk, ounces = 0)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Weight.ZERO)
+    
+    /**
+     * Last-BE: Für jedes angefangene halbe Tragfähigkeitsgewicht über der Tragfähigkeit
+     */
+    val encumbrancePenalty: StateFlow<Int> =
+        combine(carriedWeight, carryingCapacity) { carried, capacity ->
+            val carriedOunces = carried.toOunces()
+            val capacityOunces = capacity.toOunces()
+            
+            if (carriedOunces <= capacityOunces) {
+                0
+            } else {
+                val overweight = carriedOunces - capacityOunces
+                val halfCapacity = capacityOunces / 2
+                // Für jedes angefangene halbe Tragfähigkeitsgewicht +1 BE
+                ((overweight + halfCapacity - 1) / halfCapacity)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    
+    /**
      * Fügt eine neue Location hinzu
      */
     fun addLocation(name: String) {
@@ -113,6 +159,15 @@ class InventoryViewModel(
     fun updateLocation(location: Location) {
         viewModelScope.launch {
             repository.updateLocation(location)
+        }
+    }
+    
+    /**
+     * Aktualisiert den "Getragen"-Status einer Location
+     */
+    fun updateLocationIsCarried(locationId: Long, isCarried: Boolean) {
+        viewModelScope.launch {
+            repository.updateLocationIsCarried(locationId, isCarried)
         }
     }
     

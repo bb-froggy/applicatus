@@ -18,6 +18,9 @@ interface LocationDao {
     @Update
     suspend fun update(location: Location)
     
+    @Query("UPDATE locations SET isCarried = :isCarried WHERE id = :locationId")
+    suspend fun updateIsCarried(locationId: Long, isCarried: Boolean)
+    
     @Delete
     suspend fun delete(location: Location)
     
@@ -25,19 +28,21 @@ interface LocationDao {
     suspend fun deleteNonDefaultLocations(characterId: Long)
     
     /**
-     * Erstellt die Standard-Orte für einen Charakter (Am Körper, Rucksack)
+     * Erstellt die Standard-Orte für einen Charakter (Rüstung/Kleidung, Rucksack)
      */
     suspend fun createDefaultLocations(characterId: Long) {
         insert(Location(
             characterId = characterId,
-            name = "Am Körper",
+            name = "Rüstung/Kleidung",
             isDefault = true,
+            isCarried = true,
             sortOrder = 0
         ))
         insert(Location(
             characterId = characterId,
             name = "Rucksack",
             isDefault = true,
+            isCarried = true,
             sortOrder = 1
         ))
     }
