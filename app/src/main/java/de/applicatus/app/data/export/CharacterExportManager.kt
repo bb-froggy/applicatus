@@ -171,7 +171,12 @@ class CharacterExportManager(
                 existingCharacter.id
             } else {
                 // Neuen Charakter erstellen (mit GUID aus Import)
-                repository.insertCharacter(exportDto.character.toCharacter())
+                val newCharacterId = repository.insertCharacter(exportDto.character.toCharacter())
+                
+                // Erstelle Standard-Locations (Rüstung/Kleidung, Rucksack)
+                repository.createDefaultLocationsForCharacter(newCharacterId)
+                
+                newCharacterId
             }
             
             // Zauber-IDs auflösen (nach Namen matchen)

@@ -157,7 +157,10 @@ class CharacterListViewModel(
                 applicatusZfw = applicatusZfw,
                 applicatusModifier = applicatusModifier
             )
-            repository.insertCharacter(character)
+            val characterId = repository.insertCharacter(character)
+            
+            // Erstelle Standard-Locations (Rüstung/Kleidung, Rucksack)
+            repository.createDefaultLocationsForCharacter(characterId)
         }
     }
     
