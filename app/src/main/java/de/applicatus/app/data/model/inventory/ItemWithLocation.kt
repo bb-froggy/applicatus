@@ -11,8 +11,13 @@ data class ItemWithLocation(
     val stone: Int,
     val ounces: Int,
     val sortOrder: Int,
-    val locationName: String? // Name des Ortes (kann null sein)
+    val locationName: String?, // Name des Ortes (kann null sein)
+    val isPurse: Boolean = false,
+    val kreuzerAmount: Int = 0
 ) {
     val weight: Weight
         get() = Weight(stone, ounces)
+    
+    val currency: Currency
+        get() = Currency.fromKreuzer(kreuzerAmount)
 }

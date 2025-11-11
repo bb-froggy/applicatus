@@ -57,7 +57,9 @@ class InventoryViewModel(
                     stone = Weight.POTION.stone,
                     ounces = Weight.POTION.ounces,
                     sortOrder = 0,
-                    locationName = location?.name
+                    locationName = location?.name,
+                    isPurse = false,
+                    kreuzerAmount = 0
                 )
                 
                 val currentList = groupedItems[location] ?: emptyList()
@@ -185,16 +187,27 @@ class InventoryViewModel(
     /**
      * Fügt ein neues Item hinzu
      */
-    fun addItem(name: String, weight: Weight, locationId: Long?) {
+    fun addItem(name: String, weight: Weight, locationId: Long?, isPurse: Boolean = false) {
         viewModelScope.launch {
             repository.insertItem(
                 Item(
                     characterId = characterId,
                     locationId = locationId,
                     name = name,
-                    weight = weight
+                    weight = weight,
+                    isPurse = isPurse,
+                    kreuzerAmount = if (isPurse) 0 else 0
                 )
             )
+        }
+    }
+    
+    /**
+     * Aktualisiert den Geldbetrag in einem Geldbeutel
+     */
+    fun updatePurseAmount(itemId: Long, kreuzerAmount: Int) {
+        viewModelScope.launch {
+            repository.updatePurseAmount(itemId, kreuzerAmount)
         }
     }
     

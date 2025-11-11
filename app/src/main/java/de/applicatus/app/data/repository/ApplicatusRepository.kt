@@ -277,6 +277,16 @@ class ApplicatusRepository(
     suspend fun updateItem(item: Item) =
         itemDao.update(item)
     
+    suspend fun updatePurseAmount(itemId: Long, kreuzerAmount: Int) {
+        val item = itemDao.getItemById(itemId)
+        if (item != null && item.isPurse) {
+            // Berechne automatisch das Gewicht basierend auf den Münzen
+            val currency = de.applicatus.app.data.model.inventory.Currency.fromKreuzer(kreuzerAmount)
+            val weight = currency.toWeight()
+            itemDao.update(item.copy(kreuzerAmount = kreuzerAmount, weight = weight))
+        }
+    }
+    
     suspend fun deleteItem(item: Item) =
         itemDao.delete(item)
 }

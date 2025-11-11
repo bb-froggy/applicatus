@@ -20,7 +20,8 @@ interface ItemDao {
     @Query("""
         SELECT items.id, items.characterId, items.locationId, items.name, 
                items.stone, items.ounces, items.sortOrder,
-               locations.name as locationName 
+               locations.name as locationName,
+               items.isPurse, items.kreuzerAmount
         FROM items 
         LEFT JOIN locations ON items.locationId = locations.id 
         WHERE items.characterId = :characterId 

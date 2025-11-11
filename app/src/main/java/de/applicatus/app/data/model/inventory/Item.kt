@@ -48,5 +48,11 @@ data class Item(
     val weight: Weight = Weight.ZERO,
     
     /** Sortierreihenfolge innerhalb eines Ortes */
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    
+    /** Ist dies ein Geldbeutel? */
+    val isPurse: Boolean = false,
+    
+    /** Geldmenge in Kreuzern (nur für Geldbeutel) */
+    val kreuzerAmount: Int = 0
 )
