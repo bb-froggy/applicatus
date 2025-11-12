@@ -82,6 +82,8 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 .\gradlew.bat build --stacktrace
 ```
 
+Wenn man UI-Tests hinzugefügt hat, sollen sie auch ausgeführt werden. Weil die UI-Tests lange dauern, sollten möglichst in jedem Durchlauf nur die UI-Tests ausgeführt werden, die auch tatsächlich interessant sind und sich verändert haben. Nach größeren Änderungen an der UI sollten alle UI-Tests durchgeführt werden und gegebenenfalls an die neue UI angepasst werden.
+
 ### Datenbank-Migrationen testen
 
 **WICHTIG: Datenbank-Migrationen müssen immer getestet werden!**
@@ -208,7 +210,7 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
 - ✅ **RecipeKnowledgeLevel**: Enum für Rezeptwissen-Level (UNKNOWN, BASIC, FULL)
 - ✅ **Weight**: Gewicht in Stein und Unzen (1 Stein = 40 Unzen)
 - ✅ **Currency**: Währung (Dukaten, Silbertaler, Heller, Kreuzer)
-- ✅ **Location**: Lagerort für Gegenstände (Am Körper, Rucksack, eigene Orte)
+- ✅ **Location**: Lagerort für Gegenstände (Rüstung/Kleidung, Rucksack, eigene Orte)
 - ✅ **Item**: Gegenstand mit Name, Gewicht, Lagerort
 - ✅ **ItemWithLocation**: View-Objekt für Items mit Location-Namen
 - ✅ **Group**: Spielgruppe mit eigenem derischen Datum
@@ -543,7 +545,7 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
 
 ### Packesel (Inventarverwaltung)
 - ✅ **Lagerorte**:
-  - ✅ Standard-Orte: "Am Körper" und "Rucksack" (automatisch erstellt)
+  - ✅ Standard-Orte: "Rüstung/Kleidung" und "Rucksack" (automatisch erstellt)
   - ✅ Eigene Orte hinzufügen/löschen
   - ✅ Gesamtgewicht pro Ort
   

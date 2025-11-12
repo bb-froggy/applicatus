@@ -8,7 +8,7 @@ Das neue **Packesel-Feature** ermöglicht die Verwaltung des Inventars eines Cha
 
 ### 1. Lagerorte (Locations)
 - **Standard-Orte**: Jeder Charakter hat automatisch zwei Standard-Orte:
-  - "Am Körper"
+  - "Rüstung/Kleidung"
   - "Rucksack"
 - **Eigene Orte**: Beliebig viele zusätzliche Orte können hinzugefügt werden (z.B. "Pferd", "Wagen", etc.)
 - **Gesamtgewicht**: Für jeden Ort wird das Gesamtgewicht aller Gegenstände angezeigt

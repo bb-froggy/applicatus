@@ -83,6 +83,10 @@ class LocationTransferTest {
             ff = 10, ge = 10, ko = 10, kk = 10
         ))
         
+        // Erstelle Standard-Locations für beide Charaktere
+        repository.createDefaultLocationsForCharacter(charAId)
+        repository.createDefaultLocationsForCharacter(charBId)
+        
         // Hole die Standard-Locations (Am Körper, Rucksack) von Charakter A
         val locationsA = repository.getLocationsForCharacter(charAId).first()
         val rucksackA = locationsA.find { it.name == "Rucksack" }
@@ -106,7 +110,7 @@ class LocationTransferTest {
         assertEquals("Item sollte 'Flasche' heißen", "Flasche", itemsBeforeA[0].name)
         assertEquals("Item sollte in 'Rucksack' sein", "Rucksack", itemsBeforeA[0].locationName)
         assertEquals("B sollte 0 Items haben", 0, itemsBeforeB.size)
-        assertEquals("B sollte 2 Locations haben (Am Körper, Rucksack)", 2, locationsBeforeB.size)
+        assertEquals("B sollte 2 Locations haben (Rüstung/Kleidung, Rucksack)", 2, locationsBeforeB.size)
         
         // Übertrage Rucksack von A zu B
         repository.transferLocationToCharacter(rucksackA.id, charBId)
@@ -123,7 +127,7 @@ class LocationTransferTest {
         // ERWARTETES VERHALTEN:
         // - A sollte den Rucksack nicht mehr haben (gelöscht)
         // - A sollte 0 Items haben
-        // - B sollte 3 Locations haben (Am Körper, Rucksack (original), Rucksack (übertragen))
+        // - B sollte 3 Locations haben (Rüstung/Kleidung, Rucksack (original), Rucksack (übertragen))
         // - B sollte 1 Item haben (die Flasche)
         
         // AKTUELLES (FEHLERHAFTES) VERHALTEN:
@@ -152,8 +156,8 @@ class LocationTransferTest {
         // B sollte 3 Locations haben (2 Standard + 1 übertragen)
         assertEquals("B sollte 3 Locations haben", 3, locationsAfterB.size)
         assertTrue(
-            "B sollte 'Am Körper' haben",
-            locationsAfterB.any { it.name == "Am Körper" }
+            "B sollte 'Rüstung/Kleidung' haben",
+            locationsAfterB.any { it.name == "Rüstung/Kleidung" }
         )
         assertTrue(
             "B sollte ursprünglichen 'Rucksack' haben",
