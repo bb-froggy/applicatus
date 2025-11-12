@@ -209,13 +209,6 @@ Beim Einspeichern eines Zaubers wird eine Probe durchgeführt:
 - Gesamterschwierigkeit = Brauschwierigkeit + Labor + Freiwilliger Handicap + Substitutionen
 
 **4. Qualitätsberechnung**:
-- **A (hervorragend)**: 13+ QP
-- **B (gut)**: 10-12 QP
-- **C (durchschnittlich)**: 7-9 QP
-- **D (mäßig)**: 4-6 QP
-- **E (schlecht)**: 1-3 QP
-- **F (unbrauchbar)**: ≤0 QP
-- **M (Meisterwerk)**: Beide Würfel = 1 (unabhängig von QP)
 
 **5. Haltbarkeitsdatum**:
 - Automatische Berechnung nach derischem Kalender
