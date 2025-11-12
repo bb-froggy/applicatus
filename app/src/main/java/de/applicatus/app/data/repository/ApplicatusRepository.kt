@@ -27,6 +27,7 @@ import de.applicatus.app.data.model.spell.SpellSlot
 import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 
 class ApplicatusRepository(
@@ -313,38 +314,36 @@ class ApplicatusRepository(
             )
         )
         
+        // Hole alle Items und Tränke SYNCHRON mit .first()
+        val items = itemDao.getItemsForLocation(locationId).first()
+        val potions = potionDao.getPotionsForLocation(locationId).first()
+        
         // Übertrage alle Items
-        val items = itemDao.getItemsForLocation(locationId)
-        items.collect { itemList ->
-            itemList.forEach { item ->
-                // Erstelle Kopie des Items beim Zielcharakter
-                insertItem(
-                    item.copy(
-                        id = 0, // Neue ID generieren lassen
-                        characterId = targetCharacterId,
-                        locationId = newLocationId
-                    )
+        items.forEach { item ->
+            // Erstelle Kopie des Items beim Zielcharakter
+            insertItem(
+                item.copy(
+                    id = 0, // Neue ID generieren lassen
+                    characterId = targetCharacterId,
+                    locationId = newLocationId
                 )
-                // Lösche Original-Item
-                deleteItem(item)
-            }
+            )
+            // Lösche Original-Item
+            deleteItem(item)
         }
         
         // Übertrage alle Tränke
-        val potions = potionDao.getPotionsForLocation(locationId)
-        potions.collect { potionList ->
-            potionList.forEach { potionWithRecipe ->
-                // Erstelle Kopie des Tranks beim Zielcharakter
-                insertPotion(
-                    potionWithRecipe.potion.copy(
-                        id = 0, // Neue ID generieren lassen
-                        characterId = targetCharacterId,
-                        locationId = newLocationId
-                    )
+        potions.forEach { potionWithRecipe ->
+            // Erstelle Kopie des Tranks beim Zielcharakter
+            insertPotion(
+                potionWithRecipe.potion.copy(
+                    id = 0, // Neue ID generieren lassen
+                    characterId = targetCharacterId,
+                    locationId = newLocationId
                 )
-                // Lösche Original-Trank
-                deletePotion(potionWithRecipe.potion)
-            }
+            )
+            // Lösche Original-Trank
+            deletePotion(potionWithRecipe.potion)
         }
         
         // Lösche die Original-Location

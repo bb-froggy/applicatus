@@ -63,6 +63,7 @@ fun PotionScreen(
     var showBrewDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showAnalysisDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
+    var showDilutionDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
 
     val isGameMaster = character?.isGameMaster ?: false
 
@@ -136,11 +137,13 @@ fun PotionScreen(
                         isGameMaster = character?.isGameMaster ?: false,
                         isNameKnown = isNameKnown,
                         groupCharacters = groupCharacters,
+                        character = character,
                         onDelete = { showDeleteDialog = potionWithRecipe },
                         onAnalyze = { showAnalysisDialog = potionWithRecipe },
                         onTransfer = { targetId ->
                             viewModel.transferPotionToCharacter(potionWithRecipe.potion, targetId)
-                        }
+                        },
+                        onDilute = { showDilutionDialog = potionWithRecipe }
                     )
                 }
             }
@@ -158,6 +161,21 @@ fun PotionScreen(
                 characterId = characterId,
                 viewModel = viewModel,
                 onDismiss = { showAnalysisDialog = null }
+            )
+        }
+    }
+    
+    showDilutionDialog?.let { potionWithRecipe ->
+        val character by viewModel.character.collectAsState()
+        
+        character?.let { char ->
+            DilutionDialog(
+                potion = potionWithRecipe.potion,
+                recipe = potionWithRecipe.recipe,
+                character = char,
+                viewModel = viewModel,
+                onDismiss = { showDilutionDialog = null },
+                onComplete = { showDilutionDialog = null }
             )
         }
     }
@@ -225,9 +243,11 @@ private fun PotionCard(
     isGameMaster: Boolean,
     isNameKnown: Boolean,
     groupCharacters: List<de.applicatus.app.data.model.character.Character> = emptyList(),
+    character: de.applicatus.app.data.model.character.Character? = null,
     onDelete: () -> Unit,
     onAnalyze: () -> Unit,
-    onTransfer: (Long) -> Unit = {}
+    onTransfer: (Long) -> Unit = {},
+    onDilute: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -350,6 +370,12 @@ private fun PotionCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Prüfen ob Verdünnen möglich ist
+            val canDilute = character != null && 
+                            (character.alchemySkill > 0 || character.cookingPotionsSkill > 0) &&
+                            potionWithRecipe.potion.actualQuality != de.applicatus.app.data.model.potion.PotionQuality.M &&
+                            potionWithRecipe.potion.actualQuality.ordinal > 0
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -365,6 +391,16 @@ private fun PotionCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Analysieren")
+                }
+                
+                // Verdünnen-Button nur anzeigen, wenn Charakter Alchimie oder Kochen (Tränke) kann
+                if (canDilute) {
+                    OutlinedButton(
+                        onClick = onDilute,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Verdünnen")
+                    }
                 }
                 
                 // Übergeben-Button nur anzeigen, wenn es andere Charaktere in der Gruppe gibt

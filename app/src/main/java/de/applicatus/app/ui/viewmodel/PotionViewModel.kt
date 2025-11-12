@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class PotionViewModel(
     private val repository: ApplicatusRepository,
@@ -343,6 +344,60 @@ class PotionViewModel(
             val char = _character.value ?: return@launch
             repository.updateCharacter(char.copy(defaultLaboratory = laboratory))
         }
+    }
+    
+    /**
+     * Verdünnt einen Trank qualifiziert
+     * 
+     * @param potion Der zu verdünnende Trank
+     * @param talent Das verwendete Talent (ALCHEMY oder COOKING_POTIONS)
+     * @param dilutionSteps Um wie viele Stufen soll verdünnt werden (1-6)
+     * @param magicalMasteryAsp AsP für Magisches Meisterhandwerk
+     * @return Ergebnis der Verdünnungsprobe
+     */
+    suspend fun dilutePotion(
+        potion: Potion,
+        talent: Talent,
+        dilutionSteps: Int,
+        magicalMasteryAsp: Int = 0
+    ): PotionBrewer.DilutionResult {
+        val char = _character.value ?: throw IllegalStateException("Kein Charakter geladen")
+        val recipe = repository.getRecipeById(potion.recipeId) ?: throw IllegalStateException("Rezept nicht gefunden")
+        
+        // Erleichterung aus vorheriger Analyse berechnen (halbe Punkte aufgerundet)
+        val facilitationFromAnalysis = (potion.bestStructureAnalysisFacilitation + 1) / 2
+        
+        // Verdünnungsprobe durchführen
+        val result = PotionBrewer.dilutePotion(
+            character = char,
+            potion = potion,
+            recipe = recipe,
+            talent = talent,
+            dilutionSteps = dilutionSteps,
+            facilitationFromAnalysis = facilitationFromAnalysis,
+            magicalMasteryAsp = magicalMasteryAsp
+        )
+        
+        // AsP abziehen wenn Magisches Meisterhandwerk verwendet wurde
+        if (magicalMasteryAsp > 0) {
+            adjustCurrentAe(characterId, -magicalMasteryAsp)
+        }
+        
+        // Originalen Trank löschen
+        repository.deletePotion(potion)
+        
+        // Neue Tränke erstellen
+        repeat(result.numberOfPotions) {
+            val newPotion = potion.copy(
+                id = 0, // Neue ID generieren
+                guid = UUID.randomUUID().toString(), // Neue GUID
+                actualQuality = result.newQuality,
+                // Aussehen, Haltbarkeit und Analyse-Status bleiben erhalten
+            )
+            repository.insertPotion(newPotion)
+        }
+        
+        return result
     }
 }
 
