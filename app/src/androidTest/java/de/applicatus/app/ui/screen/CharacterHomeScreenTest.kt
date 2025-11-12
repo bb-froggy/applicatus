@@ -8,6 +8,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
+import de.applicatus.app.data.InitialRecipes
+import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
@@ -64,10 +66,17 @@ class CharacterHomeScreenTest {
             database.recipeDao(),
             database.potionDao(),
             database.globalSettingsDao(),
-            database.recipeKnowledgeDao()
+            database.recipeKnowledgeDao(),
+            database.groupDao(),
+            database.itemDao(),
+            database.locationDao()
         )
 
         runBlocking {
+            // Initialisiere Initial-Daten (Zauber und Rezepte)
+            database.spellDao().insertSpells(InitialSpells.getDefaultSpells())
+            database.recipeDao().insertRecipes(InitialRecipes.getDefaultRecipes())
+
             testCharacterId = repository.insertCharacter(
                 Character(
                     name = TEST_CHARACTER_NAME,
@@ -107,7 +116,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -125,7 +135,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -150,7 +161,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -179,7 +191,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -214,7 +227,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -245,7 +259,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -270,7 +285,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -300,7 +316,8 @@ class CharacterHomeScreenTest {
                     navigatedToSpellStorage = true
                     navigatedCharacterId = id
                 },
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -331,7 +348,8 @@ class CharacterHomeScreenTest {
                 onNavigateToPotions = { id ->
                     navigatedToPotions = true
                     navigatedCharacterId = id
-                }
+                },
+                onNavigateToInventory = {}
             )
         }
 
@@ -358,7 +376,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = { navigatedBack = true },
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 
@@ -383,7 +402,8 @@ class CharacterHomeScreenTest {
                 viewModelFactory = viewModelFactory,
                 onNavigateBack = {},
                 onNavigateToSpellStorage = {},
-                onNavigateToPotions = {}
+                onNavigateToPotions = {},
+                onNavigateToInventory = {}
             )
         }
 

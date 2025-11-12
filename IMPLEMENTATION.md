@@ -82,6 +82,31 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 .\gradlew.bat build --stacktrace
 ```
 
+### Datenbank-Migrationen testen
+
+**WICHTIG: Datenbank-Migrationen müssen immer getestet werden!**
+
+Der `DatabaseMigrationTest` stellt sicher, dass alle Migrationen von Version 1 bis zur aktuellen Version funktionieren:
+
+```bash
+# Datenbank-Migrationstest ausführen (benötigt verbundenes Gerät/Emulator)
+.\gradlew.bat connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=de.applicatus.app.data.DatabaseMigrationTest
+```
+
+**Ablauf des Tests**:
+1. Erstellt Datenbank mit Schema Version 1 und Testdaten
+2. Migriert schrittweise durch alle Versionen (1 → 2 → 3 → ... → 20)
+3. Prüft nach jeder Migration, dass keine Exception auftritt
+4. Validiert am Ende, dass alle Daten sinnvoll vorhanden sind
+
+**Bei neuen Migrationen**:
+- Migration als `val` (nicht `private val`) deklarieren
+- Migration in `.addMigrations()` Liste hinzufügen
+- Test erweitern um neuen Migrationsschritt
+- Test ausführen, bevor ein Update veröffentlicht wird
+
+Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/app/data/DATABASE_MIGRATION_TEST.md)
+
 ### Häufige Build-Fehler und deren Vermeidung
 
 #### 1. Nicht existierende Compose-Komponenten

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -11,6 +12,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
+import de.applicatus.app.data.InitialRecipes
+import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
@@ -48,10 +51,17 @@ class CharacterListScreenTest {
             database.recipeDao(),
             database.potionDao(),
             database.globalSettingsDao(),
-            database.recipeKnowledgeDao()
+            database.recipeKnowledgeDao(),
+            database.groupDao(),
+            database.itemDao(),
+            database.locationDao()
         )
 
         runBlocking {
+            // Initialisiere Initial-Daten (Zauber und Rezepte)
+            database.spellDao().insertSpells(InitialSpells.getDefaultSpells())
+            database.recipeDao().insertRecipes(InitialRecipes.getDefaultRecipes())
+            
             arionId = repository.insertCharacter(Character(name = "Arion"))
             repository.insertCharacter(Character(name = "Bela"))
         }
@@ -74,7 +84,10 @@ class CharacterListScreenTest {
             )
         }
 
+        // Gib dem StateFlow Zeit, die Daten zu laden und das UI zu aktualisieren
+        Thread.sleep(1000)
         composeRule.waitForIdle()
+        
         composeRule.onNodeWithText("Arion").assertIsDisplayed()
         composeRule.onNodeWithText("Bela").assertIsDisplayed()
     }
@@ -110,7 +123,10 @@ class CharacterListScreenTest {
             )
         }
 
+        // Gib dem StateFlow Zeit, die Daten zu laden
+        Thread.sleep(1000)
         composeRule.waitForIdle()
+        
         composeRule.onNodeWithText("Arion").performClick()
 
         composeRule.waitForIdle()

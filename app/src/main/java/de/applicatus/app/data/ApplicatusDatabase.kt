@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
     version = 20,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class ApplicatusDatabase : RoomDatabase() {
@@ -53,7 +53,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: ApplicatusDatabase? = null
         
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Character-Tabelle erweitern
                 database.execSQL("ALTER TABLE characters ADD COLUMN hasApplicatus INTEGER NOT NULL DEFAULT 0")
@@ -67,7 +67,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // GUID-Spalte zu Character-Tabelle hinzufügen
                 // Generiere UUIDs für bestehende Charaktere
@@ -87,7 +87,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Energie-Spalten zu Character-Tabelle hinzufügen
                 database.execSQL("ALTER TABLE characters ADD COLUMN currentLe INTEGER NOT NULL DEFAULT 30")
@@ -126,7 +126,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
+        val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Regenerations-Felder zu Character-Tabelle hinzufügen
                 database.execSQL("ALTER TABLE characters ADD COLUMN leRegenBonus INTEGER NOT NULL DEFAULT 0")
@@ -135,7 +135,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_5_6 = object : Migration(5, 6) {
+        val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Recipe-Tabelle erweitern
                 database.execSQL("ALTER TABLE recipes ADD COLUMN brewingDifficulty INTEGER NOT NULL DEFAULT 0")
@@ -164,7 +164,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_6_7 = object : Migration(6, 7) {
+        val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Character-Tabelle erweitern (Zauber für Alchemie)
                 database.execSQL("ALTER TABLE characters ADD COLUMN odemZfw INTEGER NOT NULL DEFAULT 0")
@@ -189,7 +189,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_7_8 = object : Migration(7, 8) {
+        val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Boolean-Felder hinzufügen, um zu tracken ob Talente/Zauber überhaupt beherrscht werden
                 database.execSQL("ALTER TABLE characters ADD COLUMN hasAlchemy INTEGER NOT NULL DEFAULT 0")
@@ -199,7 +199,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_8_9 = object : Migration(8, 9) {
+        val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Recipe-Tabelle erweitern mit Feldern aus Rezepte.csv
                 database.execSQL("ALTER TABLE recipes ADD COLUMN gruppe TEXT NOT NULL DEFAULT ''")
@@ -211,7 +211,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_9_10 = object : Migration(9, 10) {
+        val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // WICHTIG: Da es noch keine Anwender mit Elixieren gibt, erstellen wir die Potion-Tabelle neu
                 // Alte Potion-Tabelle löschen
@@ -252,7 +252,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_10_11 = object : Migration(10, 11) {
+        val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Character-Tabelle erweitern mit Spieler/Spielleiter-Flag
                 database.execSQL("ALTER TABLE characters ADD COLUMN isGameMaster INTEGER NOT NULL DEFAULT 0")
@@ -262,7 +262,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_11_12 = object : Migration(11, 12) {
+        val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Entferne nur accumulatedStructureAnalysisTap aus Potion-Tabelle
                 // bestStructureAnalysisFacilitation bleibt erhalten!
@@ -318,7 +318,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_12_13 = object : Migration(12, 13) {
+        val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Gruppen-Feld zu Character-Tabelle hinzufügen
                 database.execSQL("ALTER TABLE characters ADD COLUMN 'group' TEXT NOT NULL DEFAULT 'Meine Gruppe'")
@@ -339,7 +339,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_13_14 = object : Migration(13, 14) {
+        val MIGRATION_13_14 = object : Migration(13, 14) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Magisches Meisterhandwerk-Felder zu Character-Tabelle hinzufügen
                 database.execSQL("ALTER TABLE characters ADD COLUMN alchemyIsMagicalMastery INTEGER NOT NULL DEFAULT 0")
@@ -347,21 +347,21 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_14_15 = object : Migration(14, 15) {
+        val MIGRATION_14_15 = object : Migration(14, 15) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Default-Labor-Feld zu Character-Tabelle hinzufügen
                 database.execSQL("ALTER TABLE characters ADD COLUMN defaultLaboratory TEXT")
             }
         }
         
-        private val MIGRATION_15_16 = object : Migration(15, 16) {
+        val MIGRATION_15_16 = object : Migration(15, 16) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // nameKnown-Feld zu Potion-Tabelle hinzufügen
                 database.execSQL("ALTER TABLE potions ADD COLUMN nameKnown INTEGER NOT NULL DEFAULT 0")
             }
         }
         
-        private val MIGRATION_16_17 = object : Migration(16, 17) {
+        val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Groups-Tabelle erstellen
                 database.execSQL("""
@@ -426,7 +426,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_17_18 = object : Migration(17, 18) {
+        val MIGRATION_17_18 = object : Migration(17, 18) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Locations-Tabelle erstellen (OHNE DEFAULT-Werte in der Tabellendefinition)
                 database.execSQL("""
@@ -506,7 +506,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_18_19 = object : Migration(18, 19) {
+        val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Locations-Tabelle erweitern um isCarried
                 database.execSQL("ALTER TABLE locations ADD COLUMN isCarried INTEGER NOT NULL DEFAULT 0")
@@ -527,7 +527,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
-        private val MIGRATION_19_20 = object : Migration(19, 20) {
+        val MIGRATION_19_20 = object : Migration(19, 20) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Items-Tabelle um Geldbeutel-Felder erweitern
                 database.execSQL("ALTER TABLE items ADD COLUMN isPurse INTEGER NOT NULL DEFAULT 0")

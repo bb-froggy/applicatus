@@ -8,6 +8,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
+import de.applicatus.app.data.InitialRecipes
+import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.data.model.potion.RecipeKnowledge
@@ -71,21 +73,24 @@ class RecipeKnowledgeScreenTest {
             database.recipeDao(),
             database.potionDao(),
             database.globalSettingsDao(),
-            database.recipeKnowledgeDao()
+            database.recipeKnowledgeDao(),
+            database.groupDao(),
+            database.itemDao(),
+            database.locationDao()
         )
 
         runBlocking {
+            // Initialisiere Initial-Daten (nur Zauber, keine Rezepte, da diese Tests eigene Rezepte erstellen)
+            database.spellDao().insertSpells(InitialSpells.getDefaultSpells())
+            
             // Warte kurz, damit onCreate-Callback abgeschlossen ist
             kotlinx.coroutines.delay(100)
             
-            // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
-            // Dies muss synchron passieren, bevor die Test-Rezepte eingefügt werden
+            // Lösche alle Initial-Rezepte, damit Tests mit sauberem Zustand starten
             val existingRecipes = repository.allRecipes.first()
             existingRecipes.forEach { recipe ->
                 repository.deleteRecipe(recipe)
             }
-            
-            // Doppelte Prüfung, dass wirklich alle weg sind
             kotlinx.coroutines.delay(50)
             
             testCharacterId = repository.insertCharacter(

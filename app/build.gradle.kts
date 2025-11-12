@@ -21,6 +21,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Exportiere Room-Schema für Migrationstests
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     buildTypes {
@@ -47,6 +52,13 @@ android {
     lint {
         // Disable checks due to known bugs in lint
         disable += listOf("AutoboxingStateCreation", "MutableCollectionMutableState")
+    }
+    
+    sourceSets {
+        // Stelle Schema-Dateien für androidTest zur Verfügung
+        getByName("androidTest") {
+            assets.srcDirs("$projectDir/schemas")
+        }
     }
 }
 
@@ -92,6 +104,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.room:room-testing:$roomVersion")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

@@ -8,6 +8,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
+import de.applicatus.app.data.InitialRecipes
+import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.spell.Spell
 import de.applicatus.app.data.model.spell.SlotType
@@ -53,10 +55,17 @@ class GameMasterModeUITest {
             database.recipeDao(),
             database.potionDao(),
             database.globalSettingsDao(),
-            database.recipeKnowledgeDao()
+            database.recipeKnowledgeDao(),
+            database.groupDao(),
+            database.itemDao(),
+            database.locationDao()
         )
 
         runBlocking {
+            // Initialisiere Initial-Daten (Zauber und Rezepte)
+            database.spellDao().insertSpells(InitialSpells.getDefaultSpells())
+            database.recipeDao().insertRecipes(InitialRecipes.getDefaultRecipes())
+            
             // Erstelle einen Spieler-Charakter
             playerCharacterId = repository.insertCharacter(
                 Character(
@@ -171,8 +180,9 @@ class GameMasterModeUITest {
         // Warte bis UI geladen ist
         composeRule.waitForIdle()
 
-        // Spieler sieht "Gefüllt" aber keine ZfP*
-        composeRule.onNodeWithText("✓ Gefüllt").assertExists()
+        // Spieler sieht "Gefüllt" (für beide Slots) aber keine ZfP*
+        // Es gibt 2 gefüllte Slots (erfolgreicher und verpatzter)
+        composeRule.onAllNodesWithText("✓ Gefüllt").assertCountEquals(2)
         composeRule.onNodeWithText("ZfP*: 8", substring = true).assertDoesNotExist()
         
         // Spieler sieht keine Würfelergebnisse

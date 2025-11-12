@@ -8,6 +8,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
+import de.applicatus.app.data.InitialRecipes
+import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.data.repository.ApplicatusRepository
@@ -48,17 +50,25 @@ class PotionScreenTest {
             database.recipeDao(),
             database.potionDao(),
             database.globalSettingsDao(),
-            database.recipeKnowledgeDao()
+            database.recipeKnowledgeDao(),
+            database.groupDao(),
+            database.itemDao(),
+            database.locationDao()
         )
 
         runBlocking {
+            // Initialisiere Initial-Daten (nur Zauber, keine Rezepte, da diese Tests eigene Rezepte erstellen)
+            database.spellDao().insertSpells(InitialSpells.getDefaultSpells())
+            
             // Warte kurz, damit onCreate-Callback abgeschlossen ist
             kotlinx.coroutines.delay(100)
             
-            // Lösche alle Initial-Rezepte, die beim Datenbankstart eingefügt wurden
-            repository.allRecipes.first().forEach { recipe ->
+            // Lösche alle Initial-Rezepte, damit Tests mit sauberem Zustand starten
+            val existingRecipes = repository.allRecipes.first()
+            existingRecipes.forEach { recipe ->
                 repository.deleteRecipe(recipe)
             }
+            kotlinx.coroutines.delay(50)
             
             testCharacterId = repository.insertCharacter(
                 Character(
@@ -140,7 +150,11 @@ class PotionScreenTest {
             )
         }
 
-        composeRule.waitForIdle()
+        // Warte, bis die Tränke im UI erscheinen
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithText("Heiltrank").fetchSemanticsNodes().isNotEmpty()
+        }
+        
         composeRule.onNodeWithText("Heiltrank").assertIsDisplayed()
     }
 
@@ -173,7 +187,10 @@ class PotionScreenTest {
             )
         }
 
-        composeRule.waitForIdle()
+        // Warte, bis die UI geladen ist
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithContentDescription("Trank hinzufügen").fetchSemanticsNodes().isNotEmpty()
+        }
         
         // Klicke auf Add-Button
         composeRule.onNodeWithContentDescription("Trank hinzufügen").performClick()
@@ -243,7 +260,10 @@ class PotionScreenTest {
             )
         }
 
-        composeRule.waitForIdle()
+        // Warte, bis die "Trank analysieren" Button im UI erscheint
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithText("Trank analysieren").fetchSemanticsNodes().isNotEmpty()
+        }
         
         // Klicke auf Analyse-Button (Button mit Text, nicht contentDescription)
         composeRule.onNodeWithText("Trank analysieren").performClick()
@@ -332,7 +352,10 @@ class PotionScreenTest {
             )
         }
 
-        composeRule.waitForIdle()
+        // Warte, bis die Tränke im UI erscheinen
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithText("Status: Nicht analysiert").fetchSemanticsNodes().isNotEmpty()
+        }
         
         // Überprüfe Analyse-Status - Format ist "Status: Nicht analysiert"
         composeRule.onNodeWithText("Status: Nicht analysiert").assertIsDisplayed()
@@ -358,7 +381,10 @@ class PotionScreenTest {
             )
         }
 
-        composeRule.waitForIdle()
+        // Warte, bis die UI geladen ist
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithContentDescription("Trank hinzufügen").fetchSemanticsNodes().isNotEmpty()
+        }
         
         // Klicke auf Add-Button
         composeRule.onNodeWithContentDescription("Trank hinzufügen").performClick()
@@ -402,7 +428,10 @@ class PotionScreenTest {
             )
         }
 
-        composeRule.waitForIdle()
+        // Warte, bis die Tränke im UI erscheinen
+        composeRule.waitUntil(timeoutMillis = 5000) {
+            composeRule.onAllNodesWithText("Heiltrank", substring = true).fetchSemanticsNodes().size >= 3
+        }
         
         // Alle drei Tränke sollten angezeigt werden (mit dem Rezeptnamen)
         // Da kein Analysewissen gesetzt ist, zeigen alle "Qualität: Unbekannt"
