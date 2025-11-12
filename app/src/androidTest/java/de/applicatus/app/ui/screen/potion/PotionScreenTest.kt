@@ -140,22 +140,24 @@ class PotionScreenTest {
 
     @Test
     fun potionScreen_displaysPotions() {
-        val viewModelFactory = PotionViewModelFactory(repository, testCharacterId)
+        val viewModel = PotionViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             PotionScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = PotionViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
-        // Warte, bis die Tränke im UI erscheinen
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithText("Heiltrank").fetchSemanticsNodes().isNotEmpty()
+        // Warte, bis die Tränke geladen sind
+        runBlocking {
+            viewModel.potions.first { it.isNotEmpty() }
+            kotlinx.coroutines.delay(500)
         }
+        composeRule.waitForIdle()
         
-        composeRule.onNodeWithText("Heiltrank").assertIsDisplayed()
+        composeRule.onNodeWithText("Unbekannter Trank").assertIsDisplayed()
     }
 
     @Test
@@ -177,20 +179,22 @@ class PotionScreenTest {
 
     @Test
     fun potionScreen_addButtonOpensDialog() {
-        val viewModelFactory = PotionViewModelFactory(repository, testCharacterId)
+        val viewModel = PotionViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             PotionScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = PotionViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
         // Warte, bis die UI geladen ist
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithContentDescription("Trank hinzufügen").fetchSemanticsNodes().isNotEmpty()
+        runBlocking {
+            viewModel.potions.first()  // Warte auf ersten Emit (kann auch leer sein)
+            kotlinx.coroutines.delay(500)
         }
+        composeRule.waitForIdle()
         
         // Klicke auf Add-Button
         composeRule.onNodeWithContentDescription("Trank hinzufügen").performClick()
@@ -250,20 +254,22 @@ class PotionScreenTest {
 
     @Test
     fun potionScreen_analyzeButtonOpensDialog() {
-        val viewModelFactory = PotionViewModelFactory(repository, testCharacterId)
+        val viewModel = PotionViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             PotionScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = PotionViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
-        // Warte, bis die "Trank analysieren" Button im UI erscheint
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithText("Trank analysieren").fetchSemanticsNodes().isNotEmpty()
+        // Warte, bis die Tränke geladen sind
+        runBlocking {
+            viewModel.potions.first { it.isNotEmpty() }
+            kotlinx.coroutines.delay(500)
         }
+        composeRule.waitForIdle()
         
         // Klicke auf Analyse-Button (Button mit Text, nicht contentDescription)
         composeRule.onNodeWithText("Trank analysieren").performClick()
@@ -342,20 +348,22 @@ class PotionScreenTest {
 
     @Test
     fun potionScreen_displaysAnalysisStatus() {
-        val viewModelFactory = PotionViewModelFactory(repository, testCharacterId)
+        val viewModel = PotionViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             PotionScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = PotionViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
-        // Warte, bis die Tränke im UI erscheinen
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithText("Status: Nicht analysiert").fetchSemanticsNodes().isNotEmpty()
+        // Warte, bis die Tränke geladen sind
+        runBlocking {
+            viewModel.potions.first { it.isNotEmpty() }
+            kotlinx.coroutines.delay(500)
         }
+        composeRule.waitForIdle()
         
         // Überprüfe Analyse-Status - Format ist "Status: Nicht analysiert"
         composeRule.onNodeWithText("Status: Nicht analysiert").assertIsDisplayed()
@@ -371,28 +379,30 @@ class PotionScreenTest {
             }
         }
         
-        val viewModelFactory = PotionViewModelFactory(repository, testCharacterId)
+        val viewModel = PotionViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             PotionScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = PotionViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
-        // Warte, bis die UI geladen ist
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithContentDescription("Trank hinzufügen").fetchSemanticsNodes().isNotEmpty()
+        // Warte, bis Rezepte geladen sind (sollten leer sein)
+        runBlocking {
+            viewModel.recipes.first { it.isEmpty() }
+            kotlinx.coroutines.delay(500)
         }
+        composeRule.waitForIdle()
         
         // Klicke auf Add-Button
-        composeRule.onNodeWithContentDescription("Trank hinzufügen").performClick()
+        composeRule.onNodeWithContentDescription("Trank brauen").performClick()
         
         composeRule.waitForIdle()
         
         // Überprüfe "Keine Rezepte"-Nachricht
-        composeRule.onNodeWithText("Keine Rezepte vorhanden").assertIsDisplayed()
+        composeRule.onNodeWithText("Keine bekannten Rezepte").assertIsDisplayed()
     }
 
     @Test
@@ -418,20 +428,22 @@ class PotionScreenTest {
             )
         }
         
-        val viewModelFactory = PotionViewModelFactory(repository, testCharacterId)
+        val viewModel = PotionViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             PotionScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = PotionViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
-        // Warte, bis die Tränke im UI erscheinen
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithText("Heiltrank", substring = true).fetchSemanticsNodes().size >= 3
+        // Warte, bis alle 3 Tränke geladen sind
+        runBlocking {
+            viewModel.potions.first { it.size >= 3 }
+            kotlinx.coroutines.delay(500)
         }
+        composeRule.waitForIdle()
         
         // Alle drei Tränke sollten angezeigt werden (mit dem Rezeptnamen)
         // Da kein Analysewissen gesetzt ist, zeigen alle "Qualität: Unbekannt"

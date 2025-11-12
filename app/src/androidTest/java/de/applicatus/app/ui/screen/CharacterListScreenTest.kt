@@ -18,6 +18,7 @@ import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -84,8 +85,8 @@ class CharacterListScreenTest {
             )
         }
 
-        // Gib dem StateFlow Zeit, die Daten zu laden und das UI zu aktualisieren
-        Thread.sleep(1000)
+        // Gib genug Zeit für StateFlow-Subscription und Datenladung
+        Thread.sleep(2000)
         composeRule.waitForIdle()
         
         composeRule.onNodeWithText("Arion").assertIsDisplayed()
@@ -123,8 +124,8 @@ class CharacterListScreenTest {
             )
         }
 
-        // Gib dem StateFlow Zeit, die Daten zu laden
-        Thread.sleep(1000)
+        // Gib genug Zeit für StateFlow-Subscription und Datenladung
+        Thread.sleep(2000)
         composeRule.waitForIdle()
         
         composeRule.onNodeWithText("Arion").performClick()

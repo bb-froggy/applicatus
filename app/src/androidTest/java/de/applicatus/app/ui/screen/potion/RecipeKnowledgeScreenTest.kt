@@ -259,16 +259,21 @@ class RecipeKnowledgeScreenTest {
 
     @Test
     fun recipeKnowledgeScreen_filterShowsOnlyKnownRecipes() {
-        val viewModelFactory = RecipeKnowledgeViewModelFactory(repository, testCharacterId)
+        val viewModel = RecipeKnowledgeViewModel(repository, testCharacterId)
 
         composeRule.setContent {
             RecipeKnowledgeScreen(
                 characterId = testCharacterId,
-                viewModelFactory = viewModelFactory,
+                viewModelFactory = RecipeKnowledgeViewModelFactory(repository, testCharacterId),
                 onNavigateBack = {}
             )
         }
 
+        // Warte darauf, dass Rezepte geladen sind
+        runBlocking {
+            viewModel.recipesWithKnowledge.first { it.isNotEmpty() }
+            kotlinx.coroutines.delay(500)
+        }
         composeRule.waitForIdle()
         waitForRecipes()
         
