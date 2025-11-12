@@ -65,30 +65,57 @@ object DerianDateCalculator {
      * Berechnet die Anzahl aus einer Haltbarkeitsangabe
      * Unterstützt sowohl feste Zahlen als auch Würfelnotationen
      * 
-     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen", "unbegrenzt")
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen", "unbegrenzt", "einige Jahre")
      * @return Berechnete Anzahl oder null bei Fehler oder "unbegrenzt"
      */
     fun parseShelfLifeAmount(shelfLife: String): Int? {
         val shelfLifeLower = shelfLife.trim().lowercase()
         
-        // Prüfe auf "unbegrenzt" oder "ewig"
-        if ("unbegrenzt" in shelfLifeLower || "ewig" in shelfLifeLower) {
+        // Prüfe auf "unbegrenzt" oder "ewig" oder "nahezu unbegrenzt"
+        if ("unbegrenzt" in shelfLifeLower || "ewig" in shelfLifeLower || "nahezu unbegrenzt" in shelfLifeLower) {
             return null // Signal für unbegrenzte Haltbarkeit
+        }
+        
+        // Spezielle Fälle: "einige Jahre", "mehrere Jahre"
+        if ("einige jahre" in shelfLifeLower) {
+            return 3 // ca. 3 Jahre
+        }
+        if ("mehrere jahre" in shelfLifeLower) {
+            return 5 // ca. 5 Jahre
         }
         
         val parts = shelfLife.trim().split(" ")
         if (parts.isEmpty()) return null
         
-        val amountPart = if (parts.size > 1) {
+        // Entferne "etwa" am Anfang falls vorhanden
+        val cleanedParts = if (parts.size > 1 && parts[0].lowercase() == "etwa") {
+            parts.drop(1)
+        } else {
+            parts
+        }
+        
+        if (cleanedParts.isEmpty()) return null
+        
+        val amountPart = if (cleanedParts.size > 1) {
             // Bei mehreren Teilen ist der erste Teil die Menge
-            parts.dropLast(1).joinToString(" ")
+            cleanedParts.dropLast(1).joinToString(" ")
         } else {
             return null
         }
         
-        // Prüfe auf Würfelnotation und verwende ProbeChecker
-        return if (Regex("""(\d+)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE).matches(amountPart)) {
-            ProbeChecker.rollDice(amountPart)
+        // Prüfe auf Würfelnotation (mit oder ohne führende Zahl vor W)
+        // Beispiele: "3W6+2", "W6+2" (wird zu "1W6+2"), "2W20"
+        val diceRegex = Regex("""(\d*)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE)
+        val diceMatch = diceRegex.matchEntire(amountPart)
+        
+        return if (diceMatch != null) {
+            // Wenn keine Zahl vor W steht, nehme 1 an
+            val normalizedDice = if (diceMatch.groupValues[1].isEmpty()) {
+                "1" + amountPart
+            } else {
+                amountPart
+            }
+            ProbeChecker.rollDice(normalizedDice)
         } else {
             amountPart.toIntOrNull()
         }
@@ -139,7 +166,7 @@ object DerianDateCalculator {
             // Wenn null zurückgegeben wird, ist es entweder "unbegrenzt" oder ein Fehler
             if (amount == null) {
                 val shelfLifeLower = shelfLife.trim().lowercase()
-                if ("unbegrenzt" in shelfLifeLower || "ewig" in shelfLifeLower) {
+                if ("unbegrenzt" in shelfLifeLower || "ewig" in shelfLifeLower || "nahezu unbegrenzt" in shelfLifeLower) {
                     return UNLIMITED_DATE
                 }
                 return currentDate // Fehler beim Parsen

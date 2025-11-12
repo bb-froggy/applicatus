@@ -19,7 +19,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 2,
             brewingDifficulty = 6,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "W3+1 Monate"
         ),
         Recipe(
             name = "Hexensalbe",
@@ -30,7 +31,8 @@ object InitialRecipes {
             zutatenVerbreitung = 0,
             verbreitung = 15, // * = sehr verbreitet
             brewingDifficulty = 0, // unbekannt
-            analysisDifficulty = 0
+            analysisDifficulty = 0,
+            shelfLife = "6 Monate"
         ),
         Recipe(
             name = "Hylailer Feuer",
@@ -41,7 +43,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 4,
             brewingDifficulty = 6,
-            analysisDifficulty = 5
+            analysisDifficulty = 5,
+            shelfLife = "einige Jahre"
         ),
         Recipe(
             name = "Magisches Brandöl",
@@ -52,7 +55,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 2,
             brewingDifficulty = 12,
-            analysisDifficulty = 18
+            analysisDifficulty = 18,
+            shelfLife = "einige Jahre"
         ),
         Recipe(
             name = "Sonnenlicht-Elixier",
@@ -63,7 +67,8 @@ object InitialRecipes {
             zutatenVerbreitung = 5,
             verbreitung = 1,
             brewingDifficulty = 7,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "unbegrenzt"
         ),
         Recipe(
             name = "Stabilisatum",
@@ -74,7 +79,8 @@ object InitialRecipes {
             zutatenVerbreitung = 5,
             verbreitung = 3,
             brewingDifficulty = 9,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "3W6+6 Wochen"
         ),
         Recipe(
             name = "Waffenbalsam",
@@ -85,7 +91,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 5,
             brewingDifficulty = 6,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "unbegrenzt"
         ),
         
         // keine Gruppe
@@ -98,7 +105,8 @@ object InitialRecipes {
             zutatenVerbreitung = 12,
             verbreitung = 7,
             brewingDifficulty = 1,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "2W6 Wochen"
         ),
         Recipe(
             name = "Geheimtinte",
@@ -109,7 +117,8 @@ object InitialRecipes {
             zutatenVerbreitung = 13,
             verbreitung = 5,
             brewingDifficulty = 0, // var.
-            analysisDifficulty = 0
+            analysisDifficulty = 0,
+            shelfLife = "2W6 Monate"
         ),
         Recipe(
             name = "Kaltes Licht",
@@ -120,7 +129,8 @@ object InitialRecipes {
             zutatenVerbreitung = 12,
             verbreitung = 3,
             brewingDifficulty = 2,
-            analysisDifficulty = 6
+            analysisDifficulty = 6,
+            shelfLife = "mehrere Jahre"
         ),
         Recipe(
             name = "Pyrophor",
@@ -131,7 +141,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 4,
             brewingDifficulty = 0,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "mehrere Jahre"
         ),
         Recipe(
             name = "Schattenkreide",
@@ -142,7 +153,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 3, // 3 /5
             brewingDifficulty = 2,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "unbegrenzt"
         ),
         Recipe(
             name = "Schwadenbeutel",
@@ -153,7 +165,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 6,
             brewingDifficulty = 4,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "1W6+3 Monate"
         ),
         Recipe(
             name = "Stinktöpfchen",
@@ -164,7 +177,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 6,
             brewingDifficulty = 0,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "1W6+2 Monate"
         ),
         Recipe(
             name = "Tränenkraut",
@@ -175,7 +189,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 6,
             brewingDifficulty = 2,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "1W6+2 Monate"
         ),
         Recipe(
             name = "Wundpulver",
@@ -186,7 +201,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 7,
             brewingDifficulty = 0,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "1W6 Monate"
         ),
         
         // Magika
@@ -199,7 +215,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 5,
             brewingDifficulty = 3,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Bannpulver gg. Unsichtbares",
@@ -210,7 +227,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 4,
             brewingDifficulty = 6,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Beschwörungskerzen",
@@ -221,7 +239,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 6,
             brewingDifficulty = 3,
-            analysisDifficulty = 0
+            analysisDifficulty = 0,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Borbarads Hauch",
@@ -232,7 +251,8 @@ object InitialRecipes {
             zutatenVerbreitung = 3,
             verbreitung = 3,
             brewingDifficulty = 7,
-            analysisDifficulty = 18
+            analysisDifficulty = 18,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Geisterelixier",
@@ -243,7 +263,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 3,
             brewingDifficulty = 3,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "2W6+3 Monate"
         ),
         Recipe(
             name = "Retro-Elixier",
@@ -254,7 +275,8 @@ object InitialRecipes {
             zutatenVerbreitung = 2,
             verbreitung = 1,
             brewingDifficulty = 7,
-            analysisDifficulty = 8
+            analysisDifficulty = 8,
+            shelfLife = "3W6+10 Monate"
         ),
         Recipe(
             name = "Zauberkreide",
@@ -265,7 +287,8 @@ object InitialRecipes {
             zutatenVerbreitung = 13,
             verbreitung = 7,
             brewingDifficulty = 2,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Zaubertrank",
@@ -276,7 +299,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 5,
             brewingDifficulty = 8,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "2W6+30 Monate"
         ),
         
         // Mutandica
@@ -289,7 +313,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 1,
             brewingDifficulty = 15,
-            analysisDifficulty = 8
+            analysisDifficulty = 8,
+            shelfLife = "3 Jahre"
         ),
         Recipe(
             name = "Hauch der Jugend",
@@ -300,7 +325,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 3,
             brewingDifficulty = 7,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "1W6 Jahre"
         ),
         Recipe(
             name = "Ifirnstrunk",
@@ -311,7 +337,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 4,
             brewingDifficulty = 4,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "3W20 Wochen"
         ),
         Recipe(
             name = "Levitationselixier",
@@ -322,7 +349,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 3, // 3/5
             brewingDifficulty = 6,
-            analysisDifficulty = 0
+            analysisDifficulty = 0,
+            shelfLife = "1W6+9 Monate"
         ),
         Recipe(
             name = "Purpurwasser",
@@ -333,7 +361,8 @@ object InitialRecipes {
             zutatenVerbreitung = 1,
             verbreitung = 1,
             brewingDifficulty = 6,
-            analysisDifficulty = 6
+            analysisDifficulty = 6,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Rethonikum",
@@ -344,7 +373,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 3,
             brewingDifficulty = 5,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "1W6+12 Monate"
         ),
         Recipe(
             name = "Unsichtbarkeitselixier",
@@ -355,7 +385,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 4,
             brewingDifficulty = 10,
-            analysisDifficulty = 6
+            analysisDifficulty = 6,
+            shelfLife = "3W6+72 Monate"
         ),
         Recipe(
             name = "Unverwundbarkeitselixier",
@@ -366,7 +397,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 5,
             brewingDifficulty = 5,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "1W3+5 Monate"
         ),
         Recipe(
             name = "Verwandlungselixier",
@@ -377,7 +409,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 5,
             brewingDifficulty = 8,
-            analysisDifficulty = 5
+            analysisDifficulty = 5,
+            shelfLife = "1W3+10 Monate"
         ),
         Recipe(
             name = "Zurbarans Tinktur",
@@ -388,7 +421,8 @@ object InitialRecipes {
             zutatenVerbreitung = 2,
             verbreitung = 1,
             brewingDifficulty = 10,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "1W6+3 Monate"
         ),
         Recipe(
             name = "Zwergentrunk",
@@ -399,7 +433,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 4,
             brewingDifficulty = 6,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "2W6 Monate"
         ),
         
         // Narkotika
@@ -412,7 +447,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 5,
             brewingDifficulty = 6,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "2W6+17 Monate"
         ),
         Recipe(
             name = "Bestinoid",
@@ -423,7 +459,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 3,
             brewingDifficulty = 7,
-            analysisDifficulty = 9
+            analysisDifficulty = 9,
+            shelfLife = "2W6+17 Monate"
         ),
         Recipe(
             name = "Friedenswasser",
@@ -434,7 +471,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 3,
             brewingDifficulty = 4,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "W3+10 Monate"
         ),
         Recipe(
             name = "Hauch der Weissagung",
@@ -445,7 +483,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 4,
             brewingDifficulty = 3,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "mehrere Jahre"
         ),
         Recipe(
             name = "Liebestrunk",
@@ -456,7 +495,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 5,
             brewingDifficulty = 5,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "2W6+17 Monate"
         ),
         Recipe(
             name = "Mengbiller Bannbalöl",
@@ -467,7 +507,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 2,
             brewingDifficulty = 8,
-            analysisDifficulty = 6
+            analysisDifficulty = 6,
+            shelfLife = "W6+5 Monate"
         ),
         Recipe(
             name = "Regenbogenstaub",
@@ -478,7 +519,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 4,
             brewingDifficulty = 6,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "nahezu unbegrenzt"
         ),
         Recipe(
             name = "Traumwind-Elixier",
@@ -489,7 +531,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 2, // 2/4
             brewingDifficulty = 2,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "3W6+3 Monate"
         ),
         Recipe(
             name = "Wachtrunk",
@@ -500,7 +543,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 3,
             brewingDifficulty = 1,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "1W6+9 Wochen"
         ),
         
         // Spagyrik
@@ -513,7 +557,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 5,
             brewingDifficulty = 5,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "2W6+30 Monate"
         ),
         Recipe(
             name = "Furchtlos-Tropfen",
@@ -524,7 +569,8 @@ object InitialRecipes {
             zutatenVerbreitung = 12,
             verbreitung = 4,
             brewingDifficulty = 3,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "1W3+3 Monate"
         ),
         Recipe(
             name = "Heiltrank",
@@ -535,7 +581,8 @@ object InitialRecipes {
             zutatenVerbreitung = 14,
             verbreitung = 7,
             brewingDifficulty = 2,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "1W6+20 Monate"
         ),
         Recipe(
             name = "Pastillen gg. Erschöpfung",
@@ -546,7 +593,8 @@ object InitialRecipes {
             zutatenVerbreitung = 11,
             verbreitung = 6,
             brewingDifficulty = 4,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "W3+7 Monate"
         ),
         Recipe(
             name = "Prophylaktikum gg. Kukris",
@@ -557,7 +605,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 4,
             brewingDifficulty = 7,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "W3+4 Monate"
         ),
         Recipe(
             name = "Pulver des klaren Geistes",
@@ -568,7 +617,8 @@ object InitialRecipes {
             zutatenVerbreitung = 14,
             verbreitung = 4,
             brewingDifficulty = 3,
-            analysisDifficulty = 2
+            analysisDifficulty = 2,
+            shelfLife = "1W6+3 Monate"
         ),
         Recipe(
             name = "Restorarium",
@@ -579,7 +629,8 @@ object InitialRecipes {
             zutatenVerbreitung = 3,
             verbreitung = 3,
             brewingDifficulty = 6,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "3W6+3 Wochen"
         ),
         Recipe(
             name = "Schlaftrunk",
@@ -590,7 +641,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 5,
             brewingDifficulty = 3,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "W3+10 Monate"
         ),
         
         // Venenik
@@ -603,7 +655,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 5,
             brewingDifficulty = 5,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "W6+15 Monate"
         ),
         Recipe(
             name = "Bannstaub",
@@ -614,7 +667,8 @@ object InitialRecipes {
             zutatenVerbreitung = 3,
             verbreitung = 3,
             brewingDifficulty = 10,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "W3+10 Monate"
         ),
         Recipe(
             name = "Boabungaha",
@@ -625,7 +679,8 @@ object InitialRecipes {
             zutatenVerbreitung = 2,
             verbreitung = 2,
             brewingDifficulty = 12,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "1W6+6 Monate"
         ),
         Recipe(
             name = "Drachenspeichel",
@@ -636,7 +691,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 5,
             brewingDifficulty = 6,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "W6+9 Monate"
         ),
         Recipe(
             name = "Halbgift",
@@ -647,7 +703,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 4,
             brewingDifficulty = 6,
-            analysisDifficulty = 8
+            analysisDifficulty = 8,
+            shelfLife = "W3+10 Wochen"
         ),
         Recipe(
             name = "Krötenhauch",
@@ -658,7 +715,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 3,
             brewingDifficulty = 4,
-            analysisDifficulty = 6
+            analysisDifficulty = 6,
+            shelfLife = "2W6+3 Monate"
         ),
         Recipe(
             name = "Purpurblitz",
@@ -669,7 +727,8 @@ object InitialRecipes {
             zutatenVerbreitung = 3,
             verbreitung = 3,
             brewingDifficulty = 8,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "W6+9 Monate"
         ),
         Recipe(
             name = "Schlafgift",
@@ -680,7 +739,8 @@ object InitialRecipes {
             zutatenVerbreitung = 13,
             verbreitung = 6,
             brewingDifficulty = 5,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "W3+10 Monate"
         ),
         Recipe(
             name = "Tulmadron",
@@ -691,7 +751,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 3, // 3/5
             brewingDifficulty = 9,
-            analysisDifficulty = 10
+            analysisDifficulty = 10,
+            shelfLife = "unbegrenzt"
         ),
         Recipe(
             name = "Wasserwahn",
@@ -702,7 +763,8 @@ object InitialRecipes {
             zutatenVerbreitung = 4,
             verbreitung = 3,
             brewingDifficulty = 9,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "unbegrenzt"
         ),
         Recipe(
             name = "Zazamotoxin",
@@ -713,7 +775,8 @@ object InitialRecipes {
             zutatenVerbreitung = 1,
             verbreitung = 2,
             brewingDifficulty = 10,
-            analysisDifficulty = 8
+            analysisDifficulty = 8,
+            shelfLife = "Etwa 1 Jahr"
         ),
         Recipe(
             name = "Zwei-Komponenten-Gifte",
@@ -724,7 +787,8 @@ object InitialRecipes {
             zutatenVerbreitung = 3,
             verbreitung = 1,
             brewingDifficulty = 10,
-            analysisDifficulty = 15
+            analysisDifficulty = 15,
+            shelfLife = "mehrere Jahre"
         ),
         
         // Virtutica
@@ -737,7 +801,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 5,
             brewingDifficulty = 5,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "W6+9 Wochen"
         ),
         Recipe(
             name = "Fingerfertigkeitselixier",
@@ -748,7 +813,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 4,
             brewingDifficulty = 6,
-            analysisDifficulty = 5
+            analysisDifficulty = 5,
+            shelfLife = "W3+7 Monate"
         ),
         Recipe(
             name = "Gewandtheitselixier",
@@ -759,7 +825,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 5,
             brewingDifficulty = 6,
-            analysisDifficulty = 7
+            analysisDifficulty = 7,
+            shelfLife = "W3+10 Monate"
         ),
         Recipe(
             name = "Intuitionselixier",
@@ -770,7 +837,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 4,
             brewingDifficulty = 2,
-            analysisDifficulty = 5
+            analysisDifficulty = 5,
+            shelfLife = "W6+14 Monate"
         ),
         Recipe(
             name = "Klugheitselixier",
@@ -781,7 +849,8 @@ object InitialRecipes {
             zutatenVerbreitung = 9,
             verbreitung = 4,
             brewingDifficulty = 3,
-            analysisDifficulty = 5
+            analysisDifficulty = 5,
+            shelfLife = "W3+10 Monate"
         ),
         Recipe(
             name = "Konstitutionselixier",
@@ -792,7 +861,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 5,
             brewingDifficulty = 6,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "2W6+17 Monate"
         ),
         Recipe(
             name = "Kraftelixier",
@@ -803,7 +873,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 6,
             brewingDifficulty = 7,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "W2+5 Monate"
         ),
         Recipe(
             name = "Mutelixier",
@@ -814,7 +885,8 @@ object InitialRecipes {
             zutatenVerbreitung = 8,
             verbreitung = 6,
             brewingDifficulty = 1,
-            analysisDifficulty = 1
+            analysisDifficulty = 1,
+            shelfLife = "W6+20 Monate"
         ),
         Recipe(
             name = "Respondarum",
@@ -825,7 +897,8 @@ object InitialRecipes {
             zutatenVerbreitung = 7,
             verbreitung = 5,
             brewingDifficulty = 5,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "2W6 Monate"
         ),
         Recipe(
             name = "Scharfsinn-Elixier",
@@ -836,7 +909,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 6,
             brewingDifficulty = 4,
-            analysisDifficulty = 3
+            analysisDifficulty = 3,
+            shelfLife = "1W3+1 Monate"
         ),
         Recipe(
             name = "Willenstrunk",
@@ -847,7 +921,8 @@ object InitialRecipes {
             zutatenVerbreitung = 6,
             verbreitung = 5,
             brewingDifficulty = 6,
-            analysisDifficulty = 6
+            analysisDifficulty = 6,
+            shelfLife = "2W6+17 Monate"
         ),
         Recipe(
             name = "Zielwasser",
@@ -858,7 +933,8 @@ object InitialRecipes {
             zutatenVerbreitung = 10,
             verbreitung = 6,
             brewingDifficulty = 6,
-            analysisDifficulty = 4
+            analysisDifficulty = 4,
+            shelfLife = "W6+12 Wochen"
         )
     )
 }

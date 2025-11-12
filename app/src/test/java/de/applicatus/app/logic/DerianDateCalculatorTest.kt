@@ -118,6 +118,40 @@ class DerianDateCalculatorTest {
         assertNull(DerianDateCalculator.parseShelfLifeAmount("Unbegrenzt"))
         assertNull(DerianDateCalculator.parseShelfLifeAmount("ewig"))
         assertNull(DerianDateCalculator.parseShelfLifeAmount("Ewig"))
+        assertNull(DerianDateCalculator.parseShelfLifeAmount("nahezu unbegrenzt"))
+    }
+    
+    @Test
+    fun testParseShelfLifeAmount_specialFormats() {
+        // "einige Jahre" sollte ca. 3 Jahre ergeben
+        assertEquals(3, DerianDateCalculator.parseShelfLifeAmount("einige Jahre"))
+        assertEquals(3, DerianDateCalculator.parseShelfLifeAmount("Einige Jahre"))
+        
+        // "mehrere Jahre" sollte ca. 5 Jahre ergeben
+        assertEquals(5, DerianDateCalculator.parseShelfLifeAmount("mehrere Jahre"))
+        assertEquals(5, DerianDateCalculator.parseShelfLifeAmount("Mehrere Jahre"))
+        
+        // "Etwa X" sollte funktionieren
+        assertEquals(1, DerianDateCalculator.parseShelfLifeAmount("Etwa 1 Jahr"))
+        assertEquals(2, DerianDateCalculator.parseShelfLifeAmount("etwa 2 Monate"))
+    }
+    
+    @Test
+    fun testParseShelfLifeAmount_diceWithoutLeadingNumber() {
+        // "W3+1 Monate" (ohne führende 1) sollte wie "1W3+1" funktionieren
+        val result1 = DerianDateCalculator.parseShelfLifeAmount("W3+1 Monate")
+        assertNotNull(result1)
+        assertTrue(result1!! in 2..4) // 1-3 + 1
+        
+        // "W6+5 Monate"
+        val result2 = DerianDateCalculator.parseShelfLifeAmount("W6+5 Monate")
+        assertNotNull(result2)
+        assertTrue(result2!! in 6..11) // 1-6 + 5
+        
+        // "W3+10 Monate"
+        val result3 = DerianDateCalculator.parseShelfLifeAmount("W3+10 Monate")
+        assertNotNull(result3)
+        assertTrue(result3!! in 11..13) // 1-3 + 10
     }
     
     // ==================== calculateExpiryDate mit Würfeln ====================
@@ -217,7 +251,6 @@ class DerianDateCalculatorTest {
         
         // Ungültige Würfelnotationen sollten das aktuelle Datum zurückgeben
         assertEquals(currentDate, DerianDateCalculator.calculateExpiryDate(currentDate, "abc Wochen"))
-        assertEquals(currentDate, DerianDateCalculator.calculateExpiryDate(currentDate, "W6 Wochen"))
         assertEquals(currentDate, DerianDateCalculator.calculateExpiryDate(currentDate, ""))
     }
     
@@ -229,7 +262,48 @@ class DerianDateCalculatorTest {
         assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "unbegrenzt"))
         assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "Unbegrenzt"))
         assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "ewig"))
-        assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "Ewig"))
+        assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "nahezu unbegrenzt"))
+    }
+    
+    @Test
+    fun testCalculateExpiryDate_specialFormats() {
+        val currentDate = "1 Praios 1040 BF"
+        
+        // "einige Jahre" = ca. 3 Jahre = 1095 Tage
+        val result1 = DerianDateCalculator.calculateExpiryDate(currentDate, "einige Jahre")
+        val result1Days = DerianDateCalculator.parseDateToDays(result1)
+        val currentDays = DerianDateCalculator.parseDateToDays(currentDate)
+        assertNotNull(result1Days)
+        assertNotNull(currentDays)
+        assertEquals(1095, result1Days!! - currentDays!!)
+        
+        // "mehrere Jahre" = ca. 5 Jahre = 1825 Tage
+        val result2 = DerianDateCalculator.calculateExpiryDate(currentDate, "mehrere Jahre")
+        val result2Days = DerianDateCalculator.parseDateToDays(result2)
+        assertEquals(1825, result2Days!! - currentDays)
+        
+        // "Etwa 1 Jahr" = 365 Tage
+        val result3 = DerianDateCalculator.calculateExpiryDate(currentDate, "Etwa 1 Jahr")
+        val result3Days = DerianDateCalculator.parseDateToDays(result3)
+        assertEquals(365, result3Days!! - currentDays)
+    }
+    
+    @Test
+    fun testCalculateExpiryDate_diceWithoutLeadingNumber() {
+        val currentDate = "1 Praios 1040 BF"
+        
+        // "W3+1 Monate" = 2-4 Monate = 60-120 Tage
+        val result1 = DerianDateCalculator.calculateExpiryDate(currentDate, "W3+1 Monate")
+        val result1Days = DerianDateCalculator.parseDateToDays(result1)
+        val currentDays = DerianDateCalculator.parseDateToDays(currentDate)
+        assertNotNull(result1Days)
+        assertNotNull(currentDays)
+        assertTrue("Differenz sollte zwischen 60 und 120 liegen", (result1Days!! - currentDays!!) in 60..120)
+        
+        // "W6+5 Monate" = 6-11 Monate = 180-330 Tage
+        val result2 = DerianDateCalculator.calculateExpiryDate(currentDate, "W6+5 Monate")
+        val result2Days = DerianDateCalculator.parseDateToDays(result2)
+        assertTrue("Differenz sollte zwischen 180 und 330 liegen", (result2Days!! - currentDays) in 180..330)
     }
     
     // ==================== Integrationstests ====================
