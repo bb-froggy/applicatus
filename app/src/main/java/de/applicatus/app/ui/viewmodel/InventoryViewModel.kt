@@ -3,12 +3,14 @@ package de.applicatus.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.repository.ApplicatusRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -35,6 +37,20 @@ class InventoryViewModel(
     // Tränke des Charakters
     val potions = repository.getPotionsForCharacter(characterId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    /**
+     * Gruppenmitglieder (alle Charaktere der gleichen Gruppe, außer dem aktuellen)
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val groupMembers: StateFlow<List<Character>> = character.flatMapLatest { char ->
+        if (char?.groupId != null) {
+            repository.getCharactersByGroupId(char.groupId).map { characters ->
+                characters.filter { it.id != characterId }
+            }
+        } else {
+            flowOf(emptyList())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
     /**
      * Gruppiert Items und Tränke nach Location
@@ -250,6 +266,15 @@ class InventoryViewModel(
             potion?.let {
                 repository.updatePotion(it.copy(locationId = newLocationId))
             }
+        }
+    }
+    
+    /**
+     * Überträgt eine Location mit allen Items und Tränken zu einem anderen Charakter
+     */
+    fun transferLocationToCharacter(locationId: Long, targetCharacterId: Long) {
+        viewModelScope.launch {
+            repository.transferLocationToCharacter(locationId, targetCharacterId)
         }
     }
 }

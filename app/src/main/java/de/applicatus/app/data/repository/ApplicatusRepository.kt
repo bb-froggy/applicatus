@@ -289,4 +289,65 @@ class ApplicatusRepository(
     
     suspend fun deleteItem(item: Item) =
         itemDao.delete(item)
+    
+    // Character by Group
+    fun getCharactersByGroupId(groupId: Long): Flow<List<Character>> =
+        characterDao.getCharactersByGroupId(groupId)
+    
+    /**
+     * Überträgt eine Location mit allen Items und Tränken zu einem anderen Charakter.
+     * Die Location wird beim Zielcharakter neu erstellt (nicht verschoben).
+     * @param locationId ID der zu übertragenden Location
+     * @param targetCharacterId ID des Zielcharakters
+     */
+    suspend fun transferLocationToCharacter(locationId: Long, targetCharacterId: Long) {
+        val location = getLocationById(locationId) ?: return
+        
+        // Erstelle neue Location beim Zielcharakter
+        val newLocationId = insertLocation(
+            location.copy(
+                id = 0, // Neue ID generieren lassen
+                characterId = targetCharacterId,
+                isDefault = false, // Übertragene Locations sind nie Default
+                sortOrder = 0 // Wird automatisch ans Ende sortiert
+            )
+        )
+        
+        // Übertrage alle Items
+        val items = itemDao.getItemsForLocation(locationId)
+        items.collect { itemList ->
+            itemList.forEach { item ->
+                // Erstelle Kopie des Items beim Zielcharakter
+                insertItem(
+                    item.copy(
+                        id = 0, // Neue ID generieren lassen
+                        characterId = targetCharacterId,
+                        locationId = newLocationId
+                    )
+                )
+                // Lösche Original-Item
+                deleteItem(item)
+            }
+        }
+        
+        // Übertrage alle Tränke
+        val potions = potionDao.getPotionsForLocation(locationId)
+        potions.collect { potionList ->
+            potionList.forEach { potionWithRecipe ->
+                // Erstelle Kopie des Tranks beim Zielcharakter
+                insertPotion(
+                    potionWithRecipe.potion.copy(
+                        id = 0, // Neue ID generieren lassen
+                        characterId = targetCharacterId,
+                        locationId = newLocationId
+                    )
+                )
+                // Lösche Original-Trank
+                deletePotion(potionWithRecipe.potion)
+            }
+        }
+        
+        // Lösche die Original-Location
+        deleteLocation(location)
+    }
 }

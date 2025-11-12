@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
@@ -345,5 +346,72 @@ fun EditPurseDialog(
             TextButton(onClick = { onConfirm(de.applicatus.app.data.model.inventory.Currency(dukaten.toIntOrNull() ?: 0, silbertaler.toIntOrNull() ?: 0, heller.toIntOrNull() ?: 0, kreuzer.toIntOrNull() ?: 0).toKreuzer()) }) { Text("Speichern") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
+    )
+}
+
+@Composable
+fun TransferLocationDialog(
+    location: Location,
+    groupMembers: List<Character>,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit
+) {
+    var selectedCharacterId by remember { mutableStateOf<Long?>(null) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("${location.name} übertragen") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (groupMembers.isEmpty()) {
+                    Text(
+                        text = "Keine anderen Charaktere in der Gruppe vorhanden.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = "An welchen Charakter soll '${location.name}' mit allen Gegenständen übertragen werden?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    groupMembers.forEach { character ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedCharacterId == character.id,
+                                onClick = { selectedCharacterId = character.id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = character.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (selectedCharacterId == character.id) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (groupMembers.isNotEmpty()) {
+                TextButton(
+                    onClick = { selectedCharacterId?.let { onConfirm(it) } },
+                    enabled = selectedCharacterId != null
+                ) {
+                    Text("Übertragen")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
     )
 }

@@ -16,6 +16,10 @@ interface PotionDao {
     @Query("SELECT * FROM potions WHERE characterId = :characterId ORDER BY expiryDate ASC")
     fun getPotionsForCharacter(characterId: Long): Flow<List<PotionWithRecipe>>
     
+    @Transaction
+    @Query("SELECT * FROM potions WHERE locationId = :locationId ORDER BY expiryDate ASC")
+    fun getPotionsForLocation(locationId: Long): Flow<List<PotionWithRecipe>>
+    
     @Query("SELECT * FROM potions WHERE id = :id")
     suspend fun getPotionById(id: Long): Potion?
     

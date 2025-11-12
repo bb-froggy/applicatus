@@ -25,10 +25,12 @@ fun LocationCard(
     totalWeight: Weight,
     draggedItem: ItemWithLocation?,
     isEditMode: Boolean,
+    isGameMaster: Boolean,
     onAddItem: () -> Unit,
     onEditItem: (ItemWithLocation) -> Unit,
     onDeleteItem: (ItemWithLocation) -> Unit,
     onDeleteLocation: () -> Unit,
+    onTransferLocation: () -> Unit,
     onCarriedChanged: (Boolean) -> Unit,
     onStartDrag: (ItemWithLocation) -> Unit,
     onDragUpdate: (Offset) -> Unit,
@@ -159,6 +161,13 @@ fun LocationCard(
                 Row {
                     IconButton(onClick = onAddItem) {
                         Icon(Icons.Default.Add, "Gegenstand hinzufügen")
+                    }
+                    
+                    // Übertragen-Button (nur für Spielleiter und nicht für "Rüstung/Kleidung")
+                    if (location != null && isGameMaster && location.name != "Rüstung/Kleidung") {
+                        IconButton(onClick = onTransferLocation) {
+                            Icon(Icons.Default.Send, "Ort übertragen")
+                        }
                     }
                     
                     if (location != null && !location.isDefault) {

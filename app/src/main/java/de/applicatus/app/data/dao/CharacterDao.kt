@@ -15,6 +15,9 @@ interface CharacterDao {
     @Query("SELECT * FROM characters WHERE id = :id")
     fun getCharacterByIdFlow(id: Long): Flow<Character?>
     
+    @Query("SELECT * FROM characters WHERE groupId = :groupId ORDER BY name ASC")
+    fun getCharactersByGroupId(groupId: Long): Flow<List<Character>>
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharacter(character: Character): Long
     

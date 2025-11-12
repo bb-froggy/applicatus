@@ -17,6 +17,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.offset
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.ApplicatusApplication
+import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Weight
@@ -43,6 +44,7 @@ fun InventoryScreen(
     val carriedWeight by viewModel.carriedWeight.collectAsState()
     val carryingCapacity by viewModel.carryingCapacity.collectAsState()
     val encumbrancePenalty by viewModel.encumbrancePenalty.collectAsState()
+    val groupMembers by viewModel.groupMembers.collectAsState()
     
     var showAddLocationDialog by remember { mutableStateOf(false) }
     var showAddItemDialog by remember { mutableStateOf(false) }
@@ -50,6 +52,8 @@ fun InventoryScreen(
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<Item?>(null) }
     var isEditMode by remember { mutableStateOf(false) }
+    var showTransferLocationDialog by remember { mutableStateOf(false) }
+    var locationToTransfer by remember { mutableStateOf<de.applicatus.app.data.model.inventory.Location?>(null) }
     
     // Drag-and-Drop-State
     var draggedItem by remember { mutableStateOf<ItemWithLocation?>(null) }
@@ -176,6 +180,7 @@ fun InventoryScreen(
                             totalWeight = weightByLocation[location.id] ?: Weight.ZERO,
                             draggedItem = draggedItem,
                             isEditMode = isEditMode,
+                            isGameMaster = character?.isGameMaster ?: false,
                             onAddItem = {
                                 selectedLocationForNewItem = location.id
                                 showAddItemDialog = true
@@ -206,6 +211,10 @@ fun InventoryScreen(
                                 if (!location.isDefault) {
                                     viewModel.deleteLocation(location)
                                 }
+                            },
+                            onTransferLocation = {
+                                locationToTransfer = location
+                                showTransferLocationDialog = true
                             },
                             onCarriedChanged = { isCarried ->
                                 viewModel.updateLocationIsCarried(location.id, isCarried)
@@ -254,6 +263,7 @@ fun InventoryScreen(
                             totalWeight = weightByLocation[null] ?: Weight.ZERO,
                             draggedItem = draggedItem,
                             isEditMode = isEditMode,
+                            isGameMaster = character?.isGameMaster ?: false,
                             onAddItem = {
                                 selectedLocationForNewItem = null
                                 showAddItemDialog = true
@@ -281,6 +291,7 @@ fun InventoryScreen(
                                 }
                             },
                             onDeleteLocation = {},
+                            onTransferLocation = { /* Keine Übertragung für "Ohne Ort" */ },
                             onCarriedChanged = { /* Keine Aktion für "Ohne Ort" */ },
                             onStartDrag = { item ->
                                 draggedItem = item
@@ -385,6 +396,23 @@ fun InventoryScreen(
                 viewModel.updateItem(updatedItem)
                 showEditItemDialog = false
                 editingItem = null
+            }
+        )
+    }
+    
+    if (showTransferLocationDialog && locationToTransfer != null) {
+        TransferLocationDialog(
+            location = locationToTransfer!!,
+            groupMembers = groupMembers,
+            currentCharacterId = characterId,
+            onDismiss = { 
+                showTransferLocationDialog = false
+                locationToTransfer = null
+            },
+            onConfirm = { targetCharacterId ->
+                viewModel.transferLocationToCharacter(locationToTransfer!!.id, targetCharacterId)
+                showTransferLocationDialog = false
+                locationToTransfer = null
             }
         )
     }
