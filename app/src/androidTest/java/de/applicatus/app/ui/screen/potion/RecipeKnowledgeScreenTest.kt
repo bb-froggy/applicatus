@@ -289,7 +289,7 @@ class RecipeKnowledgeScreenTest {
         waitForRecipes()
         
         // Nur Heiltrank sollte angezeigt werden
-        composeRule.onNodeWithText("Heiltrank").assertIsDisplayed()
+        composeRule.onNodeWithText("Heiltrank", substring = true, useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Gifttrank").assertDoesNotExist()
         composeRule.onNodeWithText("Elixier der Weisheit").assertDoesNotExist()
     }

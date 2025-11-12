@@ -53,6 +53,32 @@ methodBonus = character.sensoryAcuitySkill / 3  // Abrundung ist hier korrekt!
 - **Division durch 3 (Berechnung)**: Kaufmännisch runden → `(wert + 1) / 3`
 - **"Je 3 Punkte" (Schwellenwerte)**: Nur volle 3 Punkte → `wert / 3` (normale Division)
 
+### DSA-Regelkonformität: Magisches Meisterhandwerk
+
+**WICHTIG: Beim Magischen Meisterhandwerk kann der TaW maximal verdoppelt werden!**
+
+Beim Einsatz von AsP zur TaW-Erhöhung gibt es zwei wichtige Regeln:
+- **Verhältnis**: 1 AsP = +2 TaW
+- **Maximum**: TaW kann maximal verdoppelt werden
+- **Daraus folgt**: Maximal ⌈TaW/2⌉ AsP können eingesetzt werden (aufgerundet)
+
+**Beispiele**:
+- TaW 10 → max +10 TaW (Verdopplung) → max 5 AsP (10/2)
+- TaW 11 → max +11 TaW (Verdopplung) → max 6 AsP (⌈11/2⌉)
+- TaW 15 → max +15 TaW (Verdopplung) → max 8 AsP (⌈15/2⌉)
+
+**Implementierung**: `ceil(skillValue / 2.0).toInt()` oder `(skillValue + 1) / 2`
+
+```kotlin
+// Magisches Meisterhandwerk: Max TaW/2 (aufgerundet) AsP
+val maxMagicalMasteryAsp = (skillValue + 1) / 2
+```
+
+**Gemeinsame UI-Komponente**: `MagicalMasteryControl.kt`
+- Wiederverwendbare Compose-Komponente für alle Dialoge
+- Verwendet in: `BrewPotionDialog`, `DilutionDialog`, `StructureAnalysisDialog`
+- Automatische Berechnung und Validierung der AsP-Limits
+
 ### DSA-Regelkonformität: AsP-Kosten für Qualitätspunkte
 
 Beim Brauen von Tränken mit Magischem Meisterhandwerk können zusätzliche Qualitätspunkte durch AsP-Einsatz erkauft werden:

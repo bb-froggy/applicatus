@@ -130,9 +130,11 @@ object ElixirAnalyzer {
     /**
      * Bestimmt die Intensität basierend auf der tatsächlichen Qualität
      * Bei M wird zufällig schwach oder stark zurückgegeben
+     * Bei X (wirkungslos) wird WEAK zurückgegeben
      */
     private fun determineIntensityFromQuality(quality: PotionQuality, alwaysDetermine: Boolean): IntensityQuality {
         return when (quality) {
+            PotionQuality.X -> IntensityQuality.WEAK  // Wirkungslos = sehr schwache Intensität
             PotionQuality.A, PotionQuality.B, PotionQuality.C -> IntensityQuality.WEAK
             PotionQuality.D, PotionQuality.E, PotionQuality.F -> IntensityQuality.STRONG
             PotionQuality.M -> {
@@ -473,6 +475,7 @@ object ElixirAnalyzer {
         intensity: IntensityQuality
     ): RefinedQuality {
         return when (actualQuality) {
+            PotionQuality.X -> RefinedQuality.VERY_WEAK  // Wirkungslos = sehr schwach
             PotionQuality.A, PotionQuality.B -> RefinedQuality.VERY_WEAK
             PotionQuality.C, PotionQuality.D -> RefinedQuality.MEDIUM
             PotionQuality.E, PotionQuality.F -> RefinedQuality.VERY_STRONG

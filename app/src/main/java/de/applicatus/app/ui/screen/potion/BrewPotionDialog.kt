@@ -20,6 +20,7 @@ import de.applicatus.app.data.model.potion.Substitution
 import de.applicatus.app.data.model.potion.SubstitutionType
 import de.applicatus.app.data.model.talent.Talent
 import de.applicatus.app.logic.PotionBrewer
+import de.applicatus.app.ui.component.MagicalMasteryControl
 import de.applicatus.app.ui.component.PotionBrewAnimation
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import kotlinx.coroutines.launch
@@ -413,44 +414,12 @@ fun BrewPotionDialog(
                     // Magisches Meisterhandwerk (nur wenn verfügbar und AE vorhanden)
                     if (character.hasAe && isMagicalMastery) {
                         item {
-                            Text("Magisches Meisterhandwerk (+2 TaW pro AsP)", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "Max ${maxMagicalMasteryAsp} AsP (TaW $skillValue → max ${skillValue * 2})",
-                                style = MaterialTheme.typography.bodySmall
+                            MagicalMasteryControl(
+                                skillValue = skillValue,
+                                currentAsp = character.currentAe,
+                                magicalMasteryAsp = magicalMasteryAsp,
+                                onMagicalMasteryAspChange = { magicalMasteryAsp = it }
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Button(
-                                    onClick = { 
-                                        if (magicalMasteryAsp > 0) magicalMasteryAsp--
-                                    },
-                                    enabled = magicalMasteryAsp > 0
-                                ) {
-                                    Text("-")
-                                }
-                                Column(
-                                    modifier = Modifier.width(120.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "$magicalMasteryAsp AsP",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = "+${magicalMasteryAsp * 2} TaW",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                Button(
-                                    onClick = { magicalMasteryAsp++ },
-                                    enabled = magicalMasteryAsp < maxMagicalMasteryAsp && magicalMasteryAsp < character.currentAe
-                                ) {
-                                    Text("+")
-                                }
-                            }
                         }
                     }
                     

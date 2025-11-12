@@ -316,19 +316,37 @@ object PotionBrewer {
         require(talent == Talent.ALCHEMY || talent == Talent.COOKING_POTIONS) {
             "Nur Alchimie oder Kochen (Tränke) sind gültige Talente zum Verdünnen"
         }
-        require(dilutionSteps in 1..6) {
-            "Verdünnung muss zwischen 1 und 6 Stufen liegen"
-        }
-        require(potion.actualQuality != PotionQuality.M) {
-            "Misslungene Tränke können nicht verdünnt werden"
+        require(dilutionSteps in 1..10) {
+            "Verdünnung muss zwischen 1 und 10 Stufen liegen"
         }
         
-        // Prüfen, ob Verdünnung möglich ist (Qualität darf nicht über F gehen)
+        // Bei M bleibt es immer M, egal was passiert
+        if (potion.actualQuality == PotionQuality.M) {
+            // Trotzdem eine Probe durchführen für die Show
+            val probeResult = ProbeChecker.performTalentProbe(
+                talent = talent,
+                character = character,
+                talentwert = when (talent) {
+                    Talent.ALCHEMY -> character.alchemySkill
+                    Talent.COOKING_POTIONS -> character.cookingPotionsSkill
+                    else -> 0
+                },
+                difficulty = recipe.brewingDifficulty - facilitationFromAnalysis,
+                astralEnergyCost = magicalMasteryAsp
+            )
+            
+            return DilutionResult(
+                probeResult = probeResult,
+                success = false,
+                newQuality = PotionQuality.M,
+                numberOfPotions = dilutionSteps + 1,
+                totalModifier = recipe.brewingDifficulty - facilitationFromAnalysis
+            )
+        }
+        
+        // Berechne die neue Qualität (kann über A hinaus gehen → X)
         val currentQualityIndex = potion.actualQuality.ordinal
         val newQualityIndex = currentQualityIndex - dilutionSteps
-        require(newQualityIndex >= 0) {
-            "Verdünnung würde Qualität über F hinaus reduzieren"
-        }
         
         // Talentwert ermitteln
         val skillValue = when (talent) {
@@ -376,11 +394,16 @@ object PotionBrewer {
         // Ergebnis berechnen
         val success = probeResult.success
         val newQuality = if (success) {
-            PotionQuality.values()[newQualityIndex]
+            // Wenn Index < 0, wird es X (wirkungslos)
+            if (newQualityIndex < 0) {
+                PotionQuality.X
+            } else {
+                PotionQuality.values()[newQualityIndex]
+            }
         } else {
             PotionQuality.M
         }
-        val numberOfPotions = if (success) dilutionSteps + 1 else dilutionSteps + 1
+        val numberOfPotions = dilutionSteps + 1
         
         return DilutionResult(
             probeResult = probeResult,
@@ -394,27 +417,27 @@ object PotionBrewer {
     fun formatDilutionResult(result: DilutionResult, isGameMaster: Boolean): String {
         val sb = StringBuilder()
         
-        sb.append("Verdünnungsprobe: ${if (result.success) "Erfolg" else "Misserfolg"}\n")
-        sb.append("Würfe: ${result.probeResult.rolls.joinToString("/")}\n")
-        
-        if (result.success) {
-            sb.append("TaP*: ${result.probeResult.qualityPoints}\n")
-            sb.append("Anzahl Tränke: ${result.numberOfPotions}\n")
+        if (isGameMaster) {
+            // Spielleiter sieht alle Details
+            sb.append("Verdünnungsprobe: ${if (result.success) "Erfolg" else "Misserfolg"}\n")
+            sb.append("Würfe: ${result.probeResult.rolls.joinToString("/")}\n")
             
-            if (isGameMaster) {
+            if (result.success) {
+                sb.append("TaP*: ${result.probeResult.qualityPoints}\n")
+                sb.append("Anzahl Tränke: ${result.numberOfPotions}\n")
                 sb.append("Neue Qualität: ${result.newQuality.name}\n")
             } else {
-                sb.append("(Qualität unbekannt - nur Spielleiter sichtbar)\n")
-            }
-        } else {
-            sb.append("Probe misslungen\n")
-            sb.append("Anzahl Tränke: ${result.numberOfPotions}\n")
-            if (isGameMaster) {
+                sb.append("Probe misslungen\n")
+                sb.append("Anzahl Tränke: ${result.numberOfPotions}\n")
                 sb.append("Qualität aller Tränke: M (Misslungen)\n")
             }
+            
+            sb.append("\nModifikator: ${if (result.totalModifier > 0) "+" else ""}${result.totalModifier}")
+        } else {
+            // Spieler sieht nur minimale Informationen
+            sb.append("Verdünnung abgeschlossen.\n\n")
+            sb.append("Anzahl Tränke: ${result.numberOfPotions}")
         }
-        
-        sb.append("\nModifikator: ${if (result.totalModifier > 0) "+" else ""}${result.totalModifier}")
         
         return sb.toString()
     }

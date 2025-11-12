@@ -18,8 +18,10 @@ import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.data.model.talent.Talent
 import de.applicatus.app.logic.PotionBrewer
+import de.applicatus.app.ui.component.MagicalMasteryControl
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import kotlinx.coroutines.launch
+import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +48,13 @@ fun DilutionDialog(
         if (character.cookingPotionsSkill > 0) add(Talent.COOKING_POTIONS)
     }
     
+    // Automatische Vorauswahl wenn nur ein Talent verfügbar ist
+    LaunchedEffect(availableTalents) {
+        if (availableTalents.size == 1 && selectedTalent == null) {
+            selectedTalent = availableTalents.first()
+        }
+    }
+    
     // Magisches Meisterhandwerk verfügbar?
     val isMagicalMastery = selectedTalent?.let { talent ->
         when (talent) {
@@ -55,8 +64,8 @@ fun DilutionDialog(
         }
     } ?: false
     
-    // Max AsP für Magisches Meisterhandwerk
-    val maxMagicalMasteryAsp = selectedTalent?.let { talent ->
+    // TaW für das gewählte Talent
+    val skillValue = selectedTalent?.let { talent ->
         when (talent) {
             Talent.ALCHEMY -> character.alchemySkill
             Talent.COOKING_POTIONS -> character.cookingPotionsSkill
@@ -67,8 +76,13 @@ fun DilutionDialog(
     // Erleichterung aus vorheriger Analyse berechnen
     val facilitationFromAnalysis = (potion.bestStructureAnalysisFacilitation + 1) / 2
     
-    // Maximale Verdünnungsstufen (Qualität darf nicht über F gehen)
-    val maxDilutionSteps = potion.actualQuality.ordinal.coerceAtMost(5)
+    // Maximale Verdünnungsstufen: 5 (F→A ist sinnvoll, darüber hinaus wird es X)
+    val maxDilutionSteps = 5
+    
+    // Prüfen ob Spieler die exakte Qualität kennt
+    val knowsExactQuality = character.isGameMaster || 
+                            potion.knownExactQuality != null ||
+                            potion.knownQualityLevel == de.applicatus.app.data.model.potion.KnownQualityLevel.EXACT
     
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -107,10 +121,14 @@ fun DilutionDialog(
                         style = MaterialTheme.typography.titleMedium
                     )
                     
-                    Text(
-                        text = "Aktuelle Qualität: ${potion.actualQuality.name}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    // Aktuelle Qualität nur für Spielleiter anzeigen
+                    if (character.isGameMaster) {
+                        Text(
+                            text = "Aktuelle Qualität: ${potion.actualQuality.name}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     
                     // Talent-Auswahl
                     ExposedDropdownMenuBox(
@@ -173,13 +191,32 @@ fun DilutionDialog(
                         }
                     }
                     
-                    // Neue Qualität anzeigen (falls Erfolg)
-                    val newQualityIfSuccess = PotionQuality.values()[potion.actualQuality.ordinal - dilutionSteps]
-                    Text(
-                        text = "Neue Qualität bei Erfolg: ${newQualityIfSuccess.name}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    // Neue Qualität anzeigen - nur wenn Spielleiter ODER Spieler die exakte Qualität kennt
+                    if (knowsExactQuality) {
+                        // Bei M bleibt es immer M
+                        val newQualityIfSuccess = if (potion.actualQuality == PotionQuality.M) {
+                            PotionQuality.M
+                        } else {
+                            val newQualityIndex = potion.actualQuality.ordinal - dilutionSteps
+                            if (newQualityIndex < 0) {
+                                PotionQuality.X
+                            } else {
+                                PotionQuality.values()[newQualityIndex]
+                            }
+                        }
+                        
+                        Text(
+                            text = "Neue Qualität bei Erfolg: ${newQualityIfSuccess.name}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Text(
+                            text = "Neue Qualität: Unbekannt",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     
                     Text(
                         text = "Anzahl Tränke: ${dilutionSteps + 1}",
@@ -212,39 +249,11 @@ fun DilutionDialog(
                     // Magisches Meisterhandwerk
                     if (isMagicalMastery && character.hasAe) {
                         Divider()
-                        Text(
-                            text = "Magisches Meisterhandwerk",
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = "AsP für TaW-Erhöhung (1:2, max ${maxMagicalMasteryAsp} AsP)",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Button(
-                                onClick = { magicalMasteryAsp = (magicalMasteryAsp - 1).coerceAtLeast(0) },
-                                enabled = magicalMasteryAsp > 0
-                            ) {
-                                Text("-")
-                            }
-                            Text(
-                                text = "$magicalMasteryAsp AsP → +${magicalMasteryAsp * 2} TaW",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Button(
-                                onClick = { magicalMasteryAsp = (magicalMasteryAsp + 1).coerceAtMost(maxMagicalMasteryAsp.coerceAtMost(character.currentAe)) },
-                                enabled = magicalMasteryAsp < maxMagicalMasteryAsp && magicalMasteryAsp < character.currentAe
-                            ) {
-                                Text("+")
-                            }
-                        }
-                        Text(
-                            text = "Verfügbare AsP: ${character.currentAe}",
-                            style = MaterialTheme.typography.bodySmall
+                        MagicalMasteryControl(
+                            skillValue = skillValue,
+                            currentAsp = character.currentAe,
+                            magicalMasteryAsp = magicalMasteryAsp,
+                            onMagicalMasteryAspChange = { magicalMasteryAsp = it }
                         )
                     }
                     

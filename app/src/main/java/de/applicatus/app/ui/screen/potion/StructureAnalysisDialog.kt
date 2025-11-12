@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.logic.*
+import de.applicatus.app.ui.component.MagicalMasteryControl
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 
 /**
@@ -352,96 +353,20 @@ fun StructureAnalysisDialog(
                     if (canUseMagicalMastery) {
                         Divider()
                         
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "Magisches Meisterhandwerk",
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                                val effectiveTaw = when (selectedMethod) {
-                                    StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
-                                    StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
-                                    StructureAnalysisMethod.BY_SIGHT_COOKING,
-                                    StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
-                                    else -> 0
-                                }
-                                val maxAe = (effectiveTaw + 1) / 2  // ⌈TaW/2⌉
-                                Text(
-                                    text = "AE ausgeben um TaW zu erhöhen (+2 TaW pro AE, max. ${effectiveTaw * 2} TaW = $maxAe AE)",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Text(
-                                    text = "Aktuelle AE: ${character.currentAe}/${character.maxAe}",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = "AE ausgeben:",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    
-                                    IconButton(
-                                        onClick = { if (astralEnergyCost > 0) astralEnergyCost-- },
-                                        enabled = astralEnergyCost > 0
-                                    ) {
-                                        Text("-", style = MaterialTheme.typography.titleMedium)
-                                    }
-                                    
-                                    Text(
-                                        text = astralEnergyCost.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                    
-                                    IconButton(
-                                        onClick = { astralEnergyCost++ },
-                                        enabled = {
-                                            val taw = when (selectedMethod) {
-                                                StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
-                                                StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
-                                                StructureAnalysisMethod.BY_SIGHT_COOKING,
-                                                StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
-                                                else -> 0
-                                            }
-                                            astralEnergyCost < character.currentAe && 
-                                            astralEnergyCost < (taw + 1) / 2  // Max ⌈TaW/2⌉
-                                        }()
-                                    ) {
-                                        Text("+", style = MaterialTheme.typography.titleMedium)
-                                    }
-                                }
-                                
-                                if (astralEnergyCost > 0) {
-                                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                                    
-                                    val baseTaw = when (selectedMethod) {
-                                        StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
-                                        StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
-                                        StructureAnalysisMethod.BY_SIGHT_COOKING,
-                                        StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
-                                        else -> 0
-                                    }
-                                    val effectiveTaw = minOf(baseTaw + (astralEnergyCost * 2), baseTaw * 2)
-                                    Text(
-                                        text = "Effektiver TaW: $effectiveTaw (Basis: $baseTaw, Bonus: +${astralEnergyCost * 2})",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
+                        val skillValue = when (selectedMethod) {
+                            StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
+                            StructureAnalysisMethod.LABORATORY_ALCHEMY -> character.alchemySkill
+                            StructureAnalysisMethod.BY_SIGHT_COOKING,
+                            StructureAnalysisMethod.LABORATORY_COOKING -> character.cookingPotionsSkill
+                            else -> 0
                         }
+                        
+                        MagicalMasteryControl(
+                            skillValue = skillValue,
+                            currentAsp = character.currentAe,
+                            magicalMasteryAsp = astralEnergyCost,
+                            onMagicalMasteryAspChange = { astralEnergyCost = it }
+                        )
                     }
                     
                     Button(

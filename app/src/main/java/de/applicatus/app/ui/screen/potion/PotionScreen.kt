@@ -371,10 +371,11 @@ private fun PotionCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Prüfen ob Verdünnen möglich ist
+            // Verdünnen wird angezeigt wenn:
+            // - Charakter Alchimie oder Kochen (Tränke) beherrscht
+            // Bei M wird es angezeigt, damit der Spieler nicht weiß, dass es M ist, ebenso bei X
             val canDilute = character != null && 
-                            (character.alchemySkill > 0 || character.cookingPotionsSkill > 0) &&
-                            potionWithRecipe.potion.actualQuality != de.applicatus.app.data.model.potion.PotionQuality.M &&
-                            potionWithRecipe.potion.actualQuality.ordinal > 0
+                            (character.alchemySkill > 0 || character.cookingPotionsSkill > 0)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -433,6 +434,7 @@ private fun PotionCard(
 @Composable
 private fun getQualityLabel(quality: PotionQuality): String {
     return when (quality) {
+        PotionQuality.X -> stringResource(R.string.quality_x)
         PotionQuality.A -> stringResource(R.string.quality_a)
         PotionQuality.B -> stringResource(R.string.quality_b)
         PotionQuality.C -> stringResource(R.string.quality_c)

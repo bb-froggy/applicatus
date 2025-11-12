@@ -98,25 +98,30 @@ class PotionBrewerDilutionTest {
     
     @Test
     fun testDilutionMaxSteps() {
-        // Maximale Verdünnung: A (Index 0) kann um 5 Stufen verdünnt werden
+        // Tränke können jetzt über A hinaus verdünnt werden (→ X)
         val potionQualityA = testPotion.copy(actualQuality = PotionQuality.A)
         
-        // Sollte nicht funktionieren - A kann nicht verdünnt werden (würde über F gehen)
-        assertThrows(IllegalArgumentException::class.java) {
-            PotionBrewer.dilutePotion(
-                character = testCharacter,
-                potion = potionQualityA,
-                recipe = testRecipe,
-                talent = Talent.ALCHEMY,
-                dilutionSteps = 1,
-                facilitationFromAnalysis = 0
-            )
+        // A kann um 1 Stufe verdünnt werden → X (wirkungslos)
+        val result = PotionBrewer.dilutePotion(
+            character = testCharacter,
+            potion = potionQualityA,
+            recipe = testRecipe,
+            talent = Talent.ALCHEMY,
+            dilutionSteps = 1,
+            facilitationFromAnalysis = 5
+        )
+        
+        assertNotNull(result)
+        assertEquals(2, result.numberOfPotions)
+        
+        if (result.success) {
+            assertEquals(PotionQuality.X, result.newQuality)
         }
     }
     
     @Test
     fun testDilutionQualityF() {
-        // F (Index 5) kann um bis zu 5 Stufen verdünnt werden (bis A)
+        // F (Index 6) kann um bis zu 6 Stufen verdünnt werden (bis X)
         val potionQualityF = testPotion.copy(actualQuality = PotionQuality.F)
         
         val result = PotionBrewer.dilutePotion(
@@ -124,15 +129,15 @@ class PotionBrewerDilutionTest {
             potion = potionQualityF,
             recipe = testRecipe,
             talent = Talent.ALCHEMY,
-            dilutionSteps = 5,
+            dilutionSteps = 6,
             facilitationFromAnalysis = 5
         )
         
         assertNotNull(result)
-        assertEquals(6, result.numberOfPotions)  // Original + 5 neue = 6 Tränke
+        assertEquals(7, result.numberOfPotions)  // Original + 6 neue = 7 Tränke
         
         if (result.success) {
-            assertEquals(PotionQuality.A, result.newQuality)
+            assertEquals(PotionQuality.X, result.newQuality)
         }
     }
     
@@ -154,19 +159,22 @@ class PotionBrewerDilutionTest {
     
     @Test
     fun testCannotDiluteMislunga() {
-        // Misslungene Tränke (M) können nicht verdünnt werden
+        // Misslungene Tränke (M) können verdünnt werden (Spieler weiß ja nicht, dass es M ist)
+        // Aber das Ergebnis ist immer M
         val misslungaPotion = testPotion.copy(actualQuality = PotionQuality.M)
         
-        assertThrows(IllegalArgumentException::class.java) {
-            PotionBrewer.dilutePotion(
-                character = testCharacter,
-                potion = misslungaPotion,
-                recipe = testRecipe,
-                talent = Talent.ALCHEMY,
-                dilutionSteps = 1,
-                facilitationFromAnalysis = 0
-            )
-        }
+        val result = PotionBrewer.dilutePotion(
+            character = testCharacter,
+            potion = misslungaPotion,
+            recipe = testRecipe,
+            talent = Talent.ALCHEMY,
+            dilutionSteps = 1,
+            facilitationFromAnalysis = 0
+        )
+        
+        // Ergebnis ist immer M
+        assertEquals(PotionQuality.M, result.newQuality)
+        assertFalse(result.success)
     }
     
     @Test
@@ -219,7 +227,7 @@ class PotionBrewerDilutionTest {
     
     @Test
     fun testInvalidDilutionSteps() {
-        // Verdünnungsstufen müssen zwischen 1 und 6 liegen
+        // Verdünnungsstufen müssen zwischen 1 und 10 liegen
         assertThrows(IllegalArgumentException::class.java) {
             PotionBrewer.dilutePotion(
                 character = testCharacter,
@@ -237,7 +245,7 @@ class PotionBrewerDilutionTest {
                 potion = testPotion,
                 recipe = testRecipe,
                 talent = Talent.ALCHEMY,
-                dilutionSteps = 7,
+                dilutionSteps = 11,
                 facilitationFromAnalysis = 0
             )
         }
@@ -314,10 +322,60 @@ class PotionBrewerDilutionTest {
         val formatted = PotionBrewer.formatDilutionResult(result, isGameMaster = false)
         
         assertNotNull(formatted)
-        assertTrue(formatted.contains("Verdünnungsprobe:"))
+        // Spieler sieht nur minimale Informationen
+        assertTrue(formatted.contains("Verdünnung abgeschlossen"))
+        assertTrue(formatted.contains("Anzahl Tränke:"))
+        
+        // Spieler sieht KEINE Probe-Details
+        assertFalse(formatted.contains("Verdünnungsprobe:"))
+        assertFalse(formatted.contains("Erfolg"))
+        assertFalse(formatted.contains("Misserfolg"))
+        assertFalse(formatted.contains("TaP*"))
+        assertFalse(formatted.contains("Würfe:"))
+        assertFalse(formatted.contains("Qualität"))
+    }
+    
+    @Test
+    fun testDilutionBeyondA() {
+        // A kann um mehr als 1 Stufe verdünnt werden → X
+        val potionQualityA = testPotion.copy(actualQuality = PotionQuality.A)
+        
+        val result = PotionBrewer.dilutePotion(
+            character = testCharacter,
+            potion = potionQualityA,
+            recipe = testRecipe,
+            talent = Talent.ALCHEMY,
+            dilutionSteps = 3,
+            facilitationFromAnalysis = 5
+        )
+        
+        assertNotNull(result)
+        assertEquals(4, result.numberOfPotions)
         
         if (result.success) {
-            assertTrue(formatted.contains("(Qualität unbekannt - nur Spielleiter sichtbar)"))
+            assertEquals(PotionQuality.X, result.newQuality)
+        }
+    }
+    
+    @Test
+    fun testDilutionQualityX() {
+        // X (wirkungslos) kann nicht weiter verdünnt werden
+        val potionQualityX = testPotion.copy(actualQuality = PotionQuality.X)
+        
+        // X ist bei Index 0, Verdünnung würde negativen Index ergeben
+        val result = PotionBrewer.dilutePotion(
+            character = testCharacter,
+            potion = potionQualityX,
+            recipe = testRecipe,
+            talent = Talent.ALCHEMY,
+            dilutionSteps = 1,
+            facilitationFromAnalysis = 5
+        )
+        
+        assertNotNull(result)
+        
+        if (result.success) {
+            assertEquals(PotionQuality.X, result.newQuality)
         }
     }
 }
