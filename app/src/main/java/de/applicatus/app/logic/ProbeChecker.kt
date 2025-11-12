@@ -237,6 +237,41 @@ object ProbeChecker {
     fun rollMultipleD20(count: Int): List<Int> = List(count) { rollD20() }
     
     /**
+     * Parst und würfelt eine Würfelnotation
+     * 
+     * Beispiele:
+     * - "3W6" → Würfelt 3 sechsseitige Würfel und summiert
+     * - "2W20+5" → Würfelt 2 zwanzigseitige Würfel, addiert 5
+     * - "1W6-2" → Würfelt 1 sechsseitigen Würfel, subtrahiert 2
+     * 
+     * @param diceNotation Würfelnotation (z.B. "3W6+2", "2W20-5", "1W10")
+     * @param diceRoll Lambda für einzelne Würfelwürfe (Standard: Random, überschreibbar für Tests)
+     * @return Gewürfeltes Ergebnis oder null bei ungültiger Notation
+     */
+    fun rollDice(
+        diceNotation: String,
+        diceRoll: (diceSize: Int) -> Int = { diceSize -> Random.nextInt(1, diceSize + 1) }
+    ): Int? {
+        // Regex für Würfelnotationen: z.B. "3W6+2", "2W20-5", "1W10"
+        val diceRegex = Regex("""(\d+)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE)
+        val match = diceRegex.matchEntire(diceNotation.trim()) ?: return null
+        
+        val numDice = match.groupValues[1].toIntOrNull() ?: return null
+        val diceSize = match.groupValues[2].toIntOrNull() ?: return null
+        val modifier = match.groupValues[3].ifEmpty { "+0" }.toIntOrNull() ?: 0
+        
+        if (numDice < 1 || diceSize < 1) return null
+        
+        // Würfle alle Würfel und summiere
+        var total = 0
+        repeat(numDice) {
+            total += diceRoll(diceSize)
+        }
+        
+        return total + modifier
+    }
+    
+    /**
      * Zählt Einsen in einer Würfelliste
      */
     fun countOnes(rolls: List<Int>): Int = rolls.count { it == 1 }

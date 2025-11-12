@@ -37,44 +37,20 @@ object DerianDateCalculator {
     // Mondphasen-Zyklus: 28 Tage (Mada)
     private const val MADA_CYCLE = 28
     
-    // Regex für Würfelnotationen: z.B. "3W6+2", "2W20-5", "1W10"
-    private val diceRegex = Regex("""(\d+)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE)
+    // Unbegrenzt-Datum: 1. Praios 1500 BF (>100 Jahre in der Zukunft)
+    const val UNLIMITED_DATE = "1 Praios 1500 BF"
     
     /**
      * Gibt die Anzahl der Tage für einen Monat zurück
      */
-    private fun getDaysInMonth(monthIndex: Int): Int {
+    fun getDaysInMonth(monthIndex: Int): Int {
         return if (monthIndex == NAMELESS_DAYS_INDEX) 5 else 30
-    }
-    
-    /**
-     * Parst und würfelt eine Würfelnotation
-     * 
-     * @param diceNotation Würfelnotation (z.B. "3W6+2", "2W20-5", "1W10")
-     * @return Gewürfeltes Ergebnis oder null bei ungültiger Notation
-     */
-    fun rollDice(diceNotation: String): Int? {
-        val match = diceRegex.matchEntire(diceNotation.trim()) ?: return null
-        
-        val numDice = match.groupValues[1].toIntOrNull() ?: return null
-        val diceSize = match.groupValues[2].toIntOrNull() ?: return null
-        val modifier = match.groupValues[3].ifEmpty { "+0" }.toIntOrNull() ?: 0
-        
-        if (numDice < 1 || diceSize < 1) return null
-        
-        // Würfle alle Würfel und summiere
-        var total = 0
-        repeat(numDice) {
-            total += Random.nextInt(1, diceSize + 1)
-        }
-        
-        return total + modifier
     }
     
     /**
      * Extrahiert die Zeiteinheit aus einer Haltbarkeitsangabe
      * 
-     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen")
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen", "unbegrenzt")
      * @return Zeiteinheit (z.B. "Monde", "Wochen") oder null
      */
     private fun extractTimeUnit(shelfLife: String): String? {
@@ -89,10 +65,17 @@ object DerianDateCalculator {
      * Berechnet die Anzahl aus einer Haltbarkeitsangabe
      * Unterstützt sowohl feste Zahlen als auch Würfelnotationen
      * 
-     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen")
-     * @return Berechnete Anzahl oder null bei Fehler
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "3W6+2 Wochen", "unbegrenzt")
+     * @return Berechnete Anzahl oder null bei Fehler oder "unbegrenzt"
      */
     fun parseShelfLifeAmount(shelfLife: String): Int? {
+        val shelfLifeLower = shelfLife.trim().lowercase()
+        
+        // Prüfe auf "unbegrenzt" oder "ewig"
+        if ("unbegrenzt" in shelfLifeLower || "ewig" in shelfLifeLower) {
+            return null // Signal für unbegrenzte Haltbarkeit
+        }
+        
         val parts = shelfLife.trim().split(" ")
         if (parts.isEmpty()) return null
         
@@ -103,9 +86,9 @@ object DerianDateCalculator {
             return null
         }
         
-        // Prüfe auf Würfelnotation
-        return if (diceRegex.matches(amountPart)) {
-            rollDice(amountPart)
+        // Prüfe auf Würfelnotation und verwende ProbeChecker
+        return if (Regex("""(\d+)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE).matches(amountPart)) {
+            ProbeChecker.rollDice(amountPart)
         } else {
             amountPart.toIntOrNull()
         }
@@ -115,8 +98,8 @@ object DerianDateCalculator {
      * Berechnet das Haltbarkeitsdatum eines Tranks
      * 
      * @param currentDate Aktuelles Datum im Format "Tag Monat Jahr BF" (z.B. "15 Praios 1040 BF")
-     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "1 Jahr", "2 Wochen", "3W6+2 Wochen")
-     * @return Haltbarkeitsdatum im gleichen Format
+     * @param shelfLife Haltbarkeit (z.B. "3 Monde", "1 Jahr", "2 Wochen", "3W6+2 Wochen", "unbegrenzt")
+     * @return Haltbarkeitsdatum im gleichen Format (oder UNLIMITED_DATE bei unbegrenzter Haltbarkeit)
      */
     fun calculateExpiryDate(currentDate: String, shelfLife: String): String {
         try {
@@ -150,8 +133,18 @@ object DerianDateCalculator {
                 return currentDate
             }
             
-            // Parse Haltbarkeit (unterstützt Würfelnotationen)
-            val amount = parseShelfLifeAmount(shelfLife) ?: return currentDate
+            // Parse Haltbarkeit (unterstützt Würfelnotationen und "unbegrenzt")
+            val amount = parseShelfLifeAmount(shelfLife)
+            
+            // Wenn null zurückgegeben wird, ist es entweder "unbegrenzt" oder ein Fehler
+            if (amount == null) {
+                val shelfLifeLower = shelfLife.trim().lowercase()
+                if ("unbegrenzt" in shelfLifeLower || "ewig" in shelfLifeLower) {
+                    return UNLIMITED_DATE
+                }
+                return currentDate // Fehler beim Parsen
+            }
+            
             val unit = extractTimeUnit(shelfLife)?.lowercase() ?: return currentDate
             
             // Berechne Tage zum Addieren
@@ -275,6 +268,65 @@ object DerianDateCalculator {
      * Gibt die Liste aller derischen Monate zurück
      */
     fun getMonths(): List<String> = months
+    
+    /**
+     * Parst ein derisches Datum im Format "15. Praios 1040 BF" (mit Punkt nach Tag)
+     * 
+     * Hinweis: Dies ist ein alternatives Format zu "15 Praios 1040 BF" (ohne Punkt).
+     * Diese Funktion wird hauptsächlich für die UI-Eingabe verwendet.
+     * 
+     * @param dateString Datum im Format "15. Praios 1040 BF"
+     * @return Triple(Tag, Monat-Index 1-12, Jahr) oder null bei Fehler
+     */
+    fun parseDerischenDate(dateString: String): Triple<Int, Int, Int>? {
+        try {
+            val parts = dateString.replace("BF", "").trim().split(" ")
+            if (parts.size < 3) return null
+            
+            val day = parts[0].replace(".", "").toIntOrNull() ?: return null
+            val monthName = parts[1]
+            val year = parts[2].toIntOrNull() ?: return null
+            
+            // Finde Monat-Index (1-12, nicht 0-11!)
+            val monthIndex = months.indexOf(monthName)
+            if (monthIndex == -1) return null
+            
+            val month = monthIndex + 1 // Konvertiere zu 1-basiertem Index
+            
+            return Triple(day, month, year)
+        } catch (e: Exception) {
+            return null
+        }
+    }
+    
+    /**
+     * Formatiert ein derisches Datum im Format "15. Praios 1040 BF" (mit Punkt nach Tag)
+     * 
+     * @param day Tag (1-30 für normale Monate, 1-5 für Namenlose Tage)
+     * @param month Monat-Index (1-12)
+     * @param year Jahr
+     * @return Formatiertes Datum
+     */
+    fun formatDerischenDate(day: Int, month: Int, year: Int): String {
+        val monthName = if (month in 1..12) months[month - 1] else "Praios"
+        return "$day. $monthName $year BF"
+    }
+   
+    /**
+     * Validiert ein derisches Datum (für UI-Eingabe)
+     * 
+     * @param day Tag
+     * @param month Monat-Index (1-12)
+     * @param year Jahr
+     * @return true wenn gültig
+     */
+    fun isValidDerischenDate(day: Int, month: Int, year: Int): Boolean {
+        if (month !in 1..12) return false
+        if (year < 0) return false
+        val maxDays = getDaysInMonth(month)
+        if (day < 1 || day > maxDays) return false
+        return true
+    }
     
     /**
      * Berechnet den Wochentag für ein derisches Datum

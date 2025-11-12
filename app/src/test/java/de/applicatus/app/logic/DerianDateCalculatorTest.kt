@@ -15,7 +15,7 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_simpleNotation() {
         // 1W6 sollte zwischen 1 und 6 liegen
-        val result = DerianDateCalculator.rollDice("1W6")
+        val result = ProbeChecker.rollDice("1W6")
         assertNotNull(result)
         assertTrue(result!! in 1..6)
     }
@@ -23,7 +23,7 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_multipleRolls() {
         // 3W6 sollte zwischen 3 und 18 liegen
-        val result = DerianDateCalculator.rollDice("3W6")
+        val result = ProbeChecker.rollDice("3W6")
         assertNotNull(result)
         assertTrue(result!! in 3..18)
     }
@@ -31,7 +31,7 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_withPositiveModifier() {
         // 2W6+5 sollte zwischen 7 und 17 liegen (2-12 + 5)
-        val result = DerianDateCalculator.rollDice("2W6+5")
+        val result = ProbeChecker.rollDice("2W6+5")
         assertNotNull(result)
         assertTrue(result!! in 7..17)
     }
@@ -39,7 +39,7 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_withNegativeModifier() {
         // 3W6-2 sollte zwischen 1 und 16 liegen (3-18 - 2)
-        val result = DerianDateCalculator.rollDice("3W6-2")
+        val result = ProbeChecker.rollDice("3W6-2")
         assertNotNull(result)
         assertTrue(result!! in 1..16)
     }
@@ -47,7 +47,7 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_W20() {
         // 1W20 sollte zwischen 1 und 20 liegen
-        val result = DerianDateCalculator.rollDice("1W20")
+        val result = ProbeChecker.rollDice("1W20")
         assertNotNull(result)
         assertTrue(result!! in 1..20)
     }
@@ -55,8 +55,8 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_caseInsensitive() {
         // Groß-/Kleinschreibung sollte keine Rolle spielen
-        val result1 = DerianDateCalculator.rollDice("2w6+3")
-        val result2 = DerianDateCalculator.rollDice("2W6+3")
+        val result1 = ProbeChecker.rollDice("2w6+3")
+        val result2 = ProbeChecker.rollDice("2W6+3")
         assertNotNull(result1)
         assertNotNull(result2)
     }
@@ -64,17 +64,17 @@ class DerianDateCalculatorTest {
     @Test
     fun testRollDice_invalidNotation() {
         // Ungültige Notationen sollten null zurückgeben
-        assertNull(DerianDateCalculator.rollDice("abc"))
-        assertNull(DerianDateCalculator.rollDice("W6"))
-        assertNull(DerianDateCalculator.rollDice("3D6"))
-        assertNull(DerianDateCalculator.rollDice(""))
+        assertNull(ProbeChecker.rollDice("abc"))
+        assertNull(ProbeChecker.rollDice("W6"))
+        assertNull(ProbeChecker.rollDice("3D6"))
+        assertNull(ProbeChecker.rollDice(""))
     }
     
     @Test
     fun testRollDice_negativeValues() {
         // Negative Würfel oder Würfelgrößen sollten null ergeben
-        assertNull(DerianDateCalculator.rollDice("-1W6"))
-        assertNull(DerianDateCalculator.rollDice("1W-6"))
+        assertNull(ProbeChecker.rollDice("-1W6"))
+        assertNull(ProbeChecker.rollDice("1W-6"))
     }
     
     // ==================== parseShelfLifeAmount-Tests ====================
@@ -109,6 +109,15 @@ class DerianDateCalculatorTest {
         assertNull(DerianDateCalculator.parseShelfLifeAmount(""))
         assertNull(DerianDateCalculator.parseShelfLifeAmount("Wochen"))
         assertNull(DerianDateCalculator.parseShelfLifeAmount("abc Wochen"))
+    }
+    
+    @Test
+    fun testParseShelfLifeAmount_unlimited() {
+        // "unbegrenzt" und "ewig" sollten null zurückgeben (Signal für unbegrenzt)
+        assertNull(DerianDateCalculator.parseShelfLifeAmount("unbegrenzt"))
+        assertNull(DerianDateCalculator.parseShelfLifeAmount("Unbegrenzt"))
+        assertNull(DerianDateCalculator.parseShelfLifeAmount("ewig"))
+        assertNull(DerianDateCalculator.parseShelfLifeAmount("Ewig"))
     }
     
     // ==================== calculateExpiryDate mit Würfeln ====================
@@ -210,6 +219,17 @@ class DerianDateCalculatorTest {
         assertEquals(currentDate, DerianDateCalculator.calculateExpiryDate(currentDate, "abc Wochen"))
         assertEquals(currentDate, DerianDateCalculator.calculateExpiryDate(currentDate, "W6 Wochen"))
         assertEquals(currentDate, DerianDateCalculator.calculateExpiryDate(currentDate, ""))
+    }
+    
+    @Test
+    fun testCalculateExpiryDate_unlimited() {
+        val currentDate = "15 Praios 1040 BF"
+        
+        // "unbegrenzt" und "ewig" sollten UNLIMITED_DATE zurückgeben
+        assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "unbegrenzt"))
+        assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "Unbegrenzt"))
+        assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "ewig"))
+        assertEquals(DerianDateCalculator.UNLIMITED_DATE, DerianDateCalculator.calculateExpiryDate(currentDate, "Ewig"))
     }
     
     // ==================== Integrationstests ====================

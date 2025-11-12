@@ -39,6 +39,7 @@ import de.applicatus.app.data.model.potion.KnownQualityLevel
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
+import de.applicatus.app.logic.DerianDateCalculator
 import de.applicatus.app.logic.PotionHelper
 import de.applicatus.app.ui.screen.potion.PotionAnalysisDialog
 import de.applicatus.app.ui.viewmodel.PotionViewModel
@@ -313,7 +314,7 @@ private fun PotionCard(
                         Text(
                             text = "Ablaufdatum: ${potionWithRecipe.potion.expiryDate}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (potionWithRecipe.potion.expiryDate == de.applicatus.app.logic.PotionHelper.UNLIMITED_DATE) {
+                            color = if (potionWithRecipe.potion.expiryDate == DerianDateCalculator.UNLIMITED_DATE) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -429,7 +430,7 @@ private fun AddPotionDialog(
     
     // Initialisiere Datum mit aktuellem Datum
     LaunchedEffect(Unit) {
-        PotionHelper.parseDerischenDate(currentDate)?.let { (day, month, year) ->
+        DerianDateCalculator.parseDerischenDate(currentDate)?.let { (day, month, year) ->
             expiryDay = day
             expiryMonth = month
             expiryYear = year
@@ -444,9 +445,9 @@ private fun AddPotionDialog(
             }
             // Berechne Ablaufdatum basierend auf Haltbarkeit
             if (!isUnlimited) {
-                val calculatedDate = PotionHelper.calculateExpiryDate(currentDate, recipe.shelfLife)
-                if (calculatedDate != PotionHelper.UNLIMITED_DATE) {
-                    PotionHelper.parseDerischenDate(calculatedDate)?.let { (day, month, year) ->
+                val calculatedDate = DerianDateCalculator.calculateExpiryDate(currentDate, recipe.shelfLife)
+                if (calculatedDate != DerianDateCalculator.UNLIMITED_DATE) {
+                    DerianDateCalculator.parseDerischenDate(calculatedDate)?.let { (day, month, year) ->
                         expiryDay = day
                         expiryMonth = month
                         expiryYear = year
@@ -594,7 +595,7 @@ private fun AddPotionDialog(
                         )
                         IconButton(
                             onClick = {
-                                val maxDays = PotionHelper.getDaysInMonth(expiryMonth)
+                                val maxDays = DerianDateCalculator.getDaysInMonth(expiryMonth)
                                 expiryDay = (expiryDay + 1).coerceAtMost(maxDays)
                             }
                         ) {
@@ -616,7 +617,7 @@ private fun AddPotionDialog(
                             onClick = {
                                 expiryMonth = if (expiryMonth > 1) expiryMonth - 1 else 12
                                 // Passe Tag an falls nötig
-                                val maxDays = PotionHelper.getDaysInMonth(expiryMonth)
+                                val maxDays = DerianDateCalculator.getDaysInMonth(expiryMonth)
                                 if (expiryDay > maxDays) expiryDay = maxDays
                             }
                         ) {
@@ -631,7 +632,7 @@ private fun AddPotionDialog(
                             onClick = {
                                 expiryMonth = if (expiryMonth < 12) expiryMonth + 1 else 1
                                 // Passe Tag an falls nötig
-                                val maxDays = PotionHelper.getDaysInMonth(expiryMonth)
+                                val maxDays = DerianDateCalculator.getDaysInMonth(expiryMonth)
                                 if (expiryDay > maxDays) expiryDay = maxDays
                             }
                         ) {
@@ -672,7 +673,7 @@ private fun AddPotionDialog(
                     
                     // Formatiertes Datum anzeigen
                     Text(
-                        text = PotionHelper.formatDerischenDate(expiryDay, expiryMonth, expiryYear),
+                        text = DerianDateCalculator.formatDerischenDate(expiryDay, expiryMonth, expiryYear),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
@@ -685,9 +686,9 @@ private fun AddPotionDialog(
                 onClick = {
                     selectedRecipe?.let { recipe ->
                         val finalExpiryDate = if (isUnlimited) {
-                            PotionHelper.UNLIMITED_DATE
+                            DerianDateCalculator.UNLIMITED_DATE
                         } else {
-                            PotionHelper.formatDerischenDate(expiryDay, expiryMonth, expiryYear)
+                            DerianDateCalculator.formatDerischenDate(expiryDay, expiryMonth, expiryYear)
                         }
                         onAdd(recipe.id, selectedQuality, appearance, finalExpiryDate)
                     }
