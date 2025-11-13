@@ -48,6 +48,7 @@ class PotionBrewerDilutionTest {
         actualQuality = PotionQuality.D,  // Durchschnittlich
         appearance = "goldgelb, glitzernd",
         expiryDate = "1. Praios 1041 BF",
+        createdDate = "1. Praios 1040 BF",
         bestStructureAnalysisFacilitation = 10  // 10 TaP* aus vorheriger Analyse → 5 Erleichterung
     )
     

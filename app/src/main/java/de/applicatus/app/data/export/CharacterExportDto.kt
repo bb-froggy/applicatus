@@ -248,6 +248,7 @@ data class PotionDto(
             actualQuality = safeActualQuality,
             appearance = appearance,
             expiryDate = expiryDate,
+            createdDate = expiryDate, // Fallback: verwende expiryDate als createdDate beim Import
             categoryKnown = categoryKnown,
             knownQualityLevel = safeKnownQualityLevel,
             intensityQuality = safeIntensityQuality,
@@ -255,7 +256,8 @@ data class PotionDto(
             knownExactQuality = safeKnownExactQuality,
             shelfLifeKnown = shelfLifeKnown,
             intensityDeterminationZfp = intensityDeterminationZfp,
-            bestStructureAnalysisFacilitation = bestStructureAnalysisFacilitation
+            bestStructureAnalysisFacilitation = bestStructureAnalysisFacilitation,
+            preservationAttempted = false
         )
     }
 }

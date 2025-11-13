@@ -42,6 +42,7 @@ import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.logic.DerianDateCalculator
 import de.applicatus.app.logic.PotionHelper
 import de.applicatus.app.ui.screen.potion.PotionAnalysisDialog
+import de.applicatus.app.ui.screen.potion.PreservePotionDialog
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 
@@ -58,12 +59,14 @@ fun PotionScreen(
     val recipes by viewModel.recipes.collectAsState()
     val character by viewModel.character.collectAsState()
     val groupCharacters by viewModel.groupCharacters.collectAsState()
+    val globalSettings by viewModel.globalSettings.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showBrewDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showAnalysisDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showDilutionDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
+    var showPreservationDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
 
     val isGameMaster = character?.isGameMaster ?: false
 
@@ -143,7 +146,8 @@ fun PotionScreen(
                         onTransfer = { targetId ->
                             viewModel.transferPotionToCharacter(potionWithRecipe.potion, targetId)
                         },
-                        onDilute = { showDilutionDialog = potionWithRecipe }
+                        onDilute = { showDilutionDialog = potionWithRecipe },
+                        onPreserve = { showPreservationDialog = potionWithRecipe }
                     )
                 }
             }
@@ -179,6 +183,23 @@ fun PotionScreen(
             )
         }
     }
+    
+    showPreservationDialog?.let { potionWithRecipe ->
+        val character by viewModel.character.collectAsState()
+        
+        character?.let { char ->
+            val dateValue = globalSettings?.currentDerianDate ?: "1. Praios 1040 BF"
+            PreservePotionDialog(
+                potion = potionWithRecipe.potion,
+                recipe = potionWithRecipe.recipe,
+                character = char,
+                viewModel = viewModel,
+                currentDate = dateValue,
+                onDismiss = { showPreservationDialog = null },
+                onComplete = { showPreservationDialog = null }
+            )
+        }
+    }
 
     if (showAddDialog) {
         if (recipes.isEmpty()) {
@@ -193,12 +214,13 @@ fun PotionScreen(
                 }
             )
         } else {
+            val dateValue = globalSettings?.currentDerianDate ?: "1. Praios 1040 BF"
             AddPotionDialog(
                 recipes = recipes,
-                currentDate = "1. Praios 1040 BF", // TODO: Aktuelles Datum aus Charaktereinstellungen
+                currentDate = dateValue,
                 onDismiss = { showAddDialog = false },
-                onAdd = { recipeId, actualQuality, appearance, expiryDate ->
-                    viewModel.addPotion(recipeId, actualQuality, appearance, expiryDate)
+                onAdd = { recipeId, actualQuality, appearance, createdDate, expiryDate ->
+                    viewModel.addPotion(recipeId, actualQuality, appearance, createdDate, expiryDate)
                     showAddDialog = false
                 }
             )
@@ -247,7 +269,8 @@ private fun PotionCard(
     onDelete: () -> Unit,
     onAnalyze: () -> Unit,
     onTransfer: (Long) -> Unit = {},
-    onDilute: () -> Unit = {}
+    onDilute: () -> Unit = {},
+    onPreserve: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -376,6 +399,11 @@ private fun PotionCard(
             // Bei M wird es angezeigt, damit der Spieler nicht weiß, dass es M ist, ebenso bei X
             val canDilute = character != null && 
                             (character.alchemySkill > 0 || character.cookingPotionsSkill > 0)
+            
+            // Prüfen ob Haltbarmachen möglich ist
+            val canPreserve = character != null && 
+                              (character.alchemySkill > 0 || character.cookingPotionsSkill > 0) &&
+                              !potionWithRecipe.potion.preservationAttempted
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -401,6 +429,22 @@ private fun PotionCard(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Verdünnen")
+                    }
+                }
+                
+                // Haltbar machen-Button nur anzeigen, wenn möglich
+                if (canPreserve) {
+                    OutlinedButton(
+                        onClick = onPreserve,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Haltbar machen",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Haltbar")
                     }
                 }
                 
@@ -451,7 +495,7 @@ private fun AddPotionDialog(
     recipes: List<Recipe>,
     currentDate: String,
     onDismiss: () -> Unit,
-    onAdd: (Long, PotionQuality, String, String) -> Unit
+    onAdd: (Long, PotionQuality, String, String, String) -> Unit
 ) {
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var selectedQuality by remember { mutableStateOf(PotionQuality.C) }
@@ -728,7 +772,8 @@ private fun AddPotionDialog(
                         } else {
                             DerianDateCalculator.formatDerischenDate(expiryDay, expiryMonth, expiryYear)
                         }
-                        onAdd(recipe.id, selectedQuality, appearance, finalExpiryDate)
+                        // Verwende aktuelles Datum als Erstellungsdatum
+                        onAdd(recipe.id, selectedQuality, appearance, currentDate, finalExpiryDate)
                     }
                 },
                 enabled = selectedRecipe != null && appearance.isNotBlank()

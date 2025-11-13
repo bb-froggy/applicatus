@@ -41,11 +41,15 @@ class PotionViewModel(
     private val _groupCharacters = MutableStateFlow<List<Character>>(emptyList())
     val groupCharacters: StateFlow<List<Character>> = _groupCharacters.asStateFlow()
     
+    private val _globalSettings = MutableStateFlow<de.applicatus.app.data.model.character.GlobalSettings?>(null)
+    val globalSettings: StateFlow<de.applicatus.app.data.model.character.GlobalSettings?> = _globalSettings.asStateFlow()
+    
     init {
         loadPotions()
         loadRecipes()
         loadCharacter()
         loadGroupCharacters()
+        loadGlobalSettings()
     }
     
     private fun loadPotions() {
@@ -95,6 +99,14 @@ class PotionViewModel(
         }
     }
     
+    private fun loadGlobalSettings() {
+        viewModelScope.launch {
+            repository.globalSettings.collect { settings ->
+                _globalSettings.value = settings
+            }
+        }
+    }
+    
     fun transferPotionToCharacter(potion: Potion, targetCharacterId: Long) {
         viewModelScope.launch {
             // Prüfe ob Zielcharakter existiert
@@ -132,13 +144,14 @@ class PotionViewModel(
         }
     }
     
-    fun addPotion(recipeId: Long, actualQuality: PotionQuality, appearance: String, expiryDate: String) {
+    fun addPotion(recipeId: Long, actualQuality: PotionQuality, appearance: String, createdDate: String, expiryDate: String) {
         viewModelScope.launch {
             val potion = Potion(
                 characterId = characterId,
                 recipeId = recipeId,
                 actualQuality = actualQuality,
                 appearance = appearance,
+                createdDate = createdDate,
                 expiryDate = expiryDate
             )
             repository.insertPotion(potion)
@@ -181,6 +194,13 @@ class PotionViewModel(
                 repository.updateCharacter(character.copy(currentAe = newAe))
             }
         }
+    }
+    
+    /**
+     * Reduziert die AE des aktuellen Charakters
+     */
+    fun reduceAe(amount: Int) {
+        adjustCurrentAe(characterId, -amount)
     }
     
     /**
@@ -309,7 +329,9 @@ class PotionViewModel(
             recipeId = recipe.id,
             actualQuality = result.quality,
             appearance = appearance,
+            createdDate = currentDate,
             expiryDate = calculatedExpiryDate,
+            preservationAttempted = false,
             nameKnown = true,      // Gebraute Tränke haben bekannten Namen
             categoryKnown = true   // Gebraute Tränke haben bekannte Kategorie
         )

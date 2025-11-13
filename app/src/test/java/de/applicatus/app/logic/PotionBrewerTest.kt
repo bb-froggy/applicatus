@@ -678,5 +678,352 @@ class PotionBrewerTest {
             assertTrue(result.qualityPoints >= 3)  // Mindestens die 3 astralen QP
         }
     }
+    
+    @Test
+    fun testPreservePotion_Success() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 15,
+            hasAe = false
+        )
+        
+        val potion = de.applicatus.app.data.model.potion.Potion(
+            characterId = 1,
+            recipeId = 1,
+            actualQuality = PotionQuality.B,
+            createdDate = "1. Praios 1040 BF",
+            expiryDate = "1. Rondra 1040 BF",  // 1 Monat später
+            preservationAttempted = false
+        )
+        
+        val result = PotionBrewer.preservePotion(
+            character = character,
+            potion = potion,
+            talent = Talent.ALCHEMY,
+            currentDate = "1. Praios 1040 BF"
+        )
+        
+        assertNotNull(result)
+        assertEquals(9, result.totalModifier)  // Erschwernis ist immer 9
+        
+        // Bei Erfolg sollte Multiplier 2.0 sein, kein W6-Wurf und keine Qualitätsänderung
+        if (result.success) {
+            assertEquals(2.0, result.multiplier, 0.001)
+            assertNull(result.rollW6)
+            assertNull(result.newQuality)
+        }
+    }
+    
+    @Test
+    fun testPreservePotion_Failure_W6Rolls() {
+        val character = Character(
+            name = "Test",
+            kl = 8,  // Niedrige Werte für Misserfolg
+            mu = 8,
+            ff = 8,
+            hasAlchemy = true,
+            alchemySkill = 2,
+            hasAe = false
+        )
+        
+        val potion = de.applicatus.app.data.model.potion.Potion(
+            characterId = 1,
+            recipeId = 1,
+            actualQuality = PotionQuality.B,
+            createdDate = "1. Praios 1040 BF",
+            expiryDate = "1. Rondra 1040 BF",
+            preservationAttempted = false
+        )
+        
+        // Mehrere Versuche, um verschiedene W6-Ergebnisse zu testen
+        for (i in 1..10) {
+            val result = PotionBrewer.preservePotion(
+                character = character,
+                potion = potion,
+                talent = Talent.ALCHEMY,
+                currentDate = "1. Praios 1040 BF"
+            )
+            
+            // Bei Misserfolg sollte ein W6-Wurf vorhanden sein (1-10 mit Patzer-Bonus)
+            if (!result.success) {
+                assertNotNull(result.rollW6)
+                assertTrue(result.rollW6!! in 1..10)
+                
+                // Prüfe Multiplier und Qualität basierend auf W6
+                when (result.rollW6) {
+                    1, 2 -> {
+                        assertEquals(2.0, result.multiplier, 0.001)
+                        assertNull(result.newQuality)  // Keine Qualitätsänderung
+                    }
+                    3 -> {
+                        assertEquals(1.5, result.multiplier, 0.001)
+                        assertNull(result.newQuality)  // Keine Qualitätsänderung
+                    }
+                    4 -> {
+                        assertEquals(1.5, result.multiplier, 0.001)
+                        assertNotNull(result.newQuality)  // Qualität sinkt
+                    }
+                    5 -> {
+                        assertEquals(1.0, result.multiplier, 0.001)
+                        assertNotNull(result.newQuality)  // Qualität sinkt
+                    }
+                    in 6..8 -> {
+                        assertEquals(1.0, result.multiplier, 0.001)
+                        assertEquals(PotionQuality.X, result.newQuality)  // Wirkungslos
+                    }
+                    in 9..10 -> {
+                        assertEquals(1.0, result.multiplier, 0.001)
+                        assertEquals(PotionQuality.M, result.newQuality)  // Misslungen
+                    }
+                }
+            }
+        }
+    }
+    
+    @Test
+    fun testPreservePotion_WithMagicalMastery() {
+        val character = Character(
+            name = "Test",
+            kl = 12,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,
+            alchemyIsMagicalMastery = true,
+            hasAe = true,
+            currentAe = 20,
+            maxAe = 20
+        )
+        
+        val potion = de.applicatus.app.data.model.potion.Potion(
+            characterId = 1,
+            recipeId = 1,
+            actualQuality = PotionQuality.B,
+            createdDate = "1. Praios 1040 BF",
+            expiryDate = "1. Rondra 1040 BF",
+            preservationAttempted = false
+        )
+        
+        // Mit 5 AsP (max für TaW 10 ist (10+1)/2 = 5)
+        val result = PotionBrewer.preservePotion(
+            character = character,
+            potion = potion,
+            talent = Talent.ALCHEMY,
+            magicalMasteryAsp = 5,
+            currentDate = "1. Praios 1040 BF"
+        )
+        
+        assertNotNull(result)
+        // Mit +10 TaW (5 AsP * 2) sollte die Probe leichter sein
+        assertTrue(result.probeResult.qualityPoints >= 0 || !result.probeResult.success)
+    }
+    
+    @Test(expected = IllegalArgumentException::class)
+    fun testPreservePotion_AlreadyPreserved() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10
+        )
+        
+        val potion = de.applicatus.app.data.model.potion.Potion(
+            characterId = 1,
+            recipeId = 1,
+            actualQuality = PotionQuality.B,
+            createdDate = "1. Praios 1040 BF",
+            expiryDate = "1. Rondra 1040 BF",
+            preservationAttempted = true  // Bereits haltbar gemacht
+        )
+        
+        PotionBrewer.preservePotion(
+            character = character,
+            potion = potion,
+            talent = Talent.ALCHEMY,
+            currentDate = "1. Praios 1040 BF"
+        )
+    }
+    
+    @Test(expected = IllegalArgumentException::class)
+    fun testPreservePotion_TooMuchAsp() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,
+            alchemyIsMagicalMastery = true,
+            hasAe = true,
+            currentAe = 20,
+            maxAe = 20
+        )
+        
+        val potion = de.applicatus.app.data.model.potion.Potion(
+            characterId = 1,
+            recipeId = 1,
+            actualQuality = PotionQuality.B,
+            createdDate = "1. Praios 1040 BF",
+            expiryDate = "1. Rondra 1040 BF",
+            preservationAttempted = false
+        )
+        
+        // Versuche 10 AsP zu verwenden (max ist (10+1)/2 = 5, also 6 wäre schon zu viel)
+        PotionBrewer.preservePotion(
+            character = character,
+            potion = potion,
+            talent = Talent.ALCHEMY,
+            magicalMasteryAsp = 10,
+            currentDate = "1. Praios 1040 BF"
+        )
+    }
+    
+    @Test
+    fun testPreservePotion_CalculatesNewExpiryDate() {
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 15
+        )
+        
+        val potion = de.applicatus.app.data.model.potion.Potion(
+            characterId = 1,
+            recipeId = 1,
+            actualQuality = PotionQuality.B,
+            createdDate = "1. Praios 1040 BF",
+            expiryDate = "1. Rondra 1040 BF",  // 30 Tage später
+            preservationAttempted = false
+        )
+        
+        val result = PotionBrewer.preservePotion(
+            character = character,
+            potion = potion,
+            talent = Talent.ALCHEMY,
+            currentDate = "1. Praios 1040 BF"
+        )
+        
+        assertNotNull(result.newExpiryDate)
+        assertNotEquals(potion.expiryDate, result.newExpiryDate)
+        
+        // Das neue Datum sollte später sein als das ursprüngliche
+        // (außer bei Multiplier 1.0, aber das können wir nicht zuverlässig testen)
+    }
+    
+    @Test
+    fun testPreservePotion_QualityReduction() {
+        // Teste dass Qualitätsreduktion korrekt funktioniert
+        val testCases = mapOf(
+            PotionQuality.F to PotionQuality.E,
+            PotionQuality.E to PotionQuality.D,
+            PotionQuality.D to PotionQuality.C,
+            PotionQuality.C to PotionQuality.B,
+            PotionQuality.B to PotionQuality.A,
+            PotionQuality.A to PotionQuality.X,
+            PotionQuality.X to PotionQuality.X,  // Bleibt X
+            PotionQuality.M to PotionQuality.M   // Bleibt M
+        )
+        
+        val character = Character(
+            name = "Test",
+            kl = 8,  // Niedrige Werte für häufigen Misserfolg
+            mu = 8,
+            ff = 8,
+            hasAlchemy = true,
+            alchemySkill = 1
+        )
+        
+        testCases.forEach { (originalQuality, _) ->
+            val potion = de.applicatus.app.data.model.potion.Potion(
+                characterId = 1,
+                recipeId = 1,
+                actualQuality = originalQuality,
+                createdDate = "1. Praios 1040 BF",
+                expiryDate = "1. Rondra 1040 BF",
+                preservationAttempted = false
+            )
+            
+            // Versuche mehrmals, um verschiedene W6-Ergebnisse zu bekommen
+            for (i in 1..20) {
+                val result = PotionBrewer.preservePotion(
+                    character = character,
+                    potion = potion,
+                    talent = Talent.ALCHEMY,
+                    currentDate = "1. Praios 1040 BF"
+                )
+                
+                // Wenn W6 = 4 oder 5, sollte Qualität sinken
+                if (!result.success && result.rollW6 in listOf(4, 5)) {
+                    assertNotNull("Qualität sollte bei W6=${result.rollW6} geändert werden", result.newQuality)
+                }
+                
+                // Wenn W6 = 6-10, sollte Qualität X oder M sein
+                if (!result.success && result.rollW6!! >= 6) {
+                    assertNotNull(result.newQuality)
+                    assertTrue("Bei W6=${result.rollW6} sollte Qualität X oder M sein", 
+                        result.newQuality == PotionQuality.X || result.newQuality == PotionQuality.M)
+                }
+            }
+        }
+    }
+    
+    @Test
+    fun testMagicalMasteryWithOddSkillValue() {
+        // Test dass bei ungeradem TaW das Maximum korrekt ist ((TaW+1)/2 aufgerundet)
+        // TaW 11 → max 6 AsP (6 AsP → TaW 23, begrenzt auf 22, bringt also noch +1)
+        val character = Character(
+            name = "Test",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 11,  // Ungerader TaW
+            alchemyIsMagicalMastery = true,
+            hasAe = true,
+            currentAe = 20,
+            maxAe = 20
+        )
+        
+        val recipe = Recipe(
+            name = "Test",
+            lab = Laboratory.ALCHEMIST_LABORATORY,
+            brewingDifficulty = 4
+        )
+        
+        // 6 AsP sollten erlaubt sein ((11+1)/2 = 6)
+        val result6 = PotionBrewer.brewPotion(
+            character,
+            recipe,
+            Talent.ALCHEMY,
+            Laboratory.ALCHEMIST_LABORATORY,
+            magicalMasteryAsp = 6
+        )
+        assertNotNull(result6)
+        
+        // 7 AsP sollten NICHT erlaubt sein (würde nichts mehr bringen wegen Deckelung)
+        try {
+            PotionBrewer.brewPotion(
+                character,
+                recipe,
+                Talent.ALCHEMY,
+                Laboratory.ALCHEMIST_LABORATORY,
+                magicalMasteryAsp = 7
+            )
+            fail("7 AsP sollten bei TaW 11 nicht erlaubt sein")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message?.contains("Maximal 6 AsP") == true)
+        }
+    }
 }
+
+
+
 

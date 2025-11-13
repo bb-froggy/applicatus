@@ -39,7 +39,9 @@ data class Potion(
     // Tatsächliche Eigenschaften (vom Spielleiter/Brauprozess bestimmt)
     val actualQuality: PotionQuality,                   // Tatsächliche Qualität (A-F, M)
     val appearance: String = "",                        // Aussehen (vom Rezept übernommen, aber änderbar)
+    val createdDate: String,                            // Erstellungsdatum (derisches Datum als String)
     val expiryDate: String,                             // Haltbarkeit (derisches Datum als String)
+    val preservationAttempted: Boolean = false,         // Wurde bereits versucht, den Trank haltbar zu machen?
     
     // Wissen des Charakters über das Elixier (durch Analyse gewonnen)
     val nameKnown: Boolean = false,                     // Ist der Name bekannt? (beim Brauen oder durch Rezeptwissen)

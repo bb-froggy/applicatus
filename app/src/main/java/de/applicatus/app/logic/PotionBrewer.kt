@@ -145,8 +145,9 @@ object PotionBrewer {
             else -> false
         }
         
-        // Magisches Meisterhandwerk: +2 TaW pro AsP, max bis 2x TaW (also max TaW/2 AsP)
-        val maxMagicalMasteryAsp = skillValue / 2
+        // Magisches Meisterhandwerk: +2 TaW pro AsP, max bis 2x TaW (also max (TaW+1)/2 AsP aufgerundet)
+        // Beispiel TaW 11: max 6 AsP → 11 + 12 = 23, begrenzt auf 22 (der 6. AsP bringt noch +1)
+        val maxMagicalMasteryAsp = (skillValue + 1) / 2
         if (magicalMasteryAsp > 0) {
             require(isMagicalMastery) {
                 "Magisches Meisterhandwerk ist für dieses Talent nicht verfügbar"
@@ -304,6 +305,16 @@ object PotionBrewer {
         val totalModifier: Int
     )
     
+    data class PreservationResult(
+        val probeResult: ProbeResult,
+        val success: Boolean,
+        val multiplier: Double,  // 2.0 bei Erfolg, 1.0-2.0 bei Misserfolg (W6)
+        val newExpiryDate: String,
+        val newQuality: PotionQuality?,  // Neue Qualität bei Qualitätsänderung (null = keine Änderung)
+        val totalModifier: Int,
+        val rollW6: Int?  // null bei Erfolg, 1-10 bei Misserfolg (W6 + Patzer-Bonus)
+    )
+    
     fun dilutePotion(
         character: Character,
         potion: Potion,
@@ -362,8 +373,9 @@ object PotionBrewer {
             else -> false
         }
         
-        // Magisches Meisterhandwerk: +2 TaW pro AsP, max bis 2x TaW (also max TaW AsP)
-        val maxMagicalMasteryAsp = skillValue
+        // Magisches Meisterhandwerk: +2 TaW pro AsP, max bis 2x TaW (also max (TaW+1)/2 AsP aufgerundet)
+        // Beispiel TaW 11: max 6 AsP → 11 + 12 = 23, begrenzt auf 22 (der 6. AsP bringt noch +1)
+        val maxMagicalMasteryAsp = (skillValue + 1) / 2
         if (magicalMasteryAsp > 0) {
             require(isMagicalMastery) {
                 "Magisches Meisterhandwerk ist für dieses Talent nicht verfügbar"
@@ -438,6 +450,215 @@ object PotionBrewer {
             sb.append("Verdünnung abgeschlossen.\n\n")
             sb.append("Anzahl Tränke: ${result.numberOfPotions}")
         }
+        
+        return sb.toString()
+    }
+    
+    /**
+     * Macht einen Trank haltbar (verlängert die Haltbarkeit)
+     * 
+     * @param character Der Charakter, der den Trank haltbar macht
+     * @param potion Der Trank, der haltbar gemacht werden soll
+     * @param talent Das verwendete Talent (ALCHEMY oder COOKING_POTIONS)
+     * @param magicalMasteryAsp AsP für Magisches Meisterhandwerk (TaW-Erhöhung: +2 TaW pro AsP, max TaW/2 AsP)
+     * @param currentDate Das aktuelle derische Datum
+     * @return Ergebnis der Haltbarmachen-Probe
+     */
+    fun preservePotion(
+        character: Character,
+        potion: Potion,
+        talent: Talent,
+        magicalMasteryAsp: Int = 0,
+        currentDate: String
+    ): PreservationResult {
+        require(talent == Talent.ALCHEMY || talent == Talent.COOKING_POTIONS) {
+            "Nur Alchimie oder Kochen (Tränke) sind gültige Talente zum Haltbarmachen"
+        }
+        require(!potion.preservationAttempted) {
+            "Dieser Trank wurde bereits haltbar gemacht"
+        }
+        
+        // Talentwert ermitteln
+        val skillValue = when (talent) {
+            Talent.ALCHEMY -> character.alchemySkill
+            Talent.COOKING_POTIONS -> character.cookingPotionsSkill
+            else -> 0
+        }
+        
+        // Magisches Meisterhandwerk prüfen
+        val isMagicalMastery = when (talent) {
+            Talent.ALCHEMY -> character.alchemyIsMagicalMastery
+            Talent.COOKING_POTIONS -> character.cookingPotionsIsMagicalMastery
+            else -> false
+        }
+        
+        // Magisches Meisterhandwerk: +2 TaW pro AsP, max bis 2x TaW (also max (TaW+1)/2 AsP aufgerundet)
+        // Beispiel TaW 11: max 6 AsP → 11 + 12 = 23, begrenzt auf 22 (der 6. AsP bringt noch +1)
+        val maxMagicalMasteryAsp = (skillValue + 1) / 2
+        if (magicalMasteryAsp > 0) {
+            require(isMagicalMastery) {
+                "Magisches Meisterhandwerk ist für dieses Talent nicht verfügbar"
+            }
+            require(character.hasAe) {
+                "Charakter hat keine Astralenergie"
+            }
+            require(magicalMasteryAsp <= maxMagicalMasteryAsp) {
+                "Maximal $maxMagicalMasteryAsp AsP für Magisches Meisterhandwerk bei TaW $skillValue"
+            }
+            require(character.currentAe >= magicalMasteryAsp) {
+                "Nicht genug Astralenergie (benötigt $magicalMasteryAsp AsP, verfügbar ${character.currentAe} AsP)"
+            }
+        }
+        
+        // Erschwernis: +9
+        val difficulty = 9
+        
+        // Probe durchführen (mit Magischem Meisterhandwerk falls verwendet)
+        val probeResult = ProbeChecker.performTalentProbe(
+            talent = talent,
+            character = character,
+            talentwert = skillValue,
+            difficulty = difficulty,
+            astralEnergyCost = magicalMasteryAsp
+        )
+        
+        // Ergebnis berechnen
+        val multiplier: Double
+        val rollW6: Int?
+        val newQuality: PotionQuality?
+        
+        if (probeResult.success) {
+            // Erfolg: Verdoppelung der Haltbarkeit, keine Qualitätsänderung
+            multiplier = 2.0
+            rollW6 = null
+            newQuality = null
+        } else {
+            // Misserfolg: W6 würfeln + Patzer-Bonus
+            val baseW6 = ProbeChecker.rollD6()
+            
+            // Bei Doppel-20 oder Dreifach-20: +4 auf W6-Wurf
+            val patzerBonus = if (probeResult.isDoubleTwenty || probeResult.isTripleTwenty) 4 else 0
+            val w6WithBonus = baseW6 + patzerBonus
+            
+            // W6-Tabelle für Misserfolg:
+            // 1-2: Doppelte Haltbarkeit, keine Qualitätsänderung
+            // 3: 1,5x Haltbarkeit, keine Qualitätsänderung
+            // 4: 1,5x Haltbarkeit, Qualität sinkt um 1 Stufe
+            // 5: Keine Veränderung der Haltbarkeit, Qualität sinkt um 1 Stufe
+            // 6-8: Trank wird wirkungslos (Qualität X)
+            // 9-10: Trank misslungen (Qualität M)
+            
+            when (w6WithBonus) {
+                1, 2 -> {
+                    multiplier = 2.0
+                    newQuality = null
+                }
+                3 -> {
+                    multiplier = 1.5
+                    newQuality = null
+                }
+                4 -> {
+                    multiplier = 1.5
+                    newQuality = reduceQualityByOneStep(potion.actualQuality)
+                }
+                5 -> {
+                    multiplier = 1.0
+                    newQuality = reduceQualityByOneStep(potion.actualQuality)
+                }
+                in 6..8 -> {
+                    multiplier = 1.0
+                    newQuality = PotionQuality.X  // Wirkungslos
+                }
+                else -> {  // 9-10
+                    multiplier = 1.0
+                    newQuality = PotionQuality.M  // Misslungen
+                }
+            }
+            
+            rollW6 = w6WithBonus
+        }
+        
+        // Berechne neues Haltbarkeitsdatum
+        // Berechne die Zeitspanne vom Erstellungsdatum bis zum ursprünglichen Verfallsdatum
+        val createdDays = DerianDateCalculator.parseDateToDays(potion.createdDate) ?: 0
+        val expiryDays = DerianDateCalculator.parseDateToDays(potion.expiryDate) ?: 0
+        
+        // Berechne die ursprüngliche Haltbarkeit in Tagen
+        val originalShelfLifeDays = expiryDays - createdDays
+        
+        // Berechne die neue Haltbarkeit
+        val newShelfLifeDays = (originalShelfLifeDays * multiplier).toInt()
+        
+        // Berechne das neue Verfallsdatum vom Erstellungsdatum aus
+        // Verwende die calculateExpiryDate-Methode mit einer Tage-Angabe
+        val newExpiryDate = DerianDateCalculator.calculateExpiryDate(potion.createdDate, "$newShelfLifeDays Tage")
+        
+        return PreservationResult(
+            probeResult = probeResult,
+            success = probeResult.success,
+            multiplier = multiplier,
+            newExpiryDate = newExpiryDate,
+            newQuality = newQuality,
+            totalModifier = difficulty,
+            rollW6 = rollW6
+        )
+    }
+    
+    /**
+     * Reduziert die Qualität eines Tranks um eine Stufe
+     * X und M bleiben unverändert (können nicht weiter sinken)
+     */
+    private fun reduceQualityByOneStep(quality: PotionQuality): PotionQuality {
+        return when (quality) {
+            PotionQuality.F -> PotionQuality.E
+            PotionQuality.E -> PotionQuality.D
+            PotionQuality.D -> PotionQuality.C
+            PotionQuality.C -> PotionQuality.B
+            PotionQuality.B -> PotionQuality.A
+            PotionQuality.A -> PotionQuality.X  // Von A zu X (wirkungslos)
+            PotionQuality.X -> PotionQuality.X  // Bleibt X
+            PotionQuality.M -> PotionQuality.M  // Bleibt M
+        }
+    }
+    
+    /**
+     * Formatiert das Haltbarmachen-Ergebnis als String
+     * (Wird aktuell nicht in der UI verwendet, da der Spieler das Ergebnis nicht sehen soll)
+     */
+    fun formatPreservationResult(result: PreservationResult): String {
+        val sb = StringBuilder()
+        
+        sb.append("Haltbarmachen: ${if (result.success) "Erfolg" else "Misserfolg"}\n")
+        sb.append("Würfe: ${result.probeResult.rolls.joinToString("/")}\n")
+        
+        if (result.success) {
+            sb.append("TaP*: ${result.probeResult.qualityPoints}\n")
+            sb.append("Die Haltbarkeit wurde verdoppelt!\n")
+        } else {
+            sb.append("Probe misslungen\n")
+            val w6Display = if (result.probeResult.isDoubleTwenty || result.probeResult.isTripleTwenty) {
+                "${result.rollW6!! - 4} + 4 (Patzer) = ${result.rollW6}"
+            } else {
+                "${result.rollW6}"
+            }
+            sb.append("W6-Wurf: $w6Display\n")
+            
+            when (result.rollW6) {
+                1, 2 -> sb.append("Glück gehabt! Die Haltbarkeit wurde trotzdem verdoppelt!\n")
+                3 -> sb.append("Die Haltbarkeit wurde auf das 1,5-fache verlängert.\n")
+                4 -> sb.append("Die Haltbarkeit wurde auf das 1,5-fache verlängert, aber die Qualität sinkt um eine Stufe.\n")
+                5 -> sb.append("Die Haltbarkeit bleibt unverändert und die Qualität sinkt um eine Stufe.\n")
+                in 6..8 -> sb.append("Der Trank ist wirkungslos geworden (Qualität X)!\n")
+                in 9..10 -> sb.append("Der Trank ist misslungen (Qualität M)!\n")
+            }
+            
+            if (result.newQuality != null) {
+                sb.append("Neue Qualität: ${result.newQuality}\n")
+            }
+        }
+        
+        sb.append("\nNeues Verfallsdatum: ${result.newExpiryDate}\n")
+        sb.append("Erschwernis: +${result.totalModifier}")
         
         return sb.toString()
     }

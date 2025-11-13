@@ -25,9 +25,10 @@ fun MagicalMasteryControl(
     onMagicalMasteryAspChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Maximal TaW/2 (aufgerundet) AsP können eingesetzt werden
+    // Maximal (TaW+1)/2 (aufgerundet) AsP können eingesetzt werden
     // da 1 AsP = +2 TaW und man den TaW maximal verdoppeln kann
-    val maxMagicalMasteryAsp = ceil(skillValue / 2.0).toInt()
+    // Beispiel TaW 11: max 6 AsP → 11 + 12 = 23, begrenzt auf 22 (der 6. AsP bringt noch +1)
+    val maxMagicalMasteryAsp = (skillValue + 1) / 2
     
     Column(
         modifier = modifier,
