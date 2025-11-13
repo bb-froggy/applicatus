@@ -36,7 +36,7 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
   - **Magisches Meisterhandwerk**: 
     - Zusätzliche Qualitätspunkte durch AsP-Einsatz (2^(n-1) AsP)
     - Astrale Aufladung für Bonus-Wirkungen
-  - Qualitätsberechnung: A (13+), B (10-12), C (7-9), D (4-6), E (1-3), F (≤0), M (Meisterwerk)
+  - Qualitätsberechnung: A-F, M
   - Brau-Animation
   - Automatische Haltbarkeitsdatum-Berechnung (derischer Kalender)
 - **Rezeptverwaltung**: Über 30 vordefinierte Trank-Rezepte mit detaillierten Informationen

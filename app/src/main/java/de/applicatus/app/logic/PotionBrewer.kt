@@ -302,7 +302,8 @@ object PotionBrewer {
         val success: Boolean,
         val newQuality: PotionQuality,
         val numberOfPotions: Int,
-        val totalModifier: Int
+        val totalModifier: Int,
+        val retroactiveAspUsed: Int = 0  // AsP, die nachträglich eingesetzt wurden
     )
     
     data class PreservationResult(
@@ -312,7 +313,8 @@ object PotionBrewer {
         val newExpiryDate: String,
         val newQuality: PotionQuality?,  // Neue Qualität bei Qualitätsänderung (null = keine Änderung)
         val totalModifier: Int,
-        val rollW6: Int?  // null bei Erfolg, 1-10 bei Misserfolg (W6 + Patzer-Bonus)
+        val rollW6: Int?,  // null bei Erfolg, 1-10 bei Misserfolg (W6 + Patzer-Bonus)
+        val retroactiveAspUsed: Int = 0  // AsP, die nachträglich eingesetzt wurden
     )
     
     fun dilutePotion(
@@ -395,7 +397,7 @@ object PotionBrewer {
         val totalModifier = recipe.brewingDifficulty - facilitationFromAnalysis
         
         // Probe durchführen (mit Magischem Meisterhandwerk falls verwendet)
-        val probeResult = ProbeChecker.performTalentProbe(
+        var probeResult = ProbeChecker.performTalentProbe(
             talent = talent,
             character = character,
             talentwert = skillValue,
@@ -403,8 +405,58 @@ object PotionBrewer {
             astralEnergyCost = magicalMasteryAsp
         )
         
+        // Nachträglicher AsP-Einsatz bei fehlgeschlagener Probe (nur wenn nicht Doppel/Dreifach-20)
+        var retroactiveAspUsed = 0
+        var success = probeResult.success
+        
+        if (!success && !probeResult.isDoubleTwenty && !probeResult.isTripleTwenty && isMagicalMastery && character.hasAe) {
+            // Berechne wie viele Punkte fehlen (qualityPoints ist bei Misserfolg 0, aber wir brauchen die negative Differenz)
+            // Wir müssen die Probe nachrechnen um zu sehen wie viele Punkte fehlen
+            var qualityPoints = skillValue - totalModifier
+            val attributes = listOf(
+                talent.attribute1, talent.attribute2, talent.attribute3
+            ).map { attrName ->
+                when (attrName.uppercase()) {
+                    "MU" -> character.mu
+                    "KL" -> character.kl
+                    "IN" -> character.inValue
+                    "CH" -> character.ch
+                    "FF" -> character.ff
+                    "GE" -> character.ge
+                    "KO" -> character.ko
+                    "KK" -> character.kk
+                    else -> throw IllegalArgumentException("Unbekannte Eigenschaft: $attrName")
+                }
+            }
+            probeResult.rolls.forEachIndexed { index, roll ->
+                val attribute = attributes[index]
+                if (roll > attribute) {
+                    qualityPoints -= (roll - attribute)
+                }
+            }
+            
+            val pointsMissing = -qualityPoints  // Wie viele Punkte fehlen (positiv)
+            
+            // Prüfen ob nachträglicher AsP-Einsatz möglich ist
+            if (pointsMissing > 0 && pointsMissing <= skillValue) {
+                val aspNeeded = pointsMissing
+                val aspAvailable = character.currentAe - magicalMasteryAsp  // Bereits ausgegebene AsP abziehen
+                
+                if (aspNeeded <= aspAvailable) {
+                    // Genug AsP vorhanden - nachträglich einsetzen
+                    retroactiveAspUsed = aspNeeded
+                    success = true
+                    // ProbeResult aktualisieren: Erfolg mit 0 TaP* (wir haben gerade genug geschafft)
+                    probeResult = probeResult.copy(
+                        success = true,
+                        qualityPoints = 0,
+                        message = "${probeResult.message} (nachträglich ${retroactiveAspUsed} AsP eingesetzt)"
+                    )
+                }
+            }
+        }
+        
         // Ergebnis berechnen
-        val success = probeResult.success
         val newQuality = if (success) {
             // Wenn Index < 0, wird es X (wirkungslos)
             if (newQualityIndex < 0) {
@@ -422,7 +474,8 @@ object PotionBrewer {
             success = success,
             newQuality = newQuality,
             numberOfPotions = numberOfPotions,
-            totalModifier = totalModifier
+            totalModifier = totalModifier,
+            retroactiveAspUsed = retroactiveAspUsed
         )
     }
     
@@ -436,6 +489,9 @@ object PotionBrewer {
             
             if (result.success) {
                 sb.append("TaP*: ${result.probeResult.qualityPoints}\n")
+                if (result.retroactiveAspUsed > 0) {
+                    sb.append("Nachträglich eingesetzte AsP: ${result.retroactiveAspUsed}\n")
+                }
                 sb.append("Anzahl Tränke: ${result.numberOfPotions}\n")
                 sb.append("Neue Qualität: ${result.newQuality.name}\n")
             } else {
@@ -448,6 +504,9 @@ object PotionBrewer {
         } else {
             // Spieler sieht nur minimale Informationen
             sb.append("Verdünnung abgeschlossen.\n\n")
+            if (result.retroactiveAspUsed > 0) {
+                sb.append("${result.retroactiveAspUsed} AsP eingesetzt.\n")
+            }
             sb.append("Anzahl Tränke: ${result.numberOfPotions}")
         }
         
@@ -514,7 +573,7 @@ object PotionBrewer {
         val difficulty = 9
         
         // Probe durchführen (mit Magischem Meisterhandwerk falls verwendet)
-        val probeResult = ProbeChecker.performTalentProbe(
+        var probeResult = ProbeChecker.performTalentProbe(
             talent = talent,
             character = character,
             talentwert = skillValue,
@@ -522,12 +581,62 @@ object PotionBrewer {
             astralEnergyCost = magicalMasteryAsp
         )
         
+        // Nachträglicher AsP-Einsatz bei fehlgeschlagener Probe (nur wenn nicht Doppel/Dreifach-20)
+        var retroactiveAspUsed = 0
+        var success = probeResult.success
+        
+        if (!success && !probeResult.isDoubleTwenty && !probeResult.isTripleTwenty && isMagicalMastery && character.hasAe) {
+            // Berechne wie viele Punkte fehlen
+            var qualityPoints = skillValue - difficulty
+            val attributes = listOf(
+                talent.attribute1, talent.attribute2, talent.attribute3
+            ).map { attrName ->
+                when (attrName.uppercase()) {
+                    "MU" -> character.mu
+                    "KL" -> character.kl
+                    "IN" -> character.inValue
+                    "CH" -> character.ch
+                    "FF" -> character.ff
+                    "GE" -> character.ge
+                    "KO" -> character.ko
+                    "KK" -> character.kk
+                    else -> throw IllegalArgumentException("Unbekannte Eigenschaft: $attrName")
+                }
+            }
+            probeResult.rolls.forEachIndexed { index, roll ->
+                val attribute = attributes[index]
+                if (roll > attribute) {
+                    qualityPoints -= (roll - attribute)
+                }
+            }
+            
+            val pointsMissing = -qualityPoints  // Wie viele Punkte fehlen (positiv)
+            
+            // Prüfen ob nachträglicher AsP-Einsatz möglich ist
+            if (pointsMissing > 0 && pointsMissing <= skillValue) {
+                val aspNeeded = pointsMissing
+                val aspAvailable = character.currentAe - magicalMasteryAsp  // Bereits ausgegebene AsP abziehen
+                
+                if (aspNeeded <= aspAvailable) {
+                    // Genug AsP vorhanden - nachträglich einsetzen
+                    retroactiveAspUsed = aspNeeded
+                    success = true
+                    // ProbeResult aktualisieren: Erfolg mit 0 TaP*
+                    probeResult = probeResult.copy(
+                        success = true,
+                        qualityPoints = 0,
+                        message = "${probeResult.message} (nachträglich ${retroactiveAspUsed} AsP eingesetzt)"
+                    )
+                }
+            }
+        }
+        
         // Ergebnis berechnen
         val multiplier: Double
         val rollW6: Int?
         val newQuality: PotionQuality?
         
-        if (probeResult.success) {
+        if (success) {
             // Erfolg: Verdoppelung der Haltbarkeit, keine Qualitätsänderung
             multiplier = 2.0
             rollW6 = null
@@ -595,12 +704,13 @@ object PotionBrewer {
         
         return PreservationResult(
             probeResult = probeResult,
-            success = probeResult.success,
+            success = success,
             multiplier = multiplier,
             newExpiryDate = newExpiryDate,
             newQuality = newQuality,
             totalModifier = difficulty,
-            rollW6 = rollW6
+            rollW6 = rollW6,
+            retroactiveAspUsed = retroactiveAspUsed
         )
     }
     

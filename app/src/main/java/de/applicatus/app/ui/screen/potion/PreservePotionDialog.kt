@@ -271,9 +271,14 @@ fun PreservePotionDialog(
                                     }
                                     viewModel.updatePotion(updatedPotion)
                                     
-                                    // AE reduzieren
+                                    // AE reduzieren (Magisches Meisterhandwerk)
                                     if (magicalMasteryAsp > 0) {
                                         viewModel.reduceAe(magicalMasteryAsp)
+                                    }
+                                    
+                                    // Nachträglich eingesetzte AsP abziehen
+                                    if (result.retroactiveAspUsed > 0) {
+                                        viewModel.reduceAe(result.retroactiveAspUsed)
                                     }
                                     
                                     // Dialog schließen ohne Erfolgsmeldung

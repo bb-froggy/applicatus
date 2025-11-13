@@ -405,6 +405,11 @@ class PotionViewModel(
             adjustCurrentAe(characterId, -magicalMasteryAsp)
         }
         
+        // Nachträglich eingesetzte AsP abziehen
+        if (result.retroactiveAspUsed > 0) {
+            adjustCurrentAe(characterId, -result.retroactiveAspUsed)
+        }
+        
         // Originalen Trank löschen
         repository.deletePotion(potion)
         
