@@ -75,6 +75,9 @@ fun ApplicatusNavHost(
                 },
                 onNavigateToInventory = { charId ->
                     navController.navigate(Screen.InventoryScreen.createRoute(charId))
+                },
+                onNavigateToNearbySync = { charId, charName ->
+                    navController.navigate(Screen.NearbySync.createRoute(charId, charName))
                 }
             )
         }
@@ -91,10 +94,7 @@ fun ApplicatusNavHost(
             )
             SpellStorageScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToNearbySync = { charId, charName ->
-                    navController.navigate(Screen.NearbySync.createRoute(charId, charName))
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

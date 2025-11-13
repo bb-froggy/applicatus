@@ -72,6 +72,26 @@ class ApplicatusRepository(
         return missingSpells.size
     }
     
+    /**
+     * Synchronisiert fehlende Rezepte aus InitialRecipes in die Datenbank.
+     * Vergleicht die vorhandenen Rezepte mit den Initial-Rezepten und fügt fehlende hinzu.
+     * @return Anzahl der neu hinzugefügten Rezepte
+     */
+    suspend fun syncMissingRecipes(): Int {
+        val existingRecipeNames = recipeDao.getAllRecipeNames().toSet()
+        val initialRecipes = de.applicatus.app.data.InitialRecipes.getDefaultRecipes()
+        
+        val missingRecipes = initialRecipes.filter { recipe ->
+            recipe.name !in existingRecipeNames
+        }
+        
+        if (missingRecipes.isNotEmpty()) {
+            recipeDao.insertRecipes(missingRecipes)
+        }
+        
+        return missingRecipes.size
+    }
+    
     // Characters
     val allCharacters: Flow<List<Character>> = characterDao.getAllCharacters()
     

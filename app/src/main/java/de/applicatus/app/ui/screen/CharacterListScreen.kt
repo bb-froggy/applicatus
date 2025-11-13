@@ -17,6 +17,7 @@ import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -44,7 +45,9 @@ fun CharacterListScreen(
     val groups by viewModel.groups.collectAsState()
     val currentGroup by viewModel.currentGroup.collectAsState()
     val importState = viewModel.importState
+    val exportState = viewModel.exportState
     val spellSyncState = viewModel.spellSyncState
+    val recipeSyncState = viewModel.recipeSyncState
     val isDateEditMode by remember { derivedStateOf { viewModel.isDateEditMode } }
     
     var showAddDialog by remember { mutableStateOf(false) }
@@ -52,12 +55,24 @@ fun CharacterListScreen(
     var showMenu by remember { mutableStateOf(false) }
     var draggedCharacter by remember { mutableStateOf<Character?>(null) }
     var showMoveDialog by remember { mutableStateOf(false) }
+    var characterToExport by remember { mutableStateOf<Character?>(null) }
     
     // File picker für JSON-Import
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.importCharacterFromFile(context, it) }
+    }
+    
+    // File picker für JSON-Export
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let { 
+            characterToExport?.let { character ->
+                viewModel.exportCharacterToFile(context, character.id, it)
+            }
+        }
     }
     
     Scaffold(
@@ -78,6 +93,14 @@ fun CharacterListScreen(
                             onClick = {
                                 showMenu = false
                                 viewModel.syncMissingSpells()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rezept-Datenbank aktualisieren") },
+                            leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.syncMissingRecipes()
                             }
                         )
                         Divider()
@@ -179,6 +202,10 @@ fun CharacterListScreen(
                         onLongPress = {
                             draggedCharacter = character
                             showMoveDialog = true
+                        },
+                        onExport = {
+                            characterToExport = character
+                            exportLauncher.launch("${character.name}.json")
                         }
                     )
                 }
@@ -205,6 +232,35 @@ fun CharacterListScreen(
             }
             else -> {}
         }
+    }
+    
+    // Export State Dialog
+    when (val state = exportState) {
+        is CharacterListViewModel.ExportState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetExportState() },
+                title = { Text("Erfolg") },
+                text = { Text(state.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetExportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.ExportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetExportState() },
+                title = { Text("Fehler") },
+                text = { Text(state.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetExportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        else -> {}
     }
     
     if (showAddDialog) {
@@ -359,6 +415,56 @@ fun CharacterListScreen(
         }
         else -> {}
     }
+    
+    // Recipe Sync Status Dialog
+    when (recipeSyncState) {
+        is CharacterListViewModel.RecipeSyncState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetRecipeSyncState() },
+                title = { Text("Rezepte synchronisiert") },
+                text = { 
+                    val count = recipeSyncState.count
+                    Text(
+                        if (count > 0) {
+                            "$count neue Rezepte wurden zur Datenbank hinzugefügt."
+                        } else {
+                            "Alle Rezepte sind bereits vorhanden."
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetRecipeSyncState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.RecipeSyncState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetRecipeSyncState() },
+                title = { Text("Synchronisation fehlgeschlagen") },
+                text = { Text(recipeSyncState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetRecipeSyncState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        CharacterListViewModel.RecipeSyncState.Syncing -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Synchronisiere Rezepte...") },
+                text = { 
+                    Row(horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator()
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        else -> {}
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
@@ -367,7 +473,8 @@ fun CharacterListItem(
     character: Character,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    onExport: () -> Unit = {}
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     
@@ -439,6 +546,9 @@ fun CharacterListItem(
                             text = "FF ${character.ff} | GE ${character.ge} | KO ${character.ko} | KK ${character.kk}",
                             style = MaterialTheme.typography.bodySmall
                         )
+                    }
+                    IconButton(onClick = onExport) {
+                        Icon(Icons.Default.ArrowForward, contentDescription = "Exportieren")
                     }
                 }
             }

@@ -26,4 +26,7 @@ interface RecipeDao {
     
     @Query("SELECT COUNT(*) FROM recipes")
     suspend fun getRecipeCount(): Int
+    
+    @Query("SELECT name FROM recipes")
+    suspend fun getAllRecipeNames(): List<String>
 }

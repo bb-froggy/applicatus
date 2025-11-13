@@ -30,8 +30,16 @@ class CharacterListViewModel(
     var importState by mutableStateOf<ImportState>(ImportState.Idle)
         private set
     
+    // Export State
+    var exportState by mutableStateOf<ExportState>(ExportState.Idle)
+        private set
+    
     // Spell Sync State
     var spellSyncState by mutableStateOf<SpellSyncState>(SpellSyncState.Idle)
+        private set
+    
+    // Recipe Sync State
+    var recipeSyncState by mutableStateOf<RecipeSyncState>(RecipeSyncState.Idle)
         private set
     
     // Edit Mode für derisches Datum
@@ -49,11 +57,25 @@ class CharacterListViewModel(
         data class Error(val message: String) : SpellSyncState()
     }
     
+    sealed class RecipeSyncState {
+        object Idle : RecipeSyncState()
+        object Syncing : RecipeSyncState()
+        data class Success(val count: Int) : RecipeSyncState()
+        data class Error(val message: String) : RecipeSyncState()
+    }
+    
     sealed class ImportState {
         object Idle : ImportState()
         object Importing : ImportState()
         data class Success(val message: String, val characterId: Long) : ImportState()
         data class Error(val message: String) : ImportState()
+    }
+    
+    sealed class ExportState {
+        object Idle : ExportState()
+        object Exporting : ExportState()
+        data class Success(val message: String) : ExportState()
+        data class Error(val message: String) : ExportState()
     }
     
     val characters: StateFlow<List<Character>> = repository.allCharacters
@@ -240,6 +262,25 @@ class CharacterListViewModel(
     }
     
     /**
+     * Exportiert einen Charakter in eine JSON-Datei.
+     */
+    fun exportCharacterToFile(context: Context, characterId: Long, uri: Uri) {
+        viewModelScope.launch {
+            exportState = ExportState.Exporting
+            val result = exportManager.saveCharacterToFile(context, characterId, uri)
+            exportState = if (result.isSuccess) {
+                ExportState.Success("Charakter erfolgreich exportiert")
+            } else {
+                ExportState.Error("Export fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+    
+    fun resetExportState() {
+        exportState = ExportState.Idle
+    }
+    
+    /**
      * Synchronisiert fehlende Zauber aus InitialSpells in die Datenbank.
      */
     fun syncMissingSpells() {
@@ -256,6 +297,25 @@ class CharacterListViewModel(
     
     fun resetSpellSyncState() {
         spellSyncState = SpellSyncState.Idle
+    }
+    
+    /**
+     * Synchronisiert fehlende Rezepte aus InitialRecipes in die Datenbank.
+     */
+    fun syncMissingRecipes() {
+        viewModelScope.launch {
+            recipeSyncState = RecipeSyncState.Syncing
+            try {
+                val addedCount = repository.syncMissingRecipes()
+                recipeSyncState = RecipeSyncState.Success(addedCount)
+            } catch (e: Exception) {
+                recipeSyncState = RecipeSyncState.Error(e.message ?: "Unbekannter Fehler")
+            }
+        }
+    }
+    
+    fun resetRecipeSyncState() {
+        recipeSyncState = RecipeSyncState.Idle
     }
     
     // Derisches Datum verwalten (pro Gruppe)
