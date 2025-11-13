@@ -75,7 +75,9 @@ class DatabaseMigrationTest {
             ApplicatusDatabase.MIGRATION_16_17,
             ApplicatusDatabase.MIGRATION_17_18,
             ApplicatusDatabase.MIGRATION_18_19,
-            ApplicatusDatabase.MIGRATION_19_20
+            ApplicatusDatabase.MIGRATION_19_20,
+            ApplicatusDatabase.MIGRATION_20_21,
+            ApplicatusDatabase.MIGRATION_21_22
         )
         .allowMainThreadQueries()
         .build()
@@ -183,18 +185,20 @@ class DatabaseMigrationTest {
             ApplicatusDatabase.MIGRATION_16_17,
             ApplicatusDatabase.MIGRATION_17_18,
             ApplicatusDatabase.MIGRATION_18_19,
-            ApplicatusDatabase.MIGRATION_19_20
+            ApplicatusDatabase.MIGRATION_19_20,
+            ApplicatusDatabase.MIGRATION_20_21,
+            ApplicatusDatabase.MIGRATION_21_22
         )
         
-        assertEquals("Es sollten 19 Migrationen existieren", 19, migrations.size)
+        assertEquals("Es sollten 21 Migrationen existieren", 21, migrations.size)
         
         // Prüfe, dass alle Migrationen die richtigen Versionen haben
         assertEquals("Migration 1->2 sollte von 1 nach 2 gehen", 1, migrations[0].startVersion)
         assertEquals("Migration 1->2 sollte von 1 nach 2 gehen", 2, migrations[0].endVersion)
         
-        assertEquals("Migration 19->20 sollte von 19 nach 20 gehen", 19, migrations[18].startVersion)
-        assertEquals("Migration 19->20 sollte von 19 nach 20 gehen", 20, migrations[18].endVersion)
+        assertEquals("Migration 21->22 sollte von 21 nach 22 gehen", 21, migrations[20].startVersion)
+        assertEquals("Migration 21->22 sollte von 21 nach 22 gehen", 22, migrations[20].endVersion)
         
-        println("✅ Alle 19 Migrationen sind korrekt registriert")
+        println("✅ Alle 21 Migrationen sind korrekt registriert")
     }
 }

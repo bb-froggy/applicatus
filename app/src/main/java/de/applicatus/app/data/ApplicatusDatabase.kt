@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 21,
+    version = 22,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -410,7 +410,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 // 5. Setze das globale Datum auf die Standard-Gruppe
                 database.execSQL("UPDATE groups SET currentDerianDate = ? WHERE id = ?", arrayOf(currentDate, defaultGroupId))
                 
-                // 6. groupId-Feld zu characters hinzufügen
+                // 6. Temporäre groupId-Spalte zu characters hinzufügen
                 database.execSQL("ALTER TABLE characters ADD COLUMN groupId INTEGER")
                 
                 // 7. groupId für bestehende Charaktere setzen
@@ -421,7 +421,98 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 // 8. Charaktere ohne groupId auf Standard-Gruppe setzen
                 database.execSQL("UPDATE characters SET groupId = ? WHERE groupId IS NULL", arrayOf(defaultGroupId))
                 
-                // 9. Index für groupId erstellen
+                // 9. Tabelle neu erstellen mit Foreign Key (SQLite unterstützt kein ALTER TABLE für FK)
+                // 9.1. Neue Tabelle mit Foreign Key erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS characters_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        guid TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        mu INTEGER NOT NULL,
+                        kl INTEGER NOT NULL,
+                        inValue INTEGER NOT NULL,
+                        ch INTEGER NOT NULL,
+                        ff INTEGER NOT NULL,
+                        ge INTEGER NOT NULL,
+                        ko INTEGER NOT NULL,
+                        kk INTEGER NOT NULL,
+                        hasApplicatus INTEGER NOT NULL,
+                        applicatusZfw INTEGER NOT NULL,
+                        applicatusModifier INTEGER NOT NULL,
+                        currentLe INTEGER NOT NULL,
+                        maxLe INTEGER NOT NULL,
+                        hasAe INTEGER NOT NULL,
+                        currentAe INTEGER NOT NULL,
+                        maxAe INTEGER NOT NULL,
+                        hasKe INTEGER NOT NULL,
+                        currentKe INTEGER NOT NULL,
+                        maxKe INTEGER NOT NULL,
+                        leRegenBonus INTEGER NOT NULL,
+                        aeRegenBonus INTEGER NOT NULL,
+                        hasMasteryRegeneration INTEGER NOT NULL,
+                        alchemySkill INTEGER NOT NULL,
+                        cookingPotionsSkill INTEGER NOT NULL,
+                        odemZfw INTEGER NOT NULL,
+                        analysZfw INTEGER NOT NULL,
+                        hasAlchemy INTEGER NOT NULL,
+                        hasCookingPotions INTEGER NOT NULL,
+                        hasOdem INTEGER NOT NULL,
+                        hasAnalys INTEGER NOT NULL,
+                        selfControlSkill INTEGER NOT NULL,
+                        sensoryAcuitySkill INTEGER NOT NULL,
+                        magicalLoreSkill INTEGER NOT NULL,
+                        herbalLoreSkill INTEGER NOT NULL,
+                        isGameMaster INTEGER NOT NULL,
+                        'group' TEXT NOT NULL,
+                        alchemyIsMagicalMastery INTEGER NOT NULL,
+                        cookingPotionsIsMagicalMastery INTEGER NOT NULL,
+                        defaultLaboratory TEXT,
+                        groupId INTEGER,
+                        FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // 9.2. Daten von alter Tabelle kopieren
+                database.execSQL("""
+                    INSERT INTO characters_new (
+                        id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                        hasApplicatus, applicatusZfw, applicatusModifier,
+                        currentLe, maxLe, hasAe, currentAe, maxAe, hasKe, currentKe, maxKe,
+                        leRegenBonus, aeRegenBonus, hasMasteryRegeneration,
+                        alchemySkill, cookingPotionsSkill,
+                        odemZfw, analysZfw,
+                        hasAlchemy, hasCookingPotions, hasOdem, hasAnalys,
+                        selfControlSkill, sensoryAcuitySkill, magicalLoreSkill, herbalLoreSkill,
+                        isGameMaster,
+                        'group',
+                        alchemyIsMagicalMastery, cookingPotionsIsMagicalMastery,
+                        defaultLaboratory,
+                        groupId
+                    )
+                    SELECT 
+                        id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                        hasApplicatus, applicatusZfw, applicatusModifier,
+                        currentLe, maxLe, hasAe, currentAe, maxAe, hasKe, currentKe, maxKe,
+                        leRegenBonus, aeRegenBonus, hasMasteryRegeneration,
+                        alchemySkill, cookingPotionsSkill,
+                        odemZfw, analysZfw,
+                        hasAlchemy, hasCookingPotions, hasOdem, hasAnalys,
+                        selfControlSkill, sensoryAcuitySkill, magicalLoreSkill, herbalLoreSkill,
+                        isGameMaster,
+                        'group',
+                        alchemyIsMagicalMastery, cookingPotionsIsMagicalMastery,
+                        defaultLaboratory,
+                        groupId
+                    FROM characters
+                """.trimIndent())
+                
+                // 9.3. Alte Tabelle löschen
+                database.execSQL("DROP TABLE characters")
+                
+                // 9.4. Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE characters_new RENAME TO characters")
+                
+                // 9.5. Index für groupId erstellen
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
             }
         }
@@ -547,6 +638,50 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Recipes-Tabelle neu erstellen mit lab als nullable
+                // SQLite unterstützt kein ALTER COLUMN, daher müssen wir die Tabelle neu erstellen
+                
+                // 1. Temporäre Tabelle mit korrektem Schema erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS recipes_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        brewingDifficulty INTEGER NOT NULL,
+                        analysisDifficulty INTEGER NOT NULL,
+                        appearance TEXT NOT NULL,
+                        shelfLife TEXT NOT NULL,
+                        gruppe TEXT NOT NULL,
+                        lab TEXT,
+                        preis INTEGER,
+                        zutatenPreis INTEGER,
+                        zutatenVerbreitung INTEGER NOT NULL,
+                        verbreitung INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                
+                // 2. Daten von alter Tabelle kopieren
+                // Konvertiere leere lab-Strings zu NULL
+                database.execSQL("""
+                    INSERT INTO recipes_new (
+                        id, name, brewingDifficulty, analysisDifficulty, appearance, shelfLife,
+                        gruppe, lab, preis, zutatenPreis, zutatenVerbreitung, verbreitung
+                    )
+                    SELECT 
+                        id, name, brewingDifficulty, analysisDifficulty, appearance, shelfLife,
+                        gruppe, CASE WHEN lab = '' THEN NULL ELSE lab END, preis, zutatenPreis, zutatenVerbreitung, verbreitung
+                    FROM recipes
+                """.trimIndent())
+                
+                // 3. Alte Tabelle löschen
+                database.execSQL("DROP TABLE recipes")
+                
+                // 4. Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE recipes_new RENAME TO recipes")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -554,7 +689,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
