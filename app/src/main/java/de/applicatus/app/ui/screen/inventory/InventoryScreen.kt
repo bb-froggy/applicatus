@@ -167,6 +167,62 @@ fun InventoryScreen(
                                     }
                                 )
                             }
+                            
+                            // Auswirkungen der Last-BE (ab 1 Last-BE)
+                            if (encumbrancePenalty >= 1) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Column(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    // Ab 1 Last-BE: Erschöpfung pro Stunde Marsch
+                                    Text(
+                                        text = "+$encumbrancePenalty Erschöpfung pro Stunde Marsch",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    
+                                    // Ab 3 Last-BE: Keine Sprints + Rast-Regel
+                                    if (encumbrancePenalty >= 3 && encumbrancePenalty < 5) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "Keine Sprints möglich",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        
+                                        val ko = character?.ko ?: 0
+                                        if (ko > 0) {
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "Alle $ko Spielrunden Rast für 1 SR",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Ab 5 Last-BE: Verschärfte Regeln
+                                    if (encumbrancePenalty >= 5) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "Keine Sprints, Dauerläufe und Eilmärsche möglich",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        
+                                        val ko = character?.ko ?: 0
+                                        if (ko > 0) {
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "Last muss alle ${5 * ko} Schritt abgesetzt werden",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
