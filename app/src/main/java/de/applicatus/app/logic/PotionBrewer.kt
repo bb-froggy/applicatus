@@ -96,6 +96,7 @@ object PotionBrewer {
      * @param substitutions Liste der Substitutionen
      * @param magicalMasteryAsp AsP für Magisches Meisterhandwerk (TaW-Erhöhung: +2 TaW pro AsP, max TaW/2 AsP)
      * @param astralCharging Anzahl der Qualitätspunkte durch astrale Aufladung (2^(n-1) AsP)
+     * @param isUnderstoodRecipe True, wenn das Rezept nur verstanden (nicht bekannt) ist - verdoppelt die Brauschwierigkeit
      * @return Ergebnis der Brauprobe
      */
     fun brewPotion(
@@ -106,7 +107,8 @@ object PotionBrewer {
         voluntaryHandicap: Int = 0,
         substitutions: List<Substitution> = emptyList(),
         magicalMasteryAsp: Int = 0,
-        astralCharging: Int = 0
+        astralCharging: Int = 0,
+        isUnderstoodRecipe: Boolean = false
     ): BrewingResult {
         require(talent == Talent.ALCHEMY || talent == Talent.COOKING_POTIONS) {
             "Nur Alchimie oder Kochen (Tränke) sind gültige Talente zum Brauen"
@@ -178,7 +180,12 @@ object PotionBrewer {
         
         // Modifikatoren berechnen
         val laborModifier = recipe.lab?.getBrewingModifier(availableLaboratory) ?: 0
-        val brewingDifficultyModifier = recipe.brewingDifficulty
+        // Bei verstandenen (nicht bekannten) Rezepten wird die Brauschwierigkeit verdoppelt
+        val brewingDifficultyModifier = if (isUnderstoodRecipe) {
+            recipe.brewingDifficulty * 2
+        } else {
+            recipe.brewingDifficulty
+        }
         val substitutionModifier = substitutions.sumOf { it.type.modifier }
         val totalModifier = laborModifier + brewingDifficultyModifier + voluntaryHandicap + substitutionModifier
         

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.potion.Laboratory
 import de.applicatus.app.data.model.potion.Recipe
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.model.potion.Substitution
 import de.applicatus.app.data.model.potion.SubstitutionType
 import de.applicatus.app.data.model.talent.Talent
@@ -33,10 +34,11 @@ fun BrewPotionDialog(
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val knownRecipes by viewModel.getKnownRecipes().collectAsState(initial = emptyList())
+    val brewableRecipes by viewModel.getBrewableRecipes().collectAsState(initial = emptyList())
     val availableTalents = viewModel.getAvailableBrewingTalents()
     
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
+    var selectedRecipeKnowledgeLevel by remember { mutableStateOf<RecipeKnowledgeLevel?>(null) }
     var selectedTalent by remember { mutableStateOf<Talent?>(availableTalents.firstOrNull()) }
     var selectedLaboratory by remember { mutableStateOf(character.defaultLaboratory ?: Laboratory.ARCANE) }
     var voluntaryHandicap by remember { mutableStateOf(0) }
@@ -63,7 +65,7 @@ fun BrewPotionDialog(
     }
     
     // Filter Rezepte basierend auf Talent
-    val filteredRecipes = knownRecipes.filter { recipe ->
+    val filteredRecipes = brewableRecipes.filter { (recipe, _) ->
         // Kochen (Tränke) kann keine Alchimistenlabor-Rezepte brauen
         if (selectedTalent == Talent.COOKING_POTIONS) {
             recipe.lab != Laboratory.ALCHEMIST_LABORATORY
@@ -73,8 +75,9 @@ fun BrewPotionDialog(
     }
     
     // Wenn gewähltes Rezept nicht mehr verfügbar, zurücksetzen
-    if (selectedRecipe != null && !filteredRecipes.contains(selectedRecipe)) {
+    if (selectedRecipe != null && !filteredRecipes.any { it.first.id == selectedRecipe!!.id }) {
         selectedRecipe = null
+        selectedRecipeKnowledgeLevel = null
     }
     
     // Wenn gewähltes Labor bei Kochen (Tränke) nicht erlaubt, zurücksetzen
@@ -84,8 +87,15 @@ fun BrewPotionDialog(
     
     // Berechne Modifikatoren
     val laborModifier = selectedRecipe?.lab?.getBrewingModifier(selectedLaboratory) ?: 0
+    val baseBrewingDifficulty = selectedRecipe?.brewingDifficulty ?: 0
+    // Bei UNDERSTOOD-Rezepten wird die Brauschwierigkeit verdoppelt
+    val effectiveBrewingDifficulty = if (selectedRecipeKnowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD) {
+        baseBrewingDifficulty * 2
+    } else {
+        baseBrewingDifficulty
+    }
     val totalSubstitutionModifier = substitutions.sumOf { it.type.modifier }
-    val totalModifier = laborModifier + (selectedRecipe?.brewingDifficulty ?: 0) + voluntaryHandicap + totalSubstitutionModifier
+    val totalModifier = laborModifier + effectiveBrewingDifficulty + voluntaryHandicap + totalSubstitutionModifier
     
     // Berechne max freiwilligen Handicap
     val maxVoluntaryHandicap = selectedRecipe?.let { PotionBrewer.calculateMaxVoluntaryHandicap(it) } ?: 0
@@ -166,8 +176,8 @@ fun BrewPotionDialog(
                         Text("Rezept", style = MaterialTheme.typography.titleMedium)
                         if (filteredRecipes.isEmpty()) {
                             Text(
-                                if (knownRecipes.isEmpty()) {
-                                    "Keine bekannten Rezepte"
+                                if (brewableRecipes.isEmpty()) {
+                                    "Keine bekannten oder verstandenen Rezepte"
                                 } else {
                                     "Keine passenden Rezepte für dieses Talent"
                                 },
@@ -181,7 +191,14 @@ fun BrewPotionDialog(
                                 onExpandedChange = { expanded = it }
                             ) {
                                 OutlinedTextField(
-                                    value = selectedRecipe?.name ?: "Bitte wählen...",
+                                    value = selectedRecipe?.let { recipe ->
+                                        val levelText = when (selectedRecipeKnowledgeLevel) {
+                                            RecipeKnowledgeLevel.UNDERSTOOD -> " (verstanden, +${recipe.brewingDifficulty * 2})"
+                                            RecipeKnowledgeLevel.KNOWN -> " (bekannt, +${recipe.brewingDifficulty})"
+                                            else -> ""
+                                        }
+                                        recipe.name + levelText
+                                    } ?: "Bitte wählen...",
                                     onValueChange = {},
                                     readOnly = true,
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
@@ -193,19 +210,40 @@ fun BrewPotionDialog(
                                     expanded = expanded,
                                     onDismissRequest = { expanded = false }
                                 ) {
-                                    filteredRecipes.forEach { recipe ->
+                                    filteredRecipes.forEach { (recipe, level) ->
                                         DropdownMenuItem(
                                             text = { 
                                                 Column {
-                                                    Text(recipe.name)
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        Text(recipe.name)
+                                                        if (level == RecipeKnowledgeLevel.UNDERSTOOD) {
+                                                            Text(
+                                                                "(verstanden)",
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.secondary
+                                                            )
+                                                        }
+                                                    }
                                                     Text(
-                                                        "Schwierigkeit: +${recipe.brewingDifficulty}",
-                                                        style = MaterialTheme.typography.bodySmall
+                                                        if (level == RecipeKnowledgeLevel.UNDERSTOOD) {
+                                                            "Schwierigkeit: +${recipe.brewingDifficulty * 2} (doppelte)"
+                                                        } else {
+                                                            "Schwierigkeit: +${recipe.brewingDifficulty}"
+                                                        },
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = if (level == RecipeKnowledgeLevel.UNDERSTOOD) {
+                                                            MaterialTheme.colorScheme.error
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurface
+                                                        }
                                                     )
                                                 }
                                             },
                                             onClick = {
                                                 selectedRecipe = recipe
+                                                selectedRecipeKnowledgeLevel = level
                                                 expanded = false
                                             }
                                         )
@@ -472,7 +510,14 @@ fun BrewPotionDialog(
                         Divider()
                         Text("Zusammenfassung", style = MaterialTheme.typography.titleMedium)
                         if (selectedRecipe != null) {
-                            Text("Brauschwierigkeit: +${selectedRecipe!!.brewingDifficulty}")
+                            if (selectedRecipeKnowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD) {
+                                Text(
+                                    "Brauschwierigkeit: +${effectiveBrewingDifficulty} (doppelt, da nur verstanden)",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            } else {
+                                Text("Brauschwierigkeit: +${effectiveBrewingDifficulty}")
+                            }
                             if (laborModifier != 0) {
                                 Text("Labor: ${if (laborModifier >= 0) "+" else ""}$laborModifier")
                             }

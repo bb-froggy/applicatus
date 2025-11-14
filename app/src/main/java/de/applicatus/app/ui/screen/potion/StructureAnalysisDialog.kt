@@ -473,10 +473,11 @@ fun StructureAnalysisDialog(
                             }
                             
                             if (final.recipeKnown) {
-                                viewModel.setRecipeKnowledge(
+                                // Nur UNDERSTOOD setzen, wenn das Rezept noch nicht KNOWN ist
+                                // KNOWN ist wertvoller und darf nicht überschrieben werden
+                                viewModel.upgradeRecipeKnowledgeToUnderstood(
                                     characterId = characterId,
-                                    recipeId = recipe.id,
-                                    knowledgeLevel = RecipeKnowledgeLevel.UNDERSTOOD
+                                    recipeId = recipe.id
                                 )
                             }
                             

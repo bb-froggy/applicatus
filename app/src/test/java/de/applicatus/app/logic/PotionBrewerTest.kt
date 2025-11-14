@@ -1348,6 +1348,7 @@ class PotionBrewerTest {
             expiryDate = "1 Rondra 1000 BF"
         )
         
+        
         // 2 AsP vorne einsetzen (TaW wird um 4 erhöht)
         val result = PotionBrewer.dilutePotion(
             character = character,
@@ -1370,7 +1371,86 @@ class PotionBrewerTest {
             assertTrue(result.success)
         }
     }
+    
+    @Test
+    fun testBrewPotion_UnderstoodRecipe_DoublesDifficulty() {
+        // Test: Bei einem verstandenen Rezept wird die Brauschwierigkeit verdoppelt
+        val recipe = Recipe(
+            name = "Test-Trank",
+            lab = Laboratory.ARCANE,
+            brewingDifficulty = 5
+        )
+        
+        val character = Character(
+            name = "Test-Alchimist",
+            kl = 14,
+            mu = 12,
+            ff = 10,
+            hasAlchemy = true,
+            alchemySkill = 15,
+            hasAe = false
+        )
+        
+        // Normale Brauprobe (bekanntes Rezept)
+        val resultKnown = PotionBrewer.brewPotion(
+            character = character,
+            recipe = recipe,
+            talent = Talent.ALCHEMY,
+            availableLaboratory = Laboratory.ARCANE,
+            isUnderstoodRecipe = false
+        )
+        
+        // Brauprobe mit verstandenem Rezept (doppelte Schwierigkeit)
+        val resultUnderstood = PotionBrewer.brewPotion(
+            character = character,
+            recipe = recipe,
+            talent = Talent.ALCHEMY,
+            availableLaboratory = Laboratory.ARCANE,
+            isUnderstoodRecipe = true
+        )
+        
+        // Bei verstandenem Rezept ist die Schwierigkeit verdoppelt
+        assertEquals(5, resultKnown.brewingDifficultyModifier)
+        assertEquals(10, resultUnderstood.brewingDifficultyModifier) // 5 * 2 = 10
+    }
+    
+    @Test
+    fun testBrewPotion_UnderstoodRecipe_WithHighSkill() {
+        // Test: Ein Charakter mit hohem Talentwert kann auch verstandene Rezepte erfolgreich brauen
+        val recipe = Recipe(
+            name = "Test-Trank",
+            lab = Laboratory.ARCANE,
+            brewingDifficulty = 4  // Verdoppelt: 8
+        )
+        
+        val character = Character(
+            name = "Meister-Alchimist",
+            kl = 16,
+            mu = 14,
+            ff = 14,
+            hasAlchemy = true,
+            alchemySkill = 20,  // Sehr hoher Talentwert
+            hasAe = false
+        )
+        
+        // Bei sehr hohem Talentwert sollte die Probe auch mit verdoppelter Schwierigkeit gelingen können
+        val result = PotionBrewer.brewPotion(
+            character = character,
+            recipe = recipe,
+            talent = Talent.ALCHEMY,
+            availableLaboratory = Laboratory.ARCANE,
+            isUnderstoodRecipe = true
+        )
+        
+        // Wir können nicht garantieren, dass die Probe gelingt (Würfelpech),
+        // aber der Modifikator sollte korrekt sein
+        assertEquals(8, result.brewingDifficultyModifier) // 4 * 2 = 8
+    }
 }
+
+
+
+
 
 
 

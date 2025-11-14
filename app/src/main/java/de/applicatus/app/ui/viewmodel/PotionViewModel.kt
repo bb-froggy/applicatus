@@ -194,6 +194,22 @@ class PotionViewModel(
     }
     
     /**
+     * Upgraded das Rezeptwissen zu UNDERSTOOD, aber nur wenn es noch nicht KNOWN ist.
+     * KNOWN ist wertvoller und darf nicht überschrieben werden.
+     */
+    fun upgradeRecipeKnowledgeToUnderstood(characterId: Long, recipeId: Long) {
+        viewModelScope.launch {
+            val knowledge = repository.getRecipeKnowledgeForCharacter(characterId).first()
+                .firstOrNull { it.recipeId == recipeId }
+            
+            // Nur upgraden wenn noch nicht KNOWN
+            if (knowledge == null || knowledge.knowledgeLevel != RecipeKnowledgeLevel.KNOWN) {
+                repository.updateRecipeKnowledgeLevel(characterId, recipeId, RecipeKnowledgeLevel.UNDERSTOOD)
+            }
+        }
+    }
+    
+    /**
      * Passt die aktuelle AE eines Charakters an (für Magisches Meisterhandwerk)
      */
     fun adjustCurrentAe(characterId: Long, delta: Int) {
@@ -225,6 +241,26 @@ class PotionViewModel(
                     .toSet()
                 
                 allRecipes.filter { it.id in knownRecipeIds }
+            }
+    }
+    
+    /**
+     * Gibt die braubaren Rezepte für den Charakter zurück (KNOWN und UNDERSTOOD).
+     * UNDERSTOOD-Rezepte können mit doppelter Brauschwierigkeit gebraut werden.
+     */
+    fun getBrewableRecipes(): Flow<List<Pair<Recipe, RecipeKnowledgeLevel>>> {
+        return repository.getRecipeKnowledgeForCharacter(characterId)
+            .combine(repository.allRecipes) { knowledgeList, allRecipes ->
+                val brewableKnowledge = knowledgeList
+                    .filter { it.knowledgeLevel == RecipeKnowledgeLevel.KNOWN || 
+                             it.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD }
+                    .associateBy { it.recipeId }
+                
+                allRecipes
+                    .filter { it.id in brewableKnowledge.keys }
+                    .map { recipe -> 
+                        recipe to brewableKnowledge[recipe.id]!!.knowledgeLevel 
+                    }
             }
     }
     
@@ -274,11 +310,17 @@ class PotionViewModel(
     ): PotionBrewer.BrewingResult {
         val char = _character.value ?: throw IllegalStateException("Character not loaded")
         
-        // Prüfe, ob der Charakter das Rezept kennt
-        val knownRecipes = getKnownRecipes().first()
-        if (!knownRecipes.any { it.id == recipe.id }) {
-            throw IllegalStateException("Rezept nicht bekannt")
+        // Prüfe, ob der Charakter das Rezept kennt oder verstanden hat
+        val recipeKnowledge = repository.getRecipeKnowledgeForCharacter(characterId).first()
+            .firstOrNull { it.recipeId == recipe.id }
+        
+        if (recipeKnowledge == null || 
+            (recipeKnowledge.knowledgeLevel != RecipeKnowledgeLevel.KNOWN && 
+             recipeKnowledge.knowledgeLevel != RecipeKnowledgeLevel.UNDERSTOOD)) {
+            throw IllegalStateException("Rezept nicht bekannt oder verstanden")
         }
+        
+        val isUnderstood = recipeKnowledge.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
         
         // Prüfe, ob das Talent verfügbar ist
         if (!canUseBrewingTalent(talent)) {
@@ -298,7 +340,7 @@ class PotionViewModel(
             throw IllegalStateException("Nicht genug AsP (benötigt $totalAspCost, verfügbar ${char.currentAe})")
         }
         
-        // Führe Brauprobe durch
+        // Führe Brauprobe durch (mit doppelter Schwierigkeit bei UNDERSTOOD)
         val result = PotionBrewer.brewPotion(
             character = char,
             recipe = recipe,
@@ -307,13 +349,19 @@ class PotionViewModel(
             voluntaryHandicap = voluntaryHandicap,
             substitutions = substitutions,
             magicalMasteryAsp = magicalMasteryAsp,
-            astralCharging = astralCharging
+            astralCharging = astralCharging,
+            isUnderstoodRecipe = isUnderstood
         )
         
         // AsP abziehen (falls verwendet)
         if (char.hasAe && totalAspCost > 0) {
             val updatedChar = char.copy(currentAe = char.currentAe - totalAspCost)
             repository.updateCharacter(updatedChar)
+        }
+        
+        // Bei erfolgreicher Probe mit UNDERSTOOD-Rezept: Upgrade zu KNOWN
+        if (isUnderstood && result.probeResult.success) {
+            repository.updateRecipeKnowledgeLevel(characterId, recipe.id, RecipeKnowledgeLevel.KNOWN)
         }
         
         // Zufälliges Aussehen generieren (falls nicht im Rezept definiert)
