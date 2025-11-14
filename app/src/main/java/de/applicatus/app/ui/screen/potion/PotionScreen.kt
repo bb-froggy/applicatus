@@ -18,9 +18,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -147,7 +151,8 @@ fun PotionScreen(
                             viewModel.transferPotionToCharacter(potionWithRecipe.potion, targetId)
                         },
                         onDilute = { showDilutionDialog = potionWithRecipe },
-                        onPreserve = { showPreservationDialog = potionWithRecipe }
+                        onPreserve = { showPreservationDialog = potionWithRecipe },
+                        onConsume = { /* TODO: Implement consume logic */ }
                     )
                 }
             }
@@ -270,7 +275,8 @@ private fun PotionCard(
     onAnalyze: () -> Unit,
     onTransfer: (Long) -> Unit = {},
     onDilute: () -> Unit = {},
-    onPreserve: () -> Unit = {}
+    onPreserve: () -> Unit = {},
+    onConsume: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -411,24 +417,28 @@ private fun PotionCard(
             ) {
                 OutlinedButton(
                     onClick = onAnalyze,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(8.dp)
                 ) {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "Analysieren",
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Analysieren")
                 }
                 
                 // Verdünnen-Button nur anzeigen, wenn Charakter Alchimie oder Kochen (Tränke) kann
                 if (canDilute) {
                     OutlinedButton(
                         onClick = onDilute,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(8.dp)
                     ) {
-                        Text("Verdünnen")
+                        Icon(
+                            Icons.Default.CallSplit,
+                            contentDescription = "Verdünnen",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
                 
@@ -436,15 +446,14 @@ private fun PotionCard(
                 if (canPreserve) {
                     OutlinedButton(
                         onClick = onPreserve,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(8.dp)
                     ) {
                         Icon(
-                            Icons.Default.Refresh,
+                            Icons.Default.HourglassTop,
                             contentDescription = "Haltbar machen",
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Haltbar")
                     }
                 }
                 
@@ -454,9 +463,14 @@ private fun PotionCard(
                     
                     OutlinedButton(
                         onClick = { showTransferDialog = true },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(8.dp)
                     ) {
-                        Text("Übergeben")
+                        Icon(
+                            Icons.Default.Send,
+                            contentDescription = "Übergeben",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                     
                     if (showTransferDialog) {
@@ -469,6 +483,19 @@ private fun PotionCard(
                             }
                         )
                     }
+                }
+                
+                // Trinken-Button
+                OutlinedButton(
+                    onClick = onConsume,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.LocalDrink,
+                        contentDescription = "Trinken",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
