@@ -39,14 +39,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
-import de.applicatus.app.data.model.potion.KnownQualityLevel
 import de.applicatus.app.data.model.potion.PotionQuality
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.logic.DerianDateCalculator
 import de.applicatus.app.logic.PotionHelper
-import de.applicatus.app.ui.screen.potion.PotionAnalysisDialog
-import de.applicatus.app.ui.screen.potion.PreservePotionDialog
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 
@@ -71,6 +68,7 @@ fun PotionScreen(
     var showAnalysisDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showDilutionDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showPreservationDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
+    var showConsumeDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
 
     val isGameMaster = character?.isGameMaster ?: false
 
@@ -152,7 +150,7 @@ fun PotionScreen(
                         },
                         onDilute = { showDilutionDialog = potionWithRecipe },
                         onPreserve = { showPreservationDialog = potionWithRecipe },
-                        onConsume = { /* TODO: Implement consume logic */ }
+                        onConsume = { showConsumeDialog = potionWithRecipe }
                     )
                 }
             }
@@ -259,6 +257,21 @@ fun PotionScreen(
                 TextButton(onClick = { showDeleteDialog = null }) {
                     Text(stringResource(R.string.cancel))
                 }
+            }
+        )
+    }
+    
+    showConsumeDialog?.let { potionWithRecipe ->
+        val dateValue = currentGroup?.currentDerianDate ?: "1 Praios 1040 BF"
+        val isExpired = DerianDateCalculator.isExpired(potionWithRecipe.potion.expiryDate, dateValue)
+        
+        ConsumePotionDialog(
+            potionWithRecipe = potionWithRecipe,
+            isExpired = isExpired,
+            onDismiss = { showConsumeDialog = null },
+            onConfirm = {
+                viewModel.consumePotion(potionWithRecipe.potion)
+                showConsumeDialog = null
             }
         )
     }
@@ -518,6 +531,115 @@ private fun getQualityLabel(quality: PotionQuality): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun ConsumePotionDialog(
+    potionWithRecipe: PotionWithRecipe,
+    isExpired: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    var showDetails by remember { mutableStateOf(false) }
+    
+    if (!showDetails) {
+        // Schritt 1: Bestätigung ohne Details
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.consume_potion_title)) },
+            text = {
+                Text(
+                    text = stringResource(R.string.consume_potion_confirm),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showDetails = true }
+                ) {
+                    Text("Trinken")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    } else {
+        // Schritt 2: Details enthüllen
+        AlertDialog(
+            onDismissRequest = { /* Kann nicht abgebrochen werden */ },
+            title = { Text(stringResource(R.string.potion_details)) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Rezeptname enthüllen
+                    Text(
+                        text = potionWithRecipe.recipe.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    // Tatsächliche Qualität enthüllen
+                    Text(
+                        text = stringResource(
+                            R.string.actual_quality,
+                            getQualityLabel(potionWithRecipe.potion.actualQuality)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    // Aussehen anzeigen
+                    if (potionWithRecipe.potion.appearance.isNotBlank()) {
+                        Text(
+                            text = stringResource(R.string.appearance) + ": " + potionWithRecipe.potion.appearance,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    
+                    // Warnung bei abgelaufenem Trank
+                    if (isExpired) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.potion_expired),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = stringResource(
+                                        R.string.expired_on,
+                                        potionWithRecipe.potion.expiryDate
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onConfirm
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun AddPotionDialog(
     recipes: List<Recipe>,
     currentDate: String,
@@ -561,6 +683,8 @@ private fun AddPotionDialog(
                         expiryMonth = month
                         expiryYear = year
                     }
+                } else {
+                    isUnlimited = true
                 }
             }
         }

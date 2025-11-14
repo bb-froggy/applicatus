@@ -81,6 +81,14 @@
     <string name="no_potions">Keine Tränke vorhanden</string>
     <string name="delete_potion">Trank löschen</string>
     <string name="delete_potion_confirm">Möchten Sie diesen Trank wirklich löschen?</string>
+    <string name="consume_potion">Trank trinken</string>
+    <string name="consume_potion_confirm">Möchten Sie diesen Trank wirklich trinken?</string>
+    <string name="consume_potion_title">Trank trinken</string>
+    <string name="potion_consumed">Trank getrunken!</string>
+    <string name="potion_details">Trank-Details</string>
+    <string name="potion_expired">⚠️ ACHTUNG: Dieser Trank ist abgelaufen!</string>
+    <string name="expired_on">Abgelaufen am: %s</string>
+    <string name="actual_quality">Tatsächliche Qualität: %s</string>
     <string name="no_recipes">Keine Rezepte vorhanden</string>
     <string name="no_recipes_message">Es sind noch keine Rezepte in der Datenbank. Bitte fügen Sie zuerst Rezepte hinzu, bevor Sie Tränke erstellen können.</string>
     <string name="ok">OK</string>

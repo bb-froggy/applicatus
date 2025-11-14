@@ -168,6 +168,12 @@ class PotionViewModel(
         }
     }
     
+    fun consumePotion(potion: Potion) {
+        viewModelScope.launch {
+            repository.deletePotion(potion)
+        }
+    }
+    
     fun updatePotion(potion: Potion) {
         viewModelScope.launch {
             repository.updatePotion(potion)
