@@ -680,7 +680,6 @@ fun EditCharacterDialog(
     onDismiss: () -> Unit,
     onConfirm: (Character) -> Unit
 ) {
-    var group by remember { mutableStateOf(character.group) }
     var mu by remember { mutableStateOf(character.mu.toString()) }
     var kl by remember { mutableStateOf(character.kl.toString()) }
     var inValue by remember { mutableStateOf(character.inValue.toString()) }
@@ -730,18 +729,6 @@ fun EditCharacterDialog(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                item {
-                    Text("Allgemein:", style = MaterialTheme.typography.titleSmall)
-                }
-                item {
-                    OutlinedTextField(
-                        value = group,
-                        onValueChange = { group = it },
-                        label = { Text("Gruppe") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
                 item {
                     Text("Eigenschaften:", style = MaterialTheme.typography.titleSmall)
                 }
@@ -1135,7 +1122,6 @@ fun EditCharacterDialog(
                     val newMaxKe = if (hasKe) maxKe.toIntOrNull() ?: character.maxKe else 0
                     
                     val updatedCharacter = character.copy(
-                        group = group,
                         mu = mu.toIntOrNull() ?: 8,
                         kl = kl.toIntOrNull() ?: 8,
                         inValue = inValue.toIntOrNull() ?: 8,

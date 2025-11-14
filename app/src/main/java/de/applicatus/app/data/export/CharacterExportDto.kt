@@ -58,8 +58,7 @@ data class CharacterDto(
     val hasMasteryRegeneration: Boolean = false,
     val hasKe: Boolean = false,
     val currentKe: Int = 0,
-    val maxKe: Int = 0,
-    val group: String = "Meine Gruppe"
+    val maxKe: Int = 0
 ) {
     companion object {
         fun fromCharacter(character: Character) = CharacterDto(
@@ -95,8 +94,7 @@ data class CharacterDto(
             hasMasteryRegeneration = character.hasMasteryRegeneration,
             hasKe = character.hasKe,
             currentKe = character.currentKe,
-            maxKe = character.maxKe,
-            group = character.group
+            maxKe = character.maxKe
         )
     }
     
@@ -133,8 +131,7 @@ data class CharacterDto(
         hasMasteryRegeneration = hasMasteryRegeneration,
         hasKe = hasKe,
         currentKe = currentKe,
-        maxKe = maxKe,
-        group = group
+        maxKe = maxKe
     )
 }
 

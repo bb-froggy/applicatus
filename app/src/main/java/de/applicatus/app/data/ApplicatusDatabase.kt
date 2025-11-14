@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 22,
+    version = 23,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -682,6 +682,103 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Entferne das veraltete 'group'-String-Feld aus der characters-Tabelle
+                // SQLite unterstützt kein ALTER TABLE DROP COLUMN, daher müssen wir die Tabelle neu erstellen
+                
+                // 1. Temporäre Tabelle ohne 'group'-Spalte erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS characters_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        guid TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        mu INTEGER NOT NULL,
+                        kl INTEGER NOT NULL,
+                        inValue INTEGER NOT NULL,
+                        ch INTEGER NOT NULL,
+                        ff INTEGER NOT NULL,
+                        ge INTEGER NOT NULL,
+                        ko INTEGER NOT NULL,
+                        kk INTEGER NOT NULL,
+                        hasApplicatus INTEGER NOT NULL,
+                        applicatusZfw INTEGER NOT NULL,
+                        applicatusModifier INTEGER NOT NULL,
+                        currentLe INTEGER NOT NULL,
+                        maxLe INTEGER NOT NULL,
+                        hasAe INTEGER NOT NULL,
+                        currentAe INTEGER NOT NULL,
+                        maxAe INTEGER NOT NULL,
+                        hasKe INTEGER NOT NULL,
+                        currentKe INTEGER NOT NULL,
+                        maxKe INTEGER NOT NULL,
+                        leRegenBonus INTEGER NOT NULL,
+                        aeRegenBonus INTEGER NOT NULL,
+                        hasMasteryRegeneration INTEGER NOT NULL,
+                        alchemySkill INTEGER NOT NULL,
+                        cookingPotionsSkill INTEGER NOT NULL,
+                        odemZfw INTEGER NOT NULL,
+                        analysZfw INTEGER NOT NULL,
+                        hasAlchemy INTEGER NOT NULL,
+                        hasCookingPotions INTEGER NOT NULL,
+                        hasOdem INTEGER NOT NULL,
+                        hasAnalys INTEGER NOT NULL,
+                        selfControlSkill INTEGER NOT NULL,
+                        sensoryAcuitySkill INTEGER NOT NULL,
+                        magicalLoreSkill INTEGER NOT NULL,
+                        herbalLoreSkill INTEGER NOT NULL,
+                        isGameMaster INTEGER NOT NULL,
+                        alchemyIsMagicalMastery INTEGER NOT NULL,
+                        cookingPotionsIsMagicalMastery INTEGER NOT NULL,
+                        defaultLaboratory TEXT,
+                        groupId INTEGER,
+                        FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // 2. Daten von alter Tabelle kopieren (ohne 'group'-Spalte)
+                database.execSQL("""
+                    INSERT INTO characters_new (
+                        id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                        hasApplicatus, applicatusZfw, applicatusModifier,
+                        currentLe, maxLe, hasAe, currentAe, maxAe, hasKe, currentKe, maxKe,
+                        leRegenBonus, aeRegenBonus, hasMasteryRegeneration,
+                        alchemySkill, cookingPotionsSkill,
+                        odemZfw, analysZfw,
+                        hasAlchemy, hasCookingPotions, hasOdem, hasAnalys,
+                        selfControlSkill, sensoryAcuitySkill, magicalLoreSkill, herbalLoreSkill,
+                        isGameMaster,
+                        alchemyIsMagicalMastery, cookingPotionsIsMagicalMastery,
+                        defaultLaboratory,
+                        groupId
+                    )
+                    SELECT 
+                        id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                        hasApplicatus, applicatusZfw, applicatusModifier,
+                        currentLe, maxLe, hasAe, currentAe, maxAe, hasKe, currentKe, maxKe,
+                        leRegenBonus, aeRegenBonus, hasMasteryRegeneration,
+                        alchemySkill, cookingPotionsSkill,
+                        odemZfw, analysZfw,
+                        hasAlchemy, hasCookingPotions, hasOdem, hasAnalys,
+                        selfControlSkill, sensoryAcuitySkill, magicalLoreSkill, herbalLoreSkill,
+                        isGameMaster,
+                        alchemyIsMagicalMastery, cookingPotionsIsMagicalMastery,
+                        defaultLaboratory,
+                        groupId
+                    FROM characters
+                """.trimIndent())
+                
+                // 3. Alte Tabelle löschen
+                database.execSQL("DROP TABLE characters")
+                
+                // 4. Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE characters_new RENAME TO characters")
+                
+                // 5. Index für groupId erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -689,7 +786,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

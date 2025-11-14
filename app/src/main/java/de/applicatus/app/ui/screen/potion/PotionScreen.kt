@@ -63,7 +63,7 @@ fun PotionScreen(
     val recipes by viewModel.recipes.collectAsState()
     val character by viewModel.character.collectAsState()
     val groupCharacters by viewModel.groupCharacters.collectAsState()
-    val globalSettings by viewModel.globalSettings.collectAsState()
+    val currentGroup by viewModel.currentGroup.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showBrewDialog by remember { mutableStateOf(false) }
@@ -193,7 +193,7 @@ fun PotionScreen(
         val character by viewModel.character.collectAsState()
         
         character?.let { char ->
-            val dateValue = globalSettings?.currentDerianDate ?: "1. Praios 1040 BF"
+            val dateValue = currentGroup?.currentDerianDate ?: "1 Praios 1040 BF"
             PreservePotionDialog(
                 potion = potionWithRecipe.potion,
                 recipe = potionWithRecipe.recipe,
@@ -219,7 +219,7 @@ fun PotionScreen(
                 }
             )
         } else {
-            val dateValue = globalSettings?.currentDerianDate ?: "1. Praios 1040 BF"
+            val dateValue = currentGroup?.currentDerianDate ?: "1 Praios 1040 BF"
             AddPotionDialog(
                 recipes = recipes,
                 currentDate = dateValue,

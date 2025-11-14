@@ -272,7 +272,6 @@ fun CharacterListScreen(
                 viewModel.addCharacter(
                     name = name,
                     groupId = groupId,
-                    group = groups.find { it.id == groupId }?.name ?: "Meine Gruppe",
                     mu = mu,
                     kl = kl,
                     inValue = inValue,

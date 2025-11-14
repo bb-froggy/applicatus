@@ -41,15 +41,15 @@ class PotionViewModel(
     private val _groupCharacters = MutableStateFlow<List<Character>>(emptyList())
     val groupCharacters: StateFlow<List<Character>> = _groupCharacters.asStateFlow()
     
-    private val _globalSettings = MutableStateFlow<de.applicatus.app.data.model.character.GlobalSettings?>(null)
-    val globalSettings: StateFlow<de.applicatus.app.data.model.character.GlobalSettings?> = _globalSettings.asStateFlow()
+    private val _currentGroup = MutableStateFlow<de.applicatus.app.data.model.character.Group?>(null)
+    val currentGroup: StateFlow<de.applicatus.app.data.model.character.Group?> = _currentGroup.asStateFlow()
     
     init {
         loadPotions()
         loadRecipes()
         loadCharacter()
         loadGroupCharacters()
-        loadGlobalSettings()
+        loadCurrentGroup()
     }
     
     private fun loadPotions() {
@@ -90,7 +90,7 @@ class PotionViewModel(
                             allChars.filter { it.id != currentChar.id }
                         } else {
                             allChars.filter { 
-                                it.group == currentChar.group && it.id != currentChar.id 
+                                it.groupId == currentChar.groupId && it.id != currentChar.id 
                             }
                         }
                     }
@@ -99,10 +99,14 @@ class PotionViewModel(
         }
     }
     
-    private fun loadGlobalSettings() {
+    private fun loadCurrentGroup() {
         viewModelScope.launch {
-            repository.globalSettings.collect { settings ->
-                _globalSettings.value = settings
+            repository.getCharacterByIdFlow(characterId).collect { char ->
+                if (char?.groupId != null) {
+                    repository.getGroupById(char.groupId).collect { group ->
+                        _currentGroup.value = group
+                    }
+                }
             }
         }
     }
@@ -122,7 +126,7 @@ class PotionViewModel(
             val hasGameMaster = allChars.any { it.isGameMaster }
             
             // Gruppen-Einschränkung nur ohne Spielleiter
-            if (!hasGameMaster && currentChar.group != targetChar.group) {
+            if (!hasGameMaster && currentChar.groupId != targetChar.groupId) {
                 return@launch // Nur innerhalb der Gruppe erlaubt (wenn kein Spielleiter)
             }
             

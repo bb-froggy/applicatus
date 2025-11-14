@@ -143,7 +143,6 @@ class CharacterListViewModel(
     fun addCharacter(
         name: String,
         groupId: Long? = null,
-        group: String = "Meine Gruppe",
         mu: Int = 8,
         kl: Int = 8,
         inValue: Int = 8,
@@ -157,16 +156,12 @@ class CharacterListViewModel(
         applicatusModifier: Int = 0
     ) {
         viewModelScope.launch {
-            // Falls keine groupId übergeben wurde, verwende selectedGroupId oder erstelle neue Gruppe
-            val finalGroupId = groupId ?: selectedGroupId ?: run {
-                // Erstelle neue Gruppe mit dem Namen aus dem group-Parameter
-                repository.insertGroup(Group(name = group))
-            }
+            // Falls keine groupId übergeben wurde, verwende selectedGroupId
+            val finalGroupId = groupId ?: selectedGroupId
             
             val character = Character(
                 name = name,
                 groupId = finalGroupId,
-                group = group,  // Deprecated, aber behalten für Kompatibilität
                 mu = mu,
                 kl = kl,
                 inValue = inValue,

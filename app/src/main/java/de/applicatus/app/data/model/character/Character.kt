@@ -70,6 +70,5 @@ data class Character(
     // Spieler/Spielleiter-Modus
     val isGameMaster: Boolean = false,   // Ist der Nutzer Spielleiter? (zeigt alle Infos)
     // Gruppe
-    val groupId: Long? = null,           // Foreign Key zur Gruppe (null = Standard-Gruppe wird verwendet)
-    val group: String = "Meine Gruppe"   // Gruppenname für Zusammenarbeit (z.B. Trank-Übergabe) - deprecated, wird durch groupId ersetzt
+    val groupId: Long? = null            // Foreign Key zur Gruppe (null = Standard-Gruppe wird verwendet)
 )
