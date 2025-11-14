@@ -776,7 +776,9 @@ private fun AddPotionDialog(
                     )
                     
                     IconButton(
-                        onClick = { appearance = PotionHelper.generateRandomAppearance() }
+                        onClick = { 
+                            appearance = PotionHelper.generateRandomAppearance(selectedRecipe?.name ?: "")
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,

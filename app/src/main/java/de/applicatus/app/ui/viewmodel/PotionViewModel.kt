@@ -15,6 +15,7 @@ import de.applicatus.app.data.model.potion.Substitution
 import de.applicatus.app.data.model.talent.Talent
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.PotionBrewer
+import de.applicatus.app.logic.PotionHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -366,7 +367,7 @@ class PotionViewModel(
         
         // Zufälliges Aussehen generieren (falls nicht im Rezept definiert)
         val appearance = if (recipe.appearance.isBlank()) {
-            generateRandomAppearance()
+            PotionHelper.generateRandomAppearance(recipe.name)
         } else {
             recipe.appearance
         }
@@ -396,24 +397,6 @@ class PotionViewModel(
         repository.insertPotion(potion)
         
         return result
-    }
-    
-    /**
-     * Generiert ein zufälliges Aussehen für einen Trank
-     */
-    private fun generateRandomAppearance(): String {
-        val colors = listOf(
-            "klar", "trüb", "goldgelb", "bernsteinfarben", "smaragdgrün", 
-            "rubinrot", "saphirblau", "violett", "silbrig", "kupferfarben",
-            "milchig", "schimmernd", "dunkelrot", "hellblau", "grünlich"
-        )
-        val properties = listOf(
-            "glitzernd", "schimmernd", "leuchtend", "dampfend", "blubbernde",
-            "ölig", "dickflüssig", "wässrig", "klebrig", "sirupartig"
-        )
-        val color = colors.random()
-        val property = properties.random()
-        return "$color, $property"
     }
     
     /**
