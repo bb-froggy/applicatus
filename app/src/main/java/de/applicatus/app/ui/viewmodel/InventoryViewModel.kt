@@ -9,6 +9,7 @@ import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.potion.PotionWithRecipe
+import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.repository.ApplicatusRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -38,6 +39,10 @@ class InventoryViewModel(
     val potions = repository.getPotionsForCharacter(characterId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
+    // Rezeptwissen des Charakters
+    private val recipeKnowledge = repository.getRecipeKnowledgeForCharacter(characterId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
     /**
      * Gruppenmitglieder (alle Charaktere der gleichen Gruppe, außer dem aktuellen)
      */
@@ -56,7 +61,7 @@ class InventoryViewModel(
      * Gruppiert Items und Tränke nach Location
      */
     val itemsByLocation: StateFlow<Map<Location?, List<ItemWithLocation>>> = 
-        combine(locations, itemsWithLocation, potions) { locs, items, pots ->
+        combine(locations, itemsWithLocation, potions, recipeKnowledge) { locs, items, pots, recipeKnow ->
             // Erstelle eine Map: Location -> Items
             val groupedItems = items.groupBy { item ->
                 locs.find { it.id == item.locationId }
@@ -65,17 +70,36 @@ class InventoryViewModel(
             // Füge Tränke als Items hinzu (virtuell)
             pots.forEach { potionWithRecipe ->
                 val location = locs.find { it.id == potionWithRecipe.potion.locationId }
+                
+                // Prüfe, ob das Rezept bekannt/verstanden ist
+                val recipeKnowledgeItem = recipeKnow.find { it.recipeId == potionWithRecipe.recipe.id }
+                val isRecipeKnown = recipeKnowledgeItem?.knowledgeLevel == RecipeKnowledgeLevel.KNOWN || 
+                                   recipeKnowledgeItem?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
+                
+                // Name ist bekannt wenn:
+                // 1. Selbst gebraut (nameKnown = true) ODER
+                // 2. Strukturanalyse durchgeführt (categoryKnown = true) UND Rezept bekannt/verstanden
+                val isNameKnown = potionWithRecipe.potion.nameKnown || 
+                                 (potionWithRecipe.potion.categoryKnown && isRecipeKnown)
+                
+                val displayName = if (isNameKnown) {
+                    potionWithRecipe.recipe.name
+                } else {
+                    "Unbekannter Trank"
+                }
+                
                 val virtualItem = ItemWithLocation(
                     id = -potionWithRecipe.potion.id, // Negative ID für Tränke
                     characterId = characterId,
                     locationId = potionWithRecipe.potion.locationId,
-                    name = if (potionWithRecipe.potion.nameKnown) potionWithRecipe.recipe.name else "Unbekannter Trank",
+                    name = displayName,
                     stone = Weight.POTION.stone,
                     ounces = Weight.POTION.ounces,
                     sortOrder = 0,
                     locationName = location?.name,
                     isPurse = false,
-                    kreuzerAmount = 0
+                    kreuzerAmount = 0,
+                    appearance = potionWithRecipe.potion.appearance.takeIf { it.isNotBlank() }
                 )
                 
                 val currentList = groupedItems[location] ?: emptyList()

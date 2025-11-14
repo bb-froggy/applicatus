@@ -13,7 +13,8 @@ data class ItemWithLocation(
     val sortOrder: Int,
     val locationName: String?, // Name des Ortes (kann null sein)
     val isPurse: Boolean = false,
-    val kreuzerAmount: Int = 0
+    val kreuzerAmount: Int = 0,
+    val appearance: String? = null // Aussehen (nur für Tränke, nicht aus DB)
 ) {
     val weight: Weight
         get() = Weight(stone, ounces)

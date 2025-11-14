@@ -196,11 +196,21 @@ fun ItemRow(
                             text = item.name,
                             style = MaterialTheme.typography.bodyLarge
                         )
+                        // Gewicht
                         Text(
                             text = item.weight.toDisplayString(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        // Aussehen (nur für Tränke)
+                        if (isPotion && !item.appearance.isNullOrBlank()) {
+                            Text(
+                                text = item.appearance,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
                 

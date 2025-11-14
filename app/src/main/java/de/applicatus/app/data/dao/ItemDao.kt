@@ -17,6 +17,7 @@ interface ItemDao {
     suspend fun getItemById(itemId: Long): Item?
     
     @Transaction
+    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("""
         SELECT items.id, items.characterId, items.locationId, items.name, 
                items.stone, items.ounces, items.sortOrder,
