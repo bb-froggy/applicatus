@@ -271,6 +271,13 @@ class CharacterListViewModel(
         }
     }
     
+    /**
+     * Erstellt ein Share-Intent für einen Charakter.
+     */
+    suspend fun shareCharacter(context: Context, characterId: Long): Result<android.content.Intent> {
+        return exportManager.createShareIntent(context, characterId)
+    }
+    
     fun resetExportState() {
         exportState = ExportState.Idle
     }

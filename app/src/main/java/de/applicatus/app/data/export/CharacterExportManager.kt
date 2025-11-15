@@ -1,7 +1,9 @@
 package de.applicatus.app.data.export
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import androidx.core.content.FileProvider
 import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.KnownQualityLevel
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.io.IOException
 
 /**
@@ -111,6 +114,55 @@ class CharacterExportManager(
             } ?: return@withContext Result.failure(IOException("Konnte Datei nicht öffnen"))
             
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Erstellt ein Share-Intent für einen Charakter, ohne die Datei im Dateisystem zu speichern.
+     * Nutzt einen temporären Cache-File und FileProvider.
+     */
+    suspend fun createShareIntent(
+        context: Context,
+        characterId: Long
+    ): Result<Intent> = withContext(Dispatchers.IO) {
+        try {
+            val character = repository.getCharacterById(characterId)
+                ?: return@withContext Result.failure(Exception("Charakter nicht gefunden"))
+            
+            val jsonResult = exportCharacter(characterId)
+            if (jsonResult.isFailure) {
+                return@withContext Result.failure(jsonResult.exceptionOrNull() ?: Exception("Export fehlgeschlagen"))
+            }
+            
+            // Erstelle temporäre Datei im Cache-Verzeichnis
+            val cacheDir = File(context.cacheDir, "shared_characters")
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs()
+            }
+            
+            val fileName = "${character.name.replace(Regex("[^a-zA-Z0-9_-]"), "_")}.json"
+            val tempFile = File(cacheDir, fileName)
+            tempFile.writeText(jsonResult.getOrNull()!!)
+            
+            // Erstelle URI mit FileProvider
+            val contentUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                tempFile
+            )
+            
+            // Erstelle Share-Intent
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, contentUri)
+                putExtra(Intent.EXTRA_SUBJECT, "DSA Charakter: ${character.name}")
+                putExtra(Intent.EXTRA_TEXT, "Charakterdaten für ${character.name}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            
+            Result.success(Intent.createChooser(shareIntent, "Charakter teilen"))
         } catch (e: Exception) {
             Result.failure(e)
         }

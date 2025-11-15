@@ -29,14 +29,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CharacterListScreen(
     viewModel: CharacterListViewModel,
+    pendingImportUri: Uri? = null,
+    onImportHandled: () -> Unit = {},
     onCharacterClick: (Long) -> Unit,
     onNearbySyncClick: () -> Unit
 ) {
@@ -146,9 +150,14 @@ fun CharacterListScreen(
         }
     ) { padding ->
         // Gruppiere Charaktere nach groupId und mappe sie auf die entsprechenden Group-Objekte
-        val groupedCharactersWithGroup = characters.groupBy { it.groupId }.mapNotNull { (groupId, chars) ->
-            val group = groups.find { it.id == groupId }
-            group?.let { it to chars }
+        // Charaktere ohne passende Gruppe werden mit einer Dummy-Gruppe angezeigt
+        val groupedCharactersWithGroup = characters.groupBy { it.groupId }.map { (groupId, chars) ->
+            val group = groups.find { it.id == groupId } ?: Group(
+                id = groupId ?: -1,
+                name = "Unbekannte Gruppe",
+                currentDerianDate = "1 Praios 1000 BF"
+            )
+            group to chars
         }.sortedBy { it.first.name }
         
         LazyColumn(
@@ -206,6 +215,21 @@ fun CharacterListScreen(
                         onExport = {
                             characterToExport = character
                             exportLauncher.launch("${character.name}.json")
+                        },
+                        onShare = {
+                            viewModel.viewModelScope.launch {
+                                val result = viewModel.shareCharacter(context, character.id)
+                                result.onSuccess { intent ->
+                                    context.startActivity(intent)
+                                }.onFailure { error ->
+                                    // Fehler wird über Toast angezeigt
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Teilen fehlgeschlagen: ${error.message}",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
                         }
                     )
                 }
@@ -215,6 +239,14 @@ fun CharacterListScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+        }
+    }
+    
+    // Handle pending import from external file
+    LaunchedEffect(pendingImportUri) {
+        pendingImportUri?.let { uri ->
+            viewModel.importCharacterFromFile(context, uri)
+            onImportHandled() // URI zurücksetzen nach Import
         }
     }
     
@@ -473,9 +505,11 @@ fun CharacterListItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onLongPress: () -> Unit,
-    onExport: () -> Unit = {}
+    onExport: () -> Unit = {},
+    onShare: () -> Unit = {}
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var showExportMenu by remember { mutableStateOf(false) }
     
     val dismissState = rememberDismissState(
         confirmStateChange = { dismissValue ->
@@ -546,8 +580,31 @@ fun CharacterListItem(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    IconButton(onClick = onExport) {
-                        Icon(Icons.Default.ArrowForward, contentDescription = "Exportieren")
+                    Box {
+                        IconButton(onClick = { showExportMenu = true }) {
+                            Icon(Icons.Default.Share, contentDescription = "Teilen/Exportieren")
+                        }
+                        DropdownMenu(
+                            expanded = showExportMenu,
+                            onDismissRequest = { showExportMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Teilen...") },
+                                leadingIcon = { Icon(Icons.Default.Share, null) },
+                                onClick = {
+                                    showExportMenu = false
+                                    onShare()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Als Datei exportieren") },
+                                leadingIcon = { Icon(Icons.Default.ArrowForward, null) },
+                                onClick = {
+                                    showExportMenu = false
+                                    onExport()
+                                }
+                            )
+                        }
                     }
                 }
             }

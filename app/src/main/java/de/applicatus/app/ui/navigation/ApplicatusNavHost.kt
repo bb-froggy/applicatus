@@ -1,5 +1,6 @@
 package de.applicatus.app.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,7 +34,9 @@ import java.net.URLDecoder
 @Composable
 fun ApplicatusNavHost(
     navController: NavHostController,
-    repository: ApplicatusRepository
+    repository: ApplicatusRepository,
+    pendingImportUri: Uri? = null,
+    onImportHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -47,6 +50,8 @@ fun ApplicatusNavHost(
             )
             CharacterListScreen(
                 viewModel = viewModel,
+                pendingImportUri = pendingImportUri,
+                onImportHandled = onImportHandled,
                 onCharacterClick = { characterId ->
                     navController.navigate(Screen.CharacterHome.createRoute(characterId))
                 },
