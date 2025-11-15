@@ -678,6 +678,7 @@ private fun AddPotionDialog(
             if (!isUnlimited) {
                 val calculatedDate = DerianDateCalculator.calculateExpiryDate(currentDate, recipe.shelfLife)
                 if (calculatedDate != DerianDateCalculator.UNLIMITED_DATE) {
+                    isUnlimited = false
                     DerianDateCalculator.parseDerischenDate(calculatedDate)?.let { (day, month, year) ->
                         expiryDay = day
                         expiryMonth = month
