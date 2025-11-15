@@ -36,7 +36,8 @@ fun LocationCard(
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (ItemWithLocation, Offset) -> Unit,
     onRegisterDropTarget: (String, LocationDropTarget) -> Unit,
-    onPurseAmountChange: (Long, Int) -> Unit
+    onPurseAmountChange: (Long, Int) -> Unit,
+    onQuantityChange: (Long, Int) -> Unit
 ) {
     var cardPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
@@ -199,7 +200,8 @@ fun LocationCard(
                         onStartDrag = { onStartDrag(item) },
                         onDragUpdate = onDragUpdate,
                         onDragEnd = { offset -> onDragEnd(item, offset) },
-                        onPurseAmountChange = { newAmount -> onPurseAmountChange(item.id, newAmount) }
+                        onPurseAmountChange = { newAmount -> onPurseAmountChange(item.id, newAmount) },
+                        onQuantityChange = { newQuantity -> onQuantityChange(item.id, newQuantity) }
                     )
                 }
             }

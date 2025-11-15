@@ -23,6 +23,9 @@ interface PotionDao {
     @Query("SELECT * FROM potions WHERE id = :id")
     suspend fun getPotionById(id: Long): Potion?
     
+    @Query("SELECT * FROM potions WHERE characterId = :characterId")
+    suspend fun getPotionsListForCharacter(characterId: Long): List<Potion>
+    
     @Insert
     suspend fun insertPotion(potion: Potion): Long
     

@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 23,
+    version = 25,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -779,6 +779,112 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Füge quantity und isCountable Felder zur items-Tabelle hinzu
+                // Füge quantityProduced Feld zur recipes-Tabelle hinzu
+                
+                // 1. Items-Tabelle erweitern
+                // Temporäre Tabelle mit neuen Feldern erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS items_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        locationId INTEGER,
+                        name TEXT NOT NULL,
+                        stone INTEGER NOT NULL,
+                        ounces INTEGER NOT NULL,
+                        sortOrder INTEGER NOT NULL,
+                        isPurse INTEGER NOT NULL,
+                        kreuzerAmount INTEGER NOT NULL,
+                        isCountable INTEGER NOT NULL DEFAULT 0,
+                        quantity INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
+                        FOREIGN KEY(locationId) REFERENCES locations(id) ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                
+                // Daten kopieren
+                database.execSQL("""
+                    INSERT INTO items_new (
+                        id, characterId, locationId, name, stone, ounces, 
+                        sortOrder, isPurse, kreuzerAmount, isCountable, quantity
+                    )
+                    SELECT 
+                        id, characterId, locationId, name, stone, ounces, 
+                        sortOrder, isPurse, kreuzerAmount, 0, 1
+                    FROM items
+                """.trimIndent())
+                
+                // Alte Tabelle löschen und neue umbenennen
+                database.execSQL("DROP TABLE items")
+                database.execSQL("ALTER TABLE items_new RENAME TO items")
+                
+                // Indizes neu erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
+                
+                // 2. Recipes-Tabelle erweitern
+                // Temporäre Tabelle mit neuem Feld erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS recipes_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        gruppe TEXT NOT NULL,
+                        lab TEXT,
+                        preis INTEGER,
+                        zutatenPreis INTEGER,
+                        zutatenVerbreitung INTEGER NOT NULL,
+                        verbreitung INTEGER NOT NULL,
+                        brewingDifficulty INTEGER NOT NULL,
+                        analysisDifficulty INTEGER NOT NULL,
+                        appearance TEXT NOT NULL,
+                        shelfLife TEXT NOT NULL,
+                        quantityProduced INTEGER NOT NULL DEFAULT 1
+                    )
+                """.trimIndent())
+                
+                // Daten kopieren mit Standard-Mengen
+                database.execSQL("""
+                    INSERT INTO recipes_new (
+                        id, name, gruppe, lab, preis, zutatenPreis, zutatenVerbreitung,
+                        verbreitung, brewingDifficulty, analysisDifficulty, appearance, 
+                        shelfLife, quantityProduced
+                    )
+                    SELECT 
+                        id, name, gruppe, lab, preis, zutatenPreis, zutatenVerbreitung,
+                        verbreitung, brewingDifficulty, analysisDifficulty, appearance, 
+                        shelfLife,
+                        CASE name
+                            WHEN 'Zauberkreide' THEN 12
+                            WHEN 'Pastillen gegen Erschöpfung' THEN 3
+                            WHEN 'Dingens gegen Unsichtbares' THEN 3
+                            WHEN 'Beschwörungskerzen' THEN 7
+                            WHEN 'Purpurwasser' THEN 3
+                            WHEN 'Regenbogenstaub' THEN 5
+                            WHEN 'Mengbiller Bannbalöl' THEN 8
+                            WHEN 'Liebestrunk' THEN 5
+                            WHEN 'Hauch der Weissagung' THEN 7
+                            WHEN 'Schlafgift' THEN 2
+                            WHEN 'Waffenbalsam' THEN 5
+                            ELSE 1
+                        END
+                    FROM recipes
+                """.trimIndent())
+                
+                // Alte Tabelle löschen und neue umbenennen
+                database.execSQL("DROP TABLE recipes")
+                database.execSQL("ALTER TABLE recipes_new RENAME TO recipes")
+            }
+        }
+        
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Füge quantity Feld zur potions-Tabelle hinzu
+                database.execSQL("ALTER TABLE potions ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -786,7 +892,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

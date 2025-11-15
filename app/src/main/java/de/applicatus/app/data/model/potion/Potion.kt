@@ -35,6 +35,7 @@ data class Potion(
     val characterId: Long,                              // Zugehöriger Charakter
     val recipeId: Long,                                 // Zugehöriges Rezept
     val locationId: Long? = null,                       // Lagerort (null = nicht zugeordnet)
+    val quantity: Int = 1,                              // Anzahl der Tränke (für zählbare Tränke)
     
     // Tatsächliche Eigenschaften (vom Spielleiter/Brauprozess bestimmt)
     val actualQuality: PotionQuality,                   // Tatsächliche Qualität (A-F, M)

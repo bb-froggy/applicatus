@@ -54,5 +54,11 @@ data class Item(
     val isPurse: Boolean = false,
     
     /** Geldmenge in Kreuzern (nur für Geldbeutel) */
-    val kreuzerAmount: Int = 0
+    val kreuzerAmount: Int = 0,
+    
+    /** Ist dieser Gegenstand zählbar (mehrere gleichartige Exemplare)? */
+    val isCountable: Boolean = false,
+    
+    /** Anzahl der Gegenstände (nur für zählbare Gegenstände, sonst 1) */
+    val quantity: Int = 1
 )

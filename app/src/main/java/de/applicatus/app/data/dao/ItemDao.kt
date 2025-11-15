@@ -16,13 +16,17 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE id = :itemId")
     suspend fun getItemById(itemId: Long): Item?
     
+    @Query("SELECT * FROM items WHERE characterId = :characterId ORDER BY locationId, sortOrder, name")
+    suspend fun getItemsListForCharacter(characterId: Long): List<Item>
+    
     @Transaction
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("""
         SELECT items.id, items.characterId, items.locationId, items.name, 
                items.stone, items.ounces, items.sortOrder,
                locations.name as locationName,
-               items.isPurse, items.kreuzerAmount
+               items.isPurse, items.kreuzerAmount,
+               items.isCountable, items.quantity
         FROM items 
         LEFT JOIN locations ON items.locationId = locations.id 
         WHERE items.characterId = :characterId 

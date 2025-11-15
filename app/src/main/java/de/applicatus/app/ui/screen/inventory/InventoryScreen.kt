@@ -55,6 +55,11 @@ fun InventoryScreen(
     var showTransferLocationDialog by remember { mutableStateOf(false) }
     var locationToTransfer by remember { mutableStateOf<de.applicatus.app.data.model.inventory.Location?>(null) }
     
+    // Split Item Dialog State
+    var showSplitItemDialog by remember { mutableStateOf(false) }
+    var itemToSplit by remember { mutableStateOf<ItemWithLocation?>(null) }
+    var targetLocationForSplit by remember { mutableStateOf<Long?>(null) }
+    
     // Drag-and-Drop-State
     var draggedItem by remember { mutableStateOf<ItemWithLocation?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
@@ -288,11 +293,20 @@ fun InventoryScreen(
                                 }
                                 
                                 if (targetLocation != null && targetLocation.locationId != item.locationId) {
-                                    // Verschiebe das Item
-                                    if (item.id > 0) {
-                                        viewModel.moveItemToLocation(item.id, targetLocation.locationId)
+                                    // Check if item is countable and has quantity > 1 (excluding purses)
+                                    // This includes potions (id < 0) as they are also countable
+                                    if (item.isCountable && item.quantity > 1 && !item.isPurse) {
+                                        // Show split dialog
+                                        itemToSplit = item
+                                        targetLocationForSplit = targetLocation.locationId
+                                        showSplitItemDialog = true
                                     } else {
-                                        viewModel.movePotionToLocation(-item.id, targetLocation.locationId)
+                                        // Verschiebe das Item direkt
+                                        if (item.id > 0) {
+                                            viewModel.moveItemToLocation(item.id, targetLocation.locationId)
+                                        } else {
+                                            viewModel.movePotionToLocation(-item.id, targetLocation.locationId)
+                                        }
                                     }
                                 }
                                 
@@ -304,6 +318,9 @@ fun InventoryScreen(
                             },
                             onPurseAmountChange = { itemId, newAmount ->
                                 viewModel.updatePurseAmount(itemId, newAmount)
+                            },
+                            onQuantityChange = { itemId, newQuantity ->
+                                viewModel.updateItemQuantity(itemId, newQuantity)
                             }
                         )
                     }
@@ -361,10 +378,20 @@ fun InventoryScreen(
                                 }
                                 
                                 if (targetLocation != null && targetLocation.locationId != item.locationId) {
-                                    if (item.id > 0) {
-                                        viewModel.moveItemToLocation(item.id, targetLocation.locationId)
+                                    // Check if item is countable and has quantity > 1 (excluding purses)
+                                    // This includes potions (id < 0) as they are also countable
+                                    if (item.isCountable && item.quantity > 1 && !item.isPurse) {
+                                        // Show split dialog
+                                        itemToSplit = item
+                                        targetLocationForSplit = targetLocation.locationId
+                                        showSplitItemDialog = true
                                     } else {
-                                        viewModel.movePotionToLocation(-item.id, targetLocation.locationId)
+                                        // Verschiebe das Item direkt
+                                        if (item.id > 0) {
+                                            viewModel.moveItemToLocation(item.id, targetLocation.locationId)
+                                        } else {
+                                            viewModel.movePotionToLocation(-item.id, targetLocation.locationId)
+                                        }
                                     }
                                 }
                                 
@@ -376,6 +403,9 @@ fun InventoryScreen(
                             },
                             onPurseAmountChange = { itemId, newAmount ->
                                 viewModel.updatePurseAmount(itemId, newAmount)
+                            },
+                            onQuantityChange = { itemId, newQuantity ->
+                                viewModel.updateItemQuantity(itemId, newQuantity)
                             }
                         )
                     }
@@ -436,8 +466,8 @@ fun InventoryScreen(
             locations = locations,
             selectedLocationId = selectedLocationForNewItem,
             onDismiss = { showAddItemDialog = false },
-            onConfirm = { name, weight, locationId, isPurse ->
-                viewModel.addItem(name, weight, locationId, isPurse)
+            onConfirm = { name, weight, locationId, isPurse, isCountable, quantity ->
+                viewModel.addItem(name, weight, locationId, isPurse, isCountable, quantity)
                 showAddItemDialog = false
             }
         )
@@ -452,6 +482,38 @@ fun InventoryScreen(
                 viewModel.updateItem(updatedItem)
                 showEditItemDialog = false
                 editingItem = null
+            }
+        )
+    }
+    
+    if (showSplitItemDialog && itemToSplit != null && targetLocationForSplit != null) {
+        SplitItemDialog(
+            item = itemToSplit!!,
+            onDismiss = {
+                showSplitItemDialog = false
+                itemToSplit = null
+                targetLocationForSplit = null
+            },
+            onConfirm = { quantityToMove ->
+                val item = itemToSplit!!
+                if (item.id > 0) {
+                    // Regular item
+                    viewModel.splitAndMoveItem(
+                        itemId = item.id,
+                        quantityToMove = quantityToMove,
+                        targetLocationId = targetLocationForSplit!!
+                    )
+                } else {
+                    // Potion (negative ID)
+                    viewModel.splitAndMovePotion(
+                        potionId = -item.id,
+                        quantityToMove = quantityToMove,
+                        targetLocationId = targetLocationForSplit!!
+                    )
+                }
+                showSplitItemDialog = false
+                itemToSplit = null
+                targetLocationForSplit = null
             }
         )
     }

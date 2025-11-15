@@ -310,17 +310,23 @@ private fun PotionCard(
                 ) {
                     // Spielleiter sieht immer den Rezeptnamen
                     // Spieler sieht den Namen nur, wenn das Rezept bekannt/verstanden ist
-                    if (isGameMaster) {
-                        Text(
-                            text = potionWithRecipe.recipe.name,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                    val potionName = if (isGameMaster) {
+                        potionWithRecipe.recipe.name
                     } else {
-                        Text(
-                            text = if (isNameKnown) potionWithRecipe.recipe.name else "Unbekannter Trank",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        if (isNameKnown) potionWithRecipe.recipe.name else "Unbekannter Trank"
                     }
+                    
+                    // Zeige Menge an, wenn mehr als 1
+                    val displayName = if (potionWithRecipe.potion.quantity > 1) {
+                        "${potionWithRecipe.potion.quantity}x $potionName"
+                    } else {
+                        potionName
+                    }
+                    
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     
                     // Bekannte Informationen über das Elixier anzeigen
                     val knowledge = de.applicatus.app.data.model.potion.PotionKnowledgeDisplay.fromPotion(

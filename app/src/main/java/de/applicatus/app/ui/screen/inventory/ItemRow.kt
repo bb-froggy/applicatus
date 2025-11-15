@@ -37,7 +37,8 @@ fun ItemRow(
     onStartDrag: () -> Unit,
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (Offset) -> Unit,
-    onPurseAmountChange: (Int) -> Unit
+    onPurseAmountChange: (Int) -> Unit,
+    onQuantityChange: (Int) -> Unit
 ) {
     val isPotion = item.id < 0 // Tränke haben negative IDs
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
@@ -189,6 +190,53 @@ fun ItemRow(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                } else if (item.isCountable) {
+                    // Zählbare Gegenstände: Name mit Menge
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            // Inline Mengenanzeige mit +/- Buttons (nur wenn nicht Trank)
+                            if (!isPotion) {
+                                QuantityInlineEditor(
+                                    quantity = item.quantity,
+                                    onQuantityChange = onQuantityChange
+                                )
+                            } else {
+                                // Tränke: Menge nur anzeigen, nicht editierbar
+                                Text(
+                                    text = "${item.quantity}x",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        // Gewicht (Gesamtgewicht bei Menge > 1)
+                        Text(
+                            text = if (item.quantity > 1) {
+                                "${item.totalWeight.toDisplayString()} (${item.quantity}x ${item.weight.toDisplayString()})"
+                            } else {
+                                item.totalWeight.toDisplayString()
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        // Aussehen (nur für Tränke)
+                        if (isPotion && !item.appearance.isNullOrBlank()) {
+                            Text(
+                                text = item.appearance,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 } else {
                     Column(modifier = Modifier.weight(1f)) {
@@ -494,7 +542,69 @@ fun PurseEditor(
                 Text(
                     text = if (difference > 0) "hineingelegt" else "herausgenommen",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QuantityInlineEditor(
+    quantity: Int,
+    onQuantityChange: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (expanded) {
+            // Erweiterte Ansicht mit +/- Buttons
+            IconButton(
+                onClick = { if (quantity > 1) onQuantityChange(quantity - 1) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Text("-", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Text(
+                text = "${quantity}x",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(
+                onClick = { onQuantityChange(quantity + 1) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            IconButton(
+                onClick = { expanded = false },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "Weniger",
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        } else {
+            // Kompakte Anzeige mit Klick zum Erweitern
+            TextButton(
+                onClick = { expanded = true },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "${quantity}x",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Mehr",
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

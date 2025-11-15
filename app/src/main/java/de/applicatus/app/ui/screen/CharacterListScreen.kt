@@ -457,9 +457,9 @@ fun CharacterListScreen(
                     val count = recipeSyncState.count
                     Text(
                         if (count > 0) {
-                            "$count neue Rezepte wurden zur Datenbank hinzugefügt."
+                            "$count Rezepte wurden hinzugefügt oder aktualisiert."
                         } else {
-                            "Alle Rezepte sind bereits vorhanden."
+                            "Alle Rezepte sind bereits auf dem neuesten Stand."
                         }
                     )
                 },

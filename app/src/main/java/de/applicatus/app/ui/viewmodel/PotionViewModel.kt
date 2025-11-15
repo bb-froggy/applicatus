@@ -392,7 +392,8 @@ class PotionViewModel(
             expiryDate = calculatedExpiryDate,
             preservationAttempted = false,
             nameKnown = true,      // Gebraute Tränke haben bekannten Namen
-            categoryKnown = true   // Gebraute Tränke haben bekannte Kategorie
+            categoryKnown = true,  // Gebraute Tränke haben bekannte Kategorie
+            quantity = recipe.quantityProduced
         )
         repository.insertPotion(potion)
         
@@ -451,19 +452,15 @@ class PotionViewModel(
             adjustCurrentAe(characterId, -result.retroactiveAspUsed)
         }
         
-        // Originalen Trank löschen
-        repository.deletePotion(potion)
-        
-        // Neue Tränke erstellen
-        repeat(result.numberOfPotions) {
-            val newPotion = potion.copy(
-                id = 0, // Neue ID generieren
-                guid = UUID.randomUUID().toString(), // Neue GUID
-                actualQuality = result.newQuality,
-                // Aussehen, Haltbarkeit und Analyse-Status bleiben erhalten
-            )
-            repository.insertPotion(newPotion)
-        }
+        // Trank aktualisieren: Qualität ändern und Menge anpassen
+        // Neue Menge = alte Menge * Anzahl der neuen Tränke pro Original
+        val newQuantity = potion.quantity * result.numberOfPotions
+        val updatedPotion = potion.copy(
+            actualQuality = result.newQuality,
+            quantity = newQuantity
+            // Aussehen, Haltbarkeit und Analyse-Status bleiben erhalten
+        )
+        repository.updatePotion(updatedPotion)
         
         return result
     }

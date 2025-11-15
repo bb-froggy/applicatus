@@ -25,6 +25,15 @@ data class Weight(
         }
     }
     
+    /**
+     * Multipliziert das Gewicht mit einer Menge
+     */
+    operator fun times(quantity: Int): Weight {
+        if (quantity <= 0) return ZERO
+        val totalOunces = toOunces() * quantity
+        return fromOunces(totalOunces)
+    }
+    
     companion object {
         /**
          * Erstellt ein Weight-Objekt aus einer Anzahl von Unzen

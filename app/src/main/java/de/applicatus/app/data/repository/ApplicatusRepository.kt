@@ -74,22 +74,35 @@ class ApplicatusRepository(
     
     /**
      * Synchronisiert fehlende Rezepte aus InitialRecipes in die Datenbank.
-     * Vergleicht die vorhandenen Rezepte mit den Initial-Rezepten und fügt fehlende hinzu.
+     * Aktualisiert auch quantityProduced-Werte für existierende Rezepte.
      * @return Anzahl der neu hinzugefügten Rezepte
      */
     suspend fun syncMissingRecipes(): Int {
-        val existingRecipeNames = recipeDao.getAllRecipeNames().toSet()
         val initialRecipes = de.applicatus.app.data.InitialRecipes.getDefaultRecipes()
         
-        val missingRecipes = initialRecipes.filter { recipe ->
-            recipe.name !in existingRecipeNames
+        var addedCount = 0
+        var updatedCount = 0
+        
+        initialRecipes.forEach { initialRecipe ->
+            val existingRecipe = recipeDao.getRecipeByName(initialRecipe.name)
+            
+            if (existingRecipe == null) {
+                // Rezept existiert nicht -> neu hinzufügen
+                recipeDao.insertRecipe(initialRecipe)
+                addedCount++
+            } else {
+                // Rezept existiert -> quantityProduced aktualisieren falls unterschiedlich
+                if (existingRecipe.quantityProduced != initialRecipe.quantityProduced) {
+                    recipeDao.updateRecipe(existingRecipe.copy(
+                        quantityProduced = initialRecipe.quantityProduced
+                    ))
+                    updatedCount++
+                }
+            }
         }
         
-        if (missingRecipes.isNotEmpty()) {
-            recipeDao.insertRecipes(missingRecipes)
-        }
-        
-        return missingRecipes.size
+        // Gib die Anzahl neu hinzugefügter und aktualisierter Rezepte zurück
+        return addedCount + updatedCount
     }
     
     // Characters
@@ -305,6 +318,171 @@ class ApplicatusRepository(
             val currency = de.applicatus.app.data.model.inventory.Currency.fromKreuzer(kreuzerAmount)
             val weight = currency.toWeight()
             itemDao.update(item.copy(kreuzerAmount = kreuzerAmount, weight = weight))
+        }
+    }
+    
+    suspend fun updateItemQuantity(itemId: Long, quantity: Int) {
+        val item = itemDao.getItemById(itemId)
+        if (item != null && item.isCountable && quantity >= 1) {
+            itemDao.update(item.copy(quantity = quantity))
+        }
+    }
+    
+    /**
+     * Teilt einen zählbaren Gegenstand und verschiebt einen Teil zu einer anderen Location.
+     * Wenn in der Ziel-Location bereits ein identischer Gegenstand existiert, werden sie zusammengeführt.
+     * @param itemId Die ID des zu teilenden Gegenstands
+     * @param quantityToMove Die Anzahl, die verschoben werden soll
+     * @param targetLocationId Die Ziel-Location
+     */
+    suspend fun splitAndMoveItem(itemId: Long, quantityToMove: Int, targetLocationId: Long?) {
+        val sourceItem = itemDao.getItemById(itemId) ?: return
+        
+        // Validierung
+        if (!sourceItem.isCountable || quantityToMove <= 0 || quantityToMove >= sourceItem.quantity) {
+            // Wenn alle Gegenstände verschoben werden, einfach die Location ändern
+            if (quantityToMove == sourceItem.quantity) {
+                itemDao.update(sourceItem.copy(locationId = targetLocationId))
+                mergeIdenticalItemsAtLocation(targetLocationId, sourceItem.characterId)
+            }
+            return
+        }
+        
+        // Reduziere die Quell-Menge
+        val newSourceQuantity = sourceItem.quantity - quantityToMove
+        itemDao.update(sourceItem.copy(quantity = newSourceQuantity))
+        
+        // Prüfe, ob in der Ziel-Location bereits ein identischer Gegenstand existiert
+        val targetItems = itemDao.getItemsListForCharacter(sourceItem.characterId)
+        val identicalItem = targetItems.find { 
+            it.locationId == targetLocationId &&
+            it.name == sourceItem.name &&
+            it.isCountable &&
+            !it.isPurse &&
+            it.id != sourceItem.id &&
+            it.weight == sourceItem.weight
+        }
+        
+        if (identicalItem != null) {
+            // Füge zur bestehenden Menge hinzu
+            val newTargetQuantity = identicalItem.quantity + quantityToMove
+            itemDao.update(identicalItem.copy(quantity = newTargetQuantity))
+        } else {
+            // Erstelle einen neuen Gegenstand in der Ziel-Location
+            val newItem = sourceItem.copy(
+                id = 0, // Neue ID wird automatisch vergeben
+                locationId = targetLocationId,
+                quantity = quantityToMove
+            )
+            itemDao.insert(newItem)
+        }
+    }
+    
+    /**
+     * Führt identische zählbare Gegenstände an einer Location zusammen
+     */
+    private suspend fun mergeIdenticalItemsAtLocation(locationId: Long?, characterId: Long) {
+        val items = itemDao.getItemsListForCharacter(characterId)
+            .filter { it.locationId == locationId && it.isCountable && !it.isPurse }
+            .groupBy { it.name }
+        
+        items.forEach { (_, itemGroup) ->
+            if (itemGroup.size > 1) {
+                // Verwende das erste Item als Basis
+                val baseItem = itemGroup.first()
+                val totalQuantity = itemGroup.sumOf { it.quantity }
+                
+                // Prüfe, ob alle Items das gleiche Gewicht haben
+                val sameWeight = itemGroup.all { it.weight == baseItem.weight }
+                
+                if (sameWeight) {
+                    // Update base item with total quantity
+                    itemDao.update(baseItem.copy(quantity = totalQuantity))
+                    
+                    // Lösche die anderen Items
+                    itemGroup.drop(1).forEach { itemDao.delete(it) }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Teilt einen Trank und verschiebt einen Teil zu einer anderen Location.
+     * Wenn in der Ziel-Location bereits ein identischer Trank existiert, werden sie zusammengeführt.
+     * Tränke sind identisch wenn sie: gleichen recipeId, actualQuality, expiryDate, appearance haben
+     * @param potionId Die ID des zu teilenden Tranks
+     * @param quantityToMove Die Anzahl, die verschoben werden soll
+     * @param targetLocationId Die Ziel-Location
+     */
+    suspend fun splitAndMovePotion(potionId: Long, quantityToMove: Int, targetLocationId: Long?) {
+        val sourcePotion = potionDao.getPotionById(potionId) ?: return
+        
+        // Validierung
+        if (quantityToMove <= 0 || quantityToMove >= sourcePotion.quantity) {
+            // Wenn alle Tränke verschoben werden, einfach die Location ändern
+            if (quantityToMove == sourcePotion.quantity) {
+                potionDao.updatePotion(sourcePotion.copy(locationId = targetLocationId))
+                mergeIdenticalPotionsAtLocation(targetLocationId, sourcePotion.characterId)
+            }
+            return
+        }
+        
+        // Reduziere die Quell-Menge
+        val newSourceQuantity = sourcePotion.quantity - quantityToMove
+        potionDao.updatePotion(sourcePotion.copy(quantity = newSourceQuantity))
+        
+        // Prüfe, ob in der Ziel-Location bereits ein identischer Trank existiert
+        val targetPotions = potionDao.getPotionsListForCharacter(sourcePotion.characterId)
+        val identicalPotion = targetPotions.find { 
+            it.locationId == targetLocationId &&
+            it.recipeId == sourcePotion.recipeId &&
+            it.actualQuality == sourcePotion.actualQuality &&
+            it.expiryDate == sourcePotion.expiryDate &&
+            it.appearance == sourcePotion.appearance &&
+            it.nameKnown == sourcePotion.nameKnown &&
+            it.categoryKnown == sourcePotion.categoryKnown &&
+            it.shelfLifeKnown == sourcePotion.shelfLifeKnown &&
+            it.id != sourcePotion.id
+        }
+        
+        if (identicalPotion != null) {
+            // Füge zur bestehenden Menge hinzu
+            val newTargetQuantity = identicalPotion.quantity + quantityToMove
+            potionDao.updatePotion(identicalPotion.copy(quantity = newTargetQuantity))
+        } else {
+            // Erstelle einen neuen Trank in der Ziel-Location
+            val newPotion = sourcePotion.copy(
+                id = 0, // Neue ID wird automatisch vergeben
+                locationId = targetLocationId,
+                quantity = quantityToMove
+            )
+            potionDao.insertPotion(newPotion)
+        }
+    }
+    
+    /**
+     * Führt identische Tränke an einer Location zusammen
+     */
+    private suspend fun mergeIdenticalPotionsAtLocation(locationId: Long?, characterId: Long) {
+        val potions = potionDao.getPotionsListForCharacter(characterId)
+            .filter { it.locationId == locationId }
+            .groupBy { 
+                // Group by all properties that make potions identical
+                Triple(it.recipeId, it.actualQuality, Triple(it.expiryDate, it.appearance, Triple(it.nameKnown, it.categoryKnown, it.shelfLifeKnown)))
+            }
+        
+        potions.forEach { (_, potionGroup) ->
+            if (potionGroup.size > 1) {
+                // Verwende den ersten Trank als Basis
+                val basePotion = potionGroup.first()
+                val totalQuantity = potionGroup.sumOf { it.quantity }
+                
+                // Update base potion with total quantity
+                potionDao.updatePotion(basePotion.copy(quantity = totalQuantity))
+                
+                // Lösche die anderen Tränke
+                potionGroup.drop(1).forEach { potionDao.deletePotion(it) }
+            }
         }
     }
     

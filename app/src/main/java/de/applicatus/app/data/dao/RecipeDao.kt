@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import de.applicatus.app.data.model.potion.Recipe
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +22,9 @@ interface RecipeDao {
     @Insert
     suspend fun insertRecipes(recipes: List<Recipe>)
     
+    @Update
+    suspend fun updateRecipe(recipe: Recipe)
+    
     @Delete
     suspend fun deleteRecipe(recipe: Recipe)
     
@@ -29,4 +33,7 @@ interface RecipeDao {
     
     @Query("SELECT name FROM recipes")
     suspend fun getAllRecipeNames(): List<String>
+    
+    @Query("SELECT * FROM recipes WHERE name = :name")
+    suspend fun getRecipeByName(name: String): Recipe?
 }

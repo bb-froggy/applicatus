@@ -99,7 +99,9 @@ class InventoryViewModel(
                     locationName = location?.name,
                     isPurse = false,
                     kreuzerAmount = 0,
-                    appearance = potionWithRecipe.potion.appearance.takeIf { it.isNotBlank() }
+                    appearance = potionWithRecipe.potion.appearance.takeIf { it.isNotBlank() },
+                    isCountable = true,
+                    quantity = potionWithRecipe.potion.quantity
                 )
                 
                 val currentList = groupedItems[location] ?: emptyList()
@@ -119,13 +121,19 @@ class InventoryViewModel(
             // Items
             items.forEach { item ->
                 val currentWeight = weights[item.locationId] ?: 0
-                weights[item.locationId] = currentWeight + item.weight.toOunces()
+                val itemWeight = if (item.isCountable) {
+                    item.totalWeight.toOunces()
+                } else {
+                    item.weight.toOunces()
+                }
+                weights[item.locationId] = currentWeight + itemWeight
             }
             
-            // Tränke (je 4 Unzen)
+            // Tränke (je 4 Unzen * Menge)
             pots.forEach { potionWithRecipe ->
                 val currentWeight = weights[potionWithRecipe.potion.locationId] ?: 0
-                weights[potionWithRecipe.potion.locationId] = currentWeight + Weight.POTION.toOunces()
+                val potionTotalWeight = Weight.POTION.toOunces() * potionWithRecipe.potion.quantity
+                weights[potionWithRecipe.potion.locationId] = currentWeight + potionTotalWeight
             }
             
             // Konvertiere zu Weight-Objekten
@@ -227,7 +235,14 @@ class InventoryViewModel(
     /**
      * Fügt ein neues Item hinzu
      */
-    fun addItem(name: String, weight: Weight, locationId: Long?, isPurse: Boolean = false) {
+    fun addItem(
+        name: String, 
+        weight: Weight, 
+        locationId: Long?, 
+        isPurse: Boolean = false,
+        isCountable: Boolean = false,
+        quantity: Int = 1
+    ) {
         viewModelScope.launch {
             repository.insertItem(
                 Item(
@@ -236,7 +251,9 @@ class InventoryViewModel(
                     name = name,
                     weight = weight,
                     isPurse = isPurse,
-                    kreuzerAmount = if (isPurse) 0 else 0
+                    kreuzerAmount = if (isPurse) 0 else 0,
+                    isCountable = isCountable,
+                    quantity = quantity
                 )
             )
         }
@@ -248,6 +265,15 @@ class InventoryViewModel(
     fun updatePurseAmount(itemId: Long, kreuzerAmount: Int) {
         viewModelScope.launch {
             repository.updatePurseAmount(itemId, kreuzerAmount)
+        }
+    }
+    
+    /**
+     * Aktualisiert die Menge eines zählbaren Gegenstands
+     */
+    fun updateItemQuantity(itemId: Long, quantity: Int) {
+        viewModelScope.launch {
+            repository.updateItemQuantity(itemId, quantity)
         }
     }
     
@@ -290,6 +316,30 @@ class InventoryViewModel(
             potion?.let {
                 repository.updatePotion(it.copy(locationId = newLocationId))
             }
+        }
+    }
+    
+    /**
+     * Teilt einen zählbaren Gegenstand und verschiebt einen Teil zu einer anderen Location
+     * @param itemId Die ID des zu teilenden Gegenstands
+     * @param quantityToMove Die Anzahl, die verschoben werden soll
+     * @param targetLocationId Die Ziel-Location
+     */
+    fun splitAndMoveItem(itemId: Long, quantityToMove: Int, targetLocationId: Long?) {
+        viewModelScope.launch {
+            repository.splitAndMoveItem(itemId, quantityToMove, targetLocationId)
+        }
+    }
+    
+    /**
+     * Teilt einen Trank und verschiebt einen Teil zu einer anderen Location
+     * @param potionId Die ID des zu teilenden Tranks
+     * @param quantityToMove Die Anzahl, die verschoben werden soll
+     * @param targetLocationId Die Ziel-Location
+     */
+    fun splitAndMovePotion(potionId: Long, quantityToMove: Int, targetLocationId: Long?) {
+        viewModelScope.launch {
+            repository.splitAndMovePotion(potionId, quantityToMove, targetLocationId)
         }
     }
     

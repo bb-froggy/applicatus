@@ -92,7 +92,8 @@ object InitialRecipes {
             verbreitung = 5,
             brewingDifficulty = 6,
             analysisDifficulty = 3,
-            shelfLife = "unbegrenzt"
+            shelfLife = "unbegrenzt",
+            quantityProduced = 5
         ),
         
         // keine Gruppe
@@ -228,10 +229,11 @@ object InitialRecipes {
             verbreitung = 4,
             brewingDifficulty = 6,
             analysisDifficulty = 7,
-            shelfLife = "nahezu unbegrenzt"
+            shelfLife = "nahezu unbegrenzt",
+            quantityProduced = 3
         ),
         Recipe(
-            name = "Beschwörungskerzen",
+            name = "Beschörungskerzen",
             gruppe = "Magika",
             lab = Laboratory.ARCANE,
             preis = 5,
@@ -240,7 +242,8 @@ object InitialRecipes {
             verbreitung = 6,
             brewingDifficulty = 3,
             analysisDifficulty = 0,
-            shelfLife = "nahezu unbegrenzt"
+            shelfLife = "nahezu unbegrenzt",
+            quantityProduced = 7
         ),
         Recipe(
             name = "Borbarads Hauch",
@@ -288,7 +291,8 @@ object InitialRecipes {
             verbreitung = 7,
             brewingDifficulty = 2,
             analysisDifficulty = 1,
-            shelfLife = "nahezu unbegrenzt"
+            shelfLife = "nahezu unbegrenzt",
+            quantityProduced = 12
         ),
         Recipe(
             name = "Zaubertrank",
@@ -362,7 +366,8 @@ object InitialRecipes {
             verbreitung = 1,
             brewingDifficulty = 6,
             analysisDifficulty = 6,
-            shelfLife = "nahezu unbegrenzt"
+            shelfLife = "nahezu unbegrenzt",
+            quantityProduced = 3
         ),
         Recipe(
             name = "Rethonikum",
@@ -484,7 +489,8 @@ object InitialRecipes {
             verbreitung = 4,
             brewingDifficulty = 3,
             analysisDifficulty = 2,
-            shelfLife = "mehrere Jahre"
+            shelfLife = "mehrere Jahre",
+            quantityProduced = 7
         ),
         Recipe(
             name = "Liebestrunk",
@@ -496,7 +502,8 @@ object InitialRecipes {
             verbreitung = 5,
             brewingDifficulty = 5,
             analysisDifficulty = 4,
-            shelfLife = "2W6+17 Monate"
+            shelfLife = "2W6+17 Monate",
+            quantityProduced = 5
         ),
         Recipe(
             name = "Mengbiller Bannbalöl",
@@ -508,7 +515,8 @@ object InitialRecipes {
             verbreitung = 2,
             brewingDifficulty = 8,
             analysisDifficulty = 6,
-            shelfLife = "W6+5 Monate"
+            shelfLife = "W6+5 Monate",
+            quantityProduced = 8
         ),
         Recipe(
             name = "Regenbogenstaub",
@@ -520,7 +528,8 @@ object InitialRecipes {
             verbreitung = 4,
             brewingDifficulty = 6,
             analysisDifficulty = 2,
-            shelfLife = "nahezu unbegrenzt"
+            shelfLife = "nahezu unbegrenzt",
+            quantityProduced = 5
         ),
         Recipe(
             name = "Traumwind-Elixier",
@@ -594,7 +603,8 @@ object InitialRecipes {
             verbreitung = 6,
             brewingDifficulty = 4,
             analysisDifficulty = 4,
-            shelfLife = "W3+7 Monate"
+            shelfLife = "W3+7 Monate",
+            quantityProduced = 3
         ),
         Recipe(
             name = "Prophylaktikum gg. Kukris",
@@ -740,7 +750,8 @@ object InitialRecipes {
             verbreitung = 6,
             brewingDifficulty = 5,
             analysisDifficulty = 4,
-            shelfLife = "W3+10 Monate"
+            shelfLife = "W3+10 Monate",
+            quantityProduced = 2
         ),
         Recipe(
             name = "Tulmadron",

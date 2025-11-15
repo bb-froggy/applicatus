@@ -20,5 +20,6 @@ data class Recipe(
     val brewingDifficulty: Int = 0,         // Brauschwierigkeit (Erschwernis der Brauprobe, +0 bis +18)
     val analysisDifficulty: Int = 0,        // Analyse-Schwierigkeit (Erschwernis der Analyseprobe, +0 bis +18)
     val appearance: String = "",            // Aussehen des Tranks (z.B. "goldgelb, glitzernd")
-    val shelfLife: String = "1 Mond"        // Haltbarkeit (z.B. "3 Monde", "1 Jahr")
+    val shelfLife: String = "1 Mond",       // Haltbarkeit (z.B. "3 Monde", "1 Jahr")
+    val quantityProduced: Int = 1           // Anzahl der produzierten Tränke beim Brauen (Standard: 1)
 )
