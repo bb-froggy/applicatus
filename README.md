@@ -1,6 +1,6 @@
 # Applicatus - DSA Zauberspeicher App
 
-Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-and-Paper-Rollenspiel Das Schwarze Auge (DSA) 4.1.
+Eine Android-App zur Verwaltung von Zauberspeichern (Zauberstab und Applicatus), Alchimie und Inventar für das Pen-and-Paper-Rollenspiel Das Schwarze Auge (DSA) 4.1. Ein Werkzeug für Meister und Spieler am Spieltisch.
 
 ## Features
 
@@ -13,7 +13,10 @@ Eine Android-App zur Verwaltung von Zauberspeichern und Alchimie für das Pen-an
   - Selbstbeherrschung, Sinnenschärfe
   - Magiekunde, Pflanzenkunde
 - **Labor-System**: Standard-Labor pro Charakter (Archaisch, Hexenküche, Labor)
-- **Gruppen-System**: Charaktere können zu Spielgruppen gehören (ermöglicht Trank-Übergabe)
+- **Gruppen-System**:
+  - Charaktere gehören zu Heldengruppen
+  - Austausch von Tränken und anderem Inventar in der Gruppe
+  - Datum auf Dere in der Gruppe mit Anzeige des Wochentags und der Mondphase
 - **Spielleiter-Modus**: Optionaler Modus, der alle versteckten Informationen anzeigt (Trank-Rezepte, Analyseergebnisse, etc.)
 
 ### Zauberspeicher
