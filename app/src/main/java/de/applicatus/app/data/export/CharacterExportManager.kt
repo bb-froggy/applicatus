@@ -191,6 +191,77 @@ class CharacterExportManager(
     }
     
     /**
+     * Prüft, ob beim Import Warnungen auftreten würden, ohne den Import tatsächlich durchzuführen.
+     * @param jsonString Der JSON-String mit den Charakterdaten
+     * @param targetCharacterId Optional: ID eines bestehenden Charakters, der überschrieben werden soll
+     * @return Result mit Pair<GUID, Warning?> - GUID des zu importierenden Charakters und optionale Warnung
+     */
+    suspend fun checkImportWarnings(
+        jsonString: String,
+        targetCharacterId: Long? = null
+    ): Result<Pair<String, String?>> = withContext(Dispatchers.IO) {
+        try {
+            val exportDto = json.decodeFromString<CharacterExportDto>(jsonString)
+            
+            // Versionscheck
+            val (isCompatible, warning) = DataModelVersion.checkCompatibility(exportDto.version)
+            if (!isCompatible) {
+                return@withContext Result.failure(Exception(warning ?: "Inkompatible Version"))
+            }
+            
+            val overwriteWarning = DataModelVersion.checkOverwriteWarning(
+                DataModelVersion.CURRENT_VERSION, 
+                exportDto.version
+            )
+            
+            // Suche nach bestehendem Charakter mit gleicher GUID
+            val existingCharacterByGuid = repository.getCharacterByGuid(exportDto.character.guid)
+            
+            // Prüfe, ob targetCharacterId angegeben wurde und ob sie mit der GUID übereinstimmt
+            val targetCharacter = if (targetCharacterId != null) {
+                repository.getCharacterById(targetCharacterId)
+            } else null
+            
+            // Bestimme, welcher Charakter aktualisiert werden soll
+            val existingCharacter = when {
+                // Falls targetCharacterId angegeben, muss GUID übereinstimmen
+                targetCharacter != null -> {
+                    if (targetCharacter.guid != exportDto.character.guid) {
+                        return@withContext Result.failure(Exception(
+                            "GUID-Mismatch: Der ausgewählte Charakter stimmt nicht mit dem importierten Charakter überein."
+                        ))
+                    }
+                    targetCharacter
+                }
+                // Sonst verwende Charakter mit gleicher GUID (wenn vorhanden)
+                existingCharacterByGuid != null -> existingCharacterByGuid
+                // Kein bestehender Charakter gefunden
+                else -> null
+            }
+            
+            val additionalWarnings = mutableListOf<String>()
+            
+            // Prüfe lastModifiedDate, wenn Charakter aktualisiert wird
+            if (existingCharacter != null && existingCharacter.lastModifiedDate > exportDto.exportTimestamp) {
+                additionalWarnings += "WARNUNG: Der lokale Charakter wurde nach dem Export geändert (" +
+                    "Lokal: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(existingCharacter.lastModifiedDate)}, " +
+                    "Export: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(exportDto.exportTimestamp)}). " +
+                    "Beim Import gehen diese Änderungen verloren!"
+            }
+            
+            val finalWarning = listOfNotNull(
+                warning,
+                overwriteWarning,
+                additionalWarnings.takeIf { it.isNotEmpty() }?.joinToString("\n")
+            ).joinToString("\n\n")
+            
+            Result.success(Pair(exportDto.character.guid, finalWarning.ifEmpty { null }))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Importiert einen Charakter aus einem JSON-String.
      * @param jsonString Der JSON-String mit den Charakterdaten
      * @param targetCharacterId Optional: ID eines bestehenden Charakters, der überschrieben werden soll
@@ -215,26 +286,51 @@ class CharacterExportManager(
                 exportDto.version
             )
             
-            val characterId = if (targetCharacterId != null) {
-                // Überschreiben eines bestehenden Charakters
-                val existingCharacter = repository.getCharacterById(targetCharacterId)
-                    ?: return@withContext Result.failure(Exception("Ziel-Charakter nicht gefunden"))
-                
-                // GUID-Validierung: Nur überschreiben, wenn GUIDs übereinstimmen
-                if (existingCharacter.guid != exportDto.character.guid) {
-                    return@withContext Result.failure(Exception(
-                        "GUID-Mismatch: Der ausgewählte Charakter stimmt nicht mit dem importierten Charakter überein. " +
-                        "Bitte importiere von der Charakterauswahl aus, um einen neuen Charakter anzulegen."
-                    ))
+            // Suche nach bestehendem Charakter mit gleicher GUID
+            val existingCharacterByGuid = repository.getCharacterByGuid(exportDto.character.guid)
+            
+            // Prüfe, ob targetCharacterId angegeben wurde und ob sie mit der GUID übereinstimmt
+            val targetCharacter = if (targetCharacterId != null) {
+                repository.getCharacterById(targetCharacterId)
+            } else null
+            
+            // Bestimme, welcher Charakter aktualisiert werden soll
+            val existingCharacter = when {
+                // Falls targetCharacterId angegeben, muss GUID übereinstimmen
+                targetCharacter != null -> {
+                    if (targetCharacter.guid != exportDto.character.guid) {
+                        return@withContext Result.failure(Exception(
+                            "GUID-Mismatch: Der ausgewählte Charakter stimmt nicht mit dem importierten Charakter überein."
+                        ))
+                    }
+                    targetCharacter
                 }
-                
+                // Sonst verwende Charakter mit gleicher GUID (wenn vorhanden)
+                existingCharacterByGuid != null -> existingCharacterByGuid
+                // Kein bestehender Charakter gefunden
+                else -> null
+            }
+            
+            val additionalWarnings = mutableListOf<String>()
+            
+            // Prüfe lastModifiedDate, wenn Charakter aktualisiert wird
+            if (existingCharacter != null && existingCharacter.lastModifiedDate > exportDto.exportTimestamp) {
+                additionalWarnings += "WARNUNG: Der lokale Charakter wurde nach dem Export geändert (" +
+                    "Lokal: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(existingCharacter.lastModifiedDate)}, " +
+                    "Export: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(exportDto.exportTimestamp)}). " +
+                    "Beim Import gehen diese Änderungen verloren!"
+            }
+            
+            val characterId = if (existingCharacter != null) {
                 // Bestehenden Charakter aktualisieren (ID, GUID und isGameMaster beibehalten)
                 // isGameMaster wird bewusst NICHT überschrieben, damit Spieler und Spielleiter
                 // den gleichen Charakter teilen können, aber unterschiedliche Rechte behalten
+                // lastModifiedDate wird auf Export-Zeitstempel gesetzt (nicht aktuelle Zeit!)
                 val updatedCharacter = exportDto.character.toCharacter().copy(
                     id = existingCharacter.id,
                     guid = existingCharacter.guid,
-                    isGameMaster = existingCharacter.isGameMaster
+                    isGameMaster = existingCharacter.isGameMaster,
+                    lastModifiedDate = exportDto.exportTimestamp
                 )
                 repository.updateCharacter(updatedCharacter)
                 
@@ -242,10 +338,22 @@ class CharacterExportManager(
                 val oldSlots = repository.getSlotsByCharacter(existingCharacter.id).first()
                 oldSlots.forEach { repository.deleteSlot(it) }
                 
+                // Alte Items löschen (damit Import nicht dupliziert)
+                val oldItems = repository.getItemsForCharacter(existingCharacter.id).first()
+                oldItems.forEach { repository.deleteItem(it) }
+                
+                // Alte nicht-Standard-Locations löschen (Standard-Locations bleiben erhalten)
+                val oldLocations = repository.getLocationsForCharacter(existingCharacter.id).first()
+                oldLocations.filter { !it.isDefault }.forEach { repository.deleteLocation(it) }
+                
                 existingCharacter.id
             } else {
                 // Neuen Charakter erstellen (mit GUID aus Import)
-                val newCharacterId = repository.insertCharacter(exportDto.character.toCharacter())
+                // lastModifiedDate wird auf Export-Zeitstempel gesetzt (nicht aktuelle Zeit!)
+                val newCharacter = exportDto.character.toCharacter().copy(
+                    lastModifiedDate = exportDto.exportTimestamp
+                )
+                val newCharacterId = repository.insertCharacter(newCharacter)
                 
                 // Erstelle Standard-Locations (Rüstung/Kleidung, Rucksack)
                 repository.createDefaultLocationsForCharacter(newCharacterId)
@@ -269,7 +377,6 @@ class CharacterExportManager(
             val allRecipes = repository.allRecipes.first()
             val recipesById = allRecipes.associateBy { it.id }
             val recipesByName = allRecipes.associateBy { it.name }
-            val additionalWarnings = mutableListOf<String>()
             
             // Bestehende Tränke laden (für GUID-basierten Merge)
             val existingPotions = repository.getPotionsForCharacter(characterId).first()
@@ -336,6 +443,13 @@ class CharacterExportManager(
             exportDto.items.forEach { itemDto ->
                 val resolvedLocationId = itemDto.locationName?.let { locationIdsByName[it] }
                 repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
+            }
+            
+            // WICHTIG: Nach allen Inserts (die touchCharacter aufrufen) das lastModifiedDate
+            // nochmal explizit auf den exportTimestamp setzen!
+            val finalCharacter = repository.getCharacterById(characterId)
+            finalCharacter?.let {
+                repository.updateCharacter(it.copy(lastModifiedDate = exportDto.exportTimestamp))
             }
             
             val finalWarning = listOfNotNull(

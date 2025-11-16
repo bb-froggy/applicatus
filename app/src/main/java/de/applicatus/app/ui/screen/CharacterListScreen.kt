@@ -352,6 +352,25 @@ fun CharacterListScreen(
     
     // Import Status Dialog
     when (importState) {
+        is CharacterListViewModel.ImportState.ConfirmationRequired -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetImportState() },
+                title = { Text("Import bestätigen") },
+                text = { Text(importState.warning) },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        viewModel.confirmImport(importState.context, importState.uri, importState.targetCharacterId)
+                    }) {
+                        Text("Fortfahren")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.resetImportState() }) {
+                        Text("Abbrechen")
+                    }
+                }
+            )
+        }
         is CharacterListViewModel.ImportState.Success -> {
             AlertDialog(
                 onDismissRequest = { viewModel.resetImportState() },

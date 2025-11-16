@@ -112,7 +112,18 @@ class ApplicatusRepository(
     suspend fun updateCharacter(character: Character) = characterDao.updateCharacter(character)
     suspend fun deleteCharacter(character: Character) = characterDao.deleteCharacter(character)
     suspend fun getCharacterById(id: Long) = characterDao.getCharacterById(id)
+    suspend fun getCharacterByGuid(guid: String) = characterDao.getCharacterByGuid(guid)
     fun getCharacterByIdFlow(id: Long) = characterDao.getCharacterByIdFlow(id)
+    
+    /**
+     * Aktualisiert das lastModifiedDate eines Charakters auf die aktuelle Zeit
+     */
+    private suspend fun touchCharacter(characterId: Long) {
+        val character = getCharacterById(characterId)
+        character?.let {
+            updateCharacter(it.copy(lastModifiedDate = System.currentTimeMillis()))
+        }
+    }
     
     // Spell Slots
     fun getSlotsByCharacter(characterId: Long): Flow<List<SpellSlot>> = 
@@ -130,10 +141,22 @@ class ApplicatusRepository(
         }
     }
     
-    suspend fun insertSlot(slot: SpellSlot) = spellSlotDao.insertSlot(slot)
-    suspend fun insertSlots(slots: List<SpellSlot>) = spellSlotDao.insertSlots(slots)
-    suspend fun updateSlot(slot: SpellSlot) = spellSlotDao.updateSlot(slot)
-    suspend fun deleteSlot(slot: SpellSlot) = spellSlotDao.deleteSlot(slot)
+    suspend fun insertSlot(slot: SpellSlot) {
+        spellSlotDao.insertSlot(slot)
+        touchCharacter(slot.characterId)
+    }
+    suspend fun insertSlots(slots: List<SpellSlot>) {
+        spellSlotDao.insertSlots(slots)
+        slots.firstOrNull()?.characterId?.let { touchCharacter(it) }
+    }
+    suspend fun updateSlot(slot: SpellSlot) {
+        spellSlotDao.updateSlot(slot)
+        touchCharacter(slot.characterId)
+    }
+    suspend fun deleteSlot(slot: SpellSlot) {
+        spellSlotDao.deleteSlot(slot)
+        touchCharacter(slot.characterId)
+    }
     suspend fun getSlotById(id: Long) = spellSlotDao.getSlotById(id)
     
     // Initialize slots for a new character (10 slots)
@@ -161,9 +184,19 @@ class ApplicatusRepository(
     fun getPotionsForCharacter(characterId: Long): Flow<List<PotionWithRecipe>> =
         potionDao.getPotionsForCharacter(characterId)
     
-    suspend fun insertPotion(potion: Potion): Long = potionDao.insertPotion(potion)
-    suspend fun updatePotion(potion: Potion) = potionDao.updatePotion(potion)
-    suspend fun deletePotion(potion: Potion) = potionDao.deletePotion(potion)
+    suspend fun insertPotion(potion: Potion): Long {
+        val id = potionDao.insertPotion(potion)
+        touchCharacter(potion.characterId)
+        return id
+    }
+    suspend fun updatePotion(potion: Potion) {
+        potionDao.updatePotion(potion)
+        touchCharacter(potion.characterId)
+    }
+    suspend fun deletePotion(potion: Potion) {
+        potionDao.deletePotion(potion)
+        touchCharacter(potion.characterId)
+    }
     suspend fun getPotionById(id: Long) = potionDao.getPotionById(id)
     suspend fun deletePotionsForCharacter(characterId: Long) = potionDao.deletePotionsForCharacter(characterId)
     
@@ -305,11 +338,16 @@ class ApplicatusRepository(
     suspend fun getItemById(itemId: Long): Item? =
         itemDao.getItemById(itemId)
     
-    suspend fun insertItem(item: Item): Long =
-        itemDao.insert(item)
+    suspend fun insertItem(item: Item): Long {
+        val id = itemDao.insert(item)
+        touchCharacter(item.characterId)
+        return id
+    }
     
-    suspend fun updateItem(item: Item) =
+    suspend fun updateItem(item: Item) {
         itemDao.update(item)
+        touchCharacter(item.characterId)
+    }
     
     suspend fun updatePurseAmount(itemId: Long, kreuzerAmount: Int) {
         val item = itemDao.getItemById(itemId)
@@ -318,6 +356,7 @@ class ApplicatusRepository(
             val currency = de.applicatus.app.data.model.inventory.Currency.fromKreuzer(kreuzerAmount)
             val weight = currency.toWeight()
             itemDao.update(item.copy(kreuzerAmount = kreuzerAmount, weight = weight))
+            touchCharacter(item.characterId)
         }
     }
     
@@ -325,6 +364,7 @@ class ApplicatusRepository(
         val item = itemDao.getItemById(itemId)
         if (item != null && item.isCountable && quantity >= 1) {
             itemDao.update(item.copy(quantity = quantity))
+            touchCharacter(item.characterId)
         }
     }
     
@@ -486,8 +526,10 @@ class ApplicatusRepository(
         }
     }
     
-    suspend fun deleteItem(item: Item) =
+    suspend fun deleteItem(item: Item) {
         itemDao.delete(item)
+        touchCharacter(item.characterId)
+    }
     
     // Character by Group
     fun getCharactersByGroupId(groupId: Long): Flow<List<Character>> =

@@ -12,6 +12,9 @@ interface CharacterDao {
     @Query("SELECT * FROM characters WHERE id = :id")
     suspend fun getCharacterById(id: Long): Character?
     
+    @Query("SELECT * FROM characters WHERE guid = :guid")
+    suspend fun getCharacterByGuid(guid: String): Character?
+    
     @Query("SELECT * FROM characters WHERE id = :id")
     fun getCharacterByIdFlow(id: Long): Flow<Character?>
     

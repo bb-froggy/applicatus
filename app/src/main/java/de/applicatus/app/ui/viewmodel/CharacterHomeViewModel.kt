@@ -26,7 +26,7 @@ class CharacterHomeViewModel(
     
     private val exportManager = CharacterExportManager(repository)
     
-    // Export/Import State
+    // Export State
     var exportState by mutableStateOf<ExportState>(ExportState.Idle)
         private set
     
@@ -35,6 +35,23 @@ class CharacterHomeViewModel(
         object Exporting : ExportState()
         data class Success(val message: String) : ExportState()
         data class Error(val message: String) : ExportState()
+    }
+    
+    // Import State
+    var importState by mutableStateOf<ImportState>(ImportState.Idle)
+        private set
+    
+    sealed class ImportState {
+        object Idle : ImportState()
+        object Importing : ImportState()
+        data class ConfirmationRequired(
+            val warning: String, 
+            val context: Context, 
+            val uri: Uri,
+            val targetCharacterId: Long
+        ) : ImportState()
+        data class Success(val message: String) : ImportState()
+        data class Error(val message: String) : ImportState()
     }
     
     private val _character = MutableStateFlow<Character?>(null)
@@ -135,23 +152,89 @@ class CharacterHomeViewModel(
     /**
      * Importiert einen Charakter aus einer Datei und überschreibt den aktuellen Charakter.
      * GUID-Validierung stellt sicher, dass nur der richtige Charakter überschrieben wird.
+     * Prüft zunächst auf Warnungen und zeigt ggf. einen Bestätigungsdialog an.
      */
     fun importCharacterFromFile(context: Context, uri: Uri) {
         viewModelScope.launch {
-            exportState = ExportState.Exporting
-            val result = exportManager.loadCharacterFromFile(context, uri, characterId)
-            exportState = if (result.isSuccess) {
-                val (_, warning) = result.getOrNull()!!
-                val message = if (warning != null) {
-                    "Import erfolgreich mit Warnung:\n$warning"
-                } else {
-                    "Charakter erfolgreich überschrieben"
+            importState = ImportState.Importing
+            
+            // Zuerst JSON-String laden
+            val jsonString = try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader().readText()
+                } ?: run {
+                    importState = ImportState.Error("Konnte Datei nicht lesen")
+                    return@launch
                 }
-                ExportState.Success(message)
-            } else {
-                ExportState.Error("Import fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+            } catch (e: Exception) {
+                importState = ImportState.Error("Fehler beim Lesen der Datei: ${e.message}")
+                return@launch
             }
+            
+            // Prüfe auf Warnungen
+            val warningResult = exportManager.checkImportWarnings(jsonString, targetCharacterId = characterId)
+            if (warningResult.isFailure) {
+                importState = ImportState.Error("Import fehlgeschlagen: ${warningResult.exceptionOrNull()?.message}")
+                return@launch
+            }
+            
+            val (guid, warning) = warningResult.getOrNull()!!
+            
+            // Falls Warnung vorhanden, Bestätigung anfordern
+            if (warning != null) {
+                importState = ImportState.ConfirmationRequired(warning, context, uri, characterId)
+                return@launch
+            }
+            
+            // Keine Warnung -> Direkt importieren
+            performImport(jsonString, characterId)
         }
+    }
+    
+    /**
+     * Führt den eigentlichen Import durch (nach Bestätigung oder wenn keine Warnung vorhanden).
+     */
+    fun confirmImport(context: Context, uri: Uri, targetCharacterId: Long) {
+        viewModelScope.launch {
+            importState = ImportState.Importing
+            
+            // JSON-String erneut laden
+            val jsonString = try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader().readText()
+                } ?: run {
+                    importState = ImportState.Error("Konnte Datei nicht lesen")
+                    return@launch
+                }
+            } catch (e: Exception) {
+                importState = ImportState.Error("Fehler beim Lesen der Datei: ${e.message}")
+                return@launch
+            }
+            
+            performImport(jsonString, targetCharacterId)
+        }
+    }
+    
+    /**
+     * Interner Helper zum Ausführen des Imports.
+     */
+    private suspend fun performImport(jsonString: String, targetCharacterId: Long) {
+        val result = exportManager.importCharacter(jsonString, targetCharacterId)
+        importState = if (result.isSuccess) {
+            val (_, warning) = result.getOrNull()!!
+            val message = if (warning != null) {
+                "Import erfolgreich mit Warnung:\n$warning"
+            } else {
+                "Charakter erfolgreich überschrieben"
+            }
+            ImportState.Success(message)
+        } else {
+            ImportState.Error("Import fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+        }
+    }
+    
+    fun resetImportState() {
+        importState = ImportState.Idle
     }
     
     suspend fun exportCharacterForNearby(): Result<CharacterExportDto> {

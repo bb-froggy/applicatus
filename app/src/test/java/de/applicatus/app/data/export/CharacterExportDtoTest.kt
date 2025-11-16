@@ -24,6 +24,7 @@ class CharacterExportDtoTest {
     
     @Test
     fun `CharacterDto serializes correctly`() {
+        val timestamp = System.currentTimeMillis()
         val characterDto = CharacterDto(
             id = 1,
             guid = "test-guid-abc",
@@ -57,7 +58,8 @@ class CharacterExportDtoTest {
             hasMasteryRegeneration = true,
             hasKe = true,
             currentKe = 5,
-            maxKe = 10
+            maxKe = 10,
+            lastModifiedDate = timestamp
         )
         
         val jsonString = json.encodeToString(characterDto)
@@ -630,5 +632,108 @@ class CharacterExportDtoTest {
         assertEquals("Rucksack", decoded.items[0].locationName)
         assertEquals("Pferd", decoded.items[1].locationName)
     }
+    
+    @Test
+    fun `CharacterDto includes lastModifiedDate`() {
+        val timestamp = 1700000000000L // Fixed timestamp for testing
+        val characterDto = CharacterDto(
+            guid = "timestamp-guid",
+            name = "TimeTest",
+            mu = 10, kl = 10, inValue = 10, ch = 10,
+            ff = 10, ge = 10, ko = 10, kk = 10,
+            lastModifiedDate = timestamp
+        )
+        
+        val jsonString = json.encodeToString(characterDto)
+        println("Generated JSON: $jsonString")
+        
+        assertTrue("JSON should contain lastModifiedDate field", 
+            jsonString.contains("\"lastModifiedDate\""))
+        
+        val decoded = json.decodeFromString<CharacterDto>(jsonString)
+        // Timestamps should match exactly as we're using the same value
+        assertEquals(timestamp, decoded.lastModifiedDate)
+    }
+    
+    @Test
+    fun `CharacterExportDto includes lastModifiedDate in round trip`() {
+        val modifiedTime = 1700000000000L
+        val exportTime = 1700100000000L
+        
+        val exportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = CharacterDto(
+                guid = "modified-guid-999",
+                name = "ModifiedCharacter",
+                mu = 10, kl = 10, inValue = 10, ch = 10,
+                ff = 10, ge = 10, ko = 10, kk = 10,
+                lastModifiedDate = modifiedTime
+            ),
+            spellSlots = listOf(),
+            exportTimestamp = exportTime
+        )
+        
+        val jsonString = json.encodeToString(exportDto)
+        val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
+        
+        assertEquals(modifiedTime, decoded.character.lastModifiedDate)
+        assertEquals(exportTime, decoded.exportTimestamp)
+    }
+    
+    @Test
+    fun `toCharacter uses lastModifiedDate from DTO not current time`() {
+        val exportTime = 1700000000000L // Fixed timestamp from export
+        
+        val characterDto = CharacterDto(
+            guid = "test-guid",
+            name = "Test",
+            mu = 10, kl = 10, inValue = 10, ch = 10,
+            ff = 10, ge = 10, ko = 10, kk = 10,
+            lastModifiedDate = exportTime
+        )
+        
+        val character = characterDto.toCharacter()
+        
+        assertEquals("lastModifiedDate should be from DTO, not current time", 
+            exportTime, character.lastModifiedDate)
+    }
+    
+    @Test
+    fun `exportTimestamp should be preserved during import workflow`() {
+        // Dies dokumentiert die Anforderung:
+        // JSON um 17:00 Uhr exportiert -> Import um 17:10 Uhr -> lastModifiedDate = 17:00 Uhr
+        val exportTime = 1700000000000L // 17:00 Uhr
+        
+        // Schritt 1: Export DTO erstellen
+        val exportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = CharacterDto(
+                guid = "workflow-test",
+                name = "WorkflowTest",
+                mu = 10, kl = 10, inValue = 10, ch = 10,
+                ff = 10, ge = 10, ko = 10, kk = 10,
+                lastModifiedDate = exportTime
+            ),
+            spellSlots = listOf(),
+            exportTimestamp = exportTime
+        )
+        
+        // Schritt 2: Serialisierung
+        val jsonString = json.encodeToString(exportDto)
+        
+        // Schritt 3: Deserialisierung
+        val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
+        
+        // Schritt 4: Zu Character konvertieren
+        val character = decoded.character.toCharacter()
+        
+        // Verifizierung: exportTimestamp sollte erhalten bleiben
+        assertEquals("exportTimestamp should be preserved", exportTime, decoded.exportTimestamp)
+        assertEquals("lastModifiedDate should equal exportTimestamp", 
+            decoded.exportTimestamp, character.lastModifiedDate)
+    }
 }
+
+
+
 

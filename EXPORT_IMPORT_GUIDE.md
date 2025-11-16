@@ -6,7 +6,12 @@
 2. Tippen Sie auf das Drei-Punkte-Menü (⋮) oben rechts
 3. Wählen Sie "Als JSON exportieren"
 4. Wählen Sie einen Speicherort und Dateinamen
-5. Die Datei enthält sämtliche Charakterdaten inklusive Slots, Tränken (Analyse-Status) und bekanntem Rezeptwissen
+5. Die Datei enthält sämtliche Charakterdaten inklusive:
+   - Charaktereigenschaften und Talente
+   - Zaubersprüche (Slots) und ZfP*-Werte
+   - Tränke mit Analyse-Status und Rezeptwissen
+   - **Inventar (Locations und Items)**
+   - Zeitstempel der letzten Änderung
 
 ## JSON-Import
 
@@ -14,11 +19,28 @@
 2. Tippen Sie auf das Drei-Punkte-Menü (⋮) oben rechts
 3. Wählen Sie "JSON importieren"
 4. Wählen Sie die zu importierende JSON-Datei
-5. Der Charakter wird importiert:
-   - Wenn der Name bereits existiert, wird eine Warnung angezeigt
+5. **Bestätigung bei Warnungen**: Wenn Warnungen auftreten (z.B. neuere lokale Änderungen), können Sie:
+   - **"Fortfahren"** wählen, um den Import trotzdem durchzuführen
+   - **"Abbrechen"** wählen, um den Import zu verwerfen und lokale Änderungen zu bewahren
+6. **Der Charakter wird automatisch aktualisiert**, wenn bereits ein Charakter mit derselben GUID existiert:
+   - Alle Eigenschaften werden mit den importierten Werten aktualisiert
+   - Zaubersprüche werden ersetzt
+   - **Inventar wird komplett ersetzt** (alte Items werden gelöscht, damit keine Duplikate entstehen)
+   - Tränke werden intelligent gemerged (bessere Analyse-Ergebnisse bleiben erhalten)
    - Bei Versionsunterschieden werden Sie informiert
+   - **Warnung bei neueren lokalen Änderungen**: Wenn der lokale Charakter nach dem Export-Zeitpunkt geändert wurde, erhalten Sie eine Warnung
+7. Wenn kein passender Charakter existiert, wird ein neuer angelegt:
+   - Standard-Locations (Rüstung/Kleidung, Rucksack) werden erstellt
    - Zauber werden nach Namen automatisch zugeordnet
-   - Vorhandene Tränke und Rezeptwissen des Charakters werden vor dem Import bereinigt
+
+### Wichtige Hinweise zum Import
+
+- **GUID-basiertes Matching**: Die App erkennt automatisch, ob ein Charakter bereits existiert (anhand der eindeutigen GUID)
+- **Keine Duplikate**: Es wird kein zweiter Charakter mit gleichem Namen angelegt
+- **Inventar-Ersetzung**: Beim Import eines bestehenden Charakters wird das alte Inventar gelöscht und durch das importierte ersetzt (außer Standard-Locations)
+- **Zeitstempel-Prüfung**: Sie werden gewarnt, wenn lokale Änderungen neuer sind als der Export
+- **Abbruch möglich**: Bei Warnungen können Sie den Import abbrechen, ohne Änderungen vorzunehmen
+- **Rezeptwissen**: Vorhandenes Rezeptwissen wird vor dem Import bereinigt und neu importiert
 
 ## Nearby Sync (Geräte-zu-Gerät Übertragung)
 

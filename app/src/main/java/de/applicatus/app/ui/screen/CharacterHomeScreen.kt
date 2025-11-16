@@ -43,6 +43,8 @@ fun CharacterHomeScreen(
     val character by viewModel.character.collectAsState()
     val lastRegenerationResult by viewModel.lastRegenerationResult.collectAsState()
     val context = LocalContext.current
+    val importState = viewModel.importState
+    val exportState = viewModel.exportState
     
     var showEditDialog by remember { mutableStateOf(false) }
     var showRegenerationDialog by remember { mutableStateOf(false) }
@@ -85,6 +87,66 @@ fun CharacterHomeScreen(
                         Text("OK")
                     }
                 }
+            )
+        }
+        else -> {}
+    }
+    
+    // Import Status Dialog
+    when (importState) {
+        is CharacterHomeViewModel.ImportState.ConfirmationRequired -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetImportState() },
+                title = { Text("Import bestätigen") },
+                text = { Text(importState.warning) },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        viewModel.confirmImport(importState.context, importState.uri, importState.targetCharacterId)
+                    }) {
+                        Text("Fortfahren")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.resetImportState() }) {
+                        Text("Abbrechen")
+                    }
+                }
+            )
+        }
+        is CharacterHomeViewModel.ImportState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetImportState() },
+                title = { Text("Import erfolgreich") },
+                text = { Text(importState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetImportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterHomeViewModel.ImportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetImportState() },
+                title = { Text("Import fehlgeschlagen") },
+                text = { Text(importState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetImportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        CharacterHomeViewModel.ImportState.Importing -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Importiere Charakter...") },
+                text = { 
+                    Row(horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator()
+                    }
+                },
+                confirmButton = {}
             )
         }
         else -> {}

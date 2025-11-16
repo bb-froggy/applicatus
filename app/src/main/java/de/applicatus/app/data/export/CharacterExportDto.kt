@@ -68,7 +68,8 @@ data class CharacterDto(
     val hasKe: Boolean = false,
     val currentKe: Int = 0,
     val maxKe: Int = 0,
-    val groupId: Long? = null
+    val groupId: Long? = null,
+    val lastModifiedDate: Long = System.currentTimeMillis()
 ) {
     companion object {
         fun fromCharacter(character: Character) = CharacterDto(
@@ -112,7 +113,8 @@ data class CharacterDto(
             hasKe = character.hasKe,
             currentKe = character.currentKe,
             maxKe = character.maxKe,
-            groupId = character.groupId
+            groupId = character.groupId,
+            lastModifiedDate = character.lastModifiedDate
         )
     }
     
@@ -157,7 +159,8 @@ data class CharacterDto(
         hasKe = hasKe,
         currentKe = currentKe,
         maxKe = maxKe,
-        groupId = groupId
+        groupId = groupId,
+        lastModifiedDate = lastModifiedDate
     )
 }
 

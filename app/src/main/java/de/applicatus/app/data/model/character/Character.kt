@@ -70,5 +70,7 @@ data class Character(
     // Spieler/Spielleiter-Modus
     val isGameMaster: Boolean = false,   // Ist der Nutzer Spielleiter? (zeigt alle Infos)
     // Gruppe
-    val groupId: Long? = null            // Foreign Key zur Gruppe (null = Standard-Gruppe wird verwendet)
+    val groupId: Long? = null,           // Foreign Key zur Gruppe (null = Standard-Gruppe wird verwendet)
+    // Metadata
+    val lastModifiedDate: Long = System.currentTimeMillis()  // Letzte Änderung des Charakters (Unix timestamp)
 )

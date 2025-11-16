@@ -67,6 +67,12 @@ class CharacterListViewModel(
     sealed class ImportState {
         object Idle : ImportState()
         object Importing : ImportState()
+        data class ConfirmationRequired(
+            val warning: String, 
+            val context: Context, 
+            val uri: Uri,
+            val targetCharacterId: Long? = null
+        ) : ImportState()
         data class Success(val message: String, val characterId: Long) : ImportState()
         data class Error(val message: String) : ImportState()
     }
@@ -218,22 +224,84 @@ class CharacterListViewModel(
     
     /**
      * Importiert einen Charakter aus einer JSON-Datei und legt einen neuen Charakter an.
+     * Prüft zunächst auf Warnungen und zeigt ggf. einen Bestätigungsdialog an.
      */
     fun importCharacterFromFile(context: Context, uri: Uri) {
         viewModelScope.launch {
             importState = ImportState.Importing
-            val result = exportManager.loadCharacterFromFile(context, uri, targetCharacterId = null)
-            importState = if (result.isSuccess) {
-                val (characterId, warning) = result.getOrNull()!!
-                val message = if (warning != null) {
-                    "Import erfolgreich mit Warnung:\n$warning"
-                } else {
-                    "Charakter erfolgreich importiert"
+            
+            // Zuerst JSON-String laden
+            val jsonString = try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader().readText()
+                } ?: run {
+                    importState = ImportState.Error("Konnte Datei nicht lesen")
+                    return@launch
                 }
-                ImportState.Success(message, characterId)
-            } else {
-                ImportState.Error("Import fehlgeschlagen: ${result.exceptionOrNull()?.message}")
+            } catch (e: Exception) {
+                importState = ImportState.Error("Fehler beim Lesen der Datei: ${e.message}")
+                return@launch
             }
+            
+            // Prüfe auf Warnungen
+            val warningResult = exportManager.checkImportWarnings(jsonString, targetCharacterId = null)
+            if (warningResult.isFailure) {
+                importState = ImportState.Error("Import fehlgeschlagen: ${warningResult.exceptionOrNull()?.message}")
+                return@launch
+            }
+            
+            val (guid, warning) = warningResult.getOrNull()!!
+            
+            // Falls Warnung vorhanden, Bestätigung anfordern
+            if (warning != null) {
+                importState = ImportState.ConfirmationRequired(warning, context, uri, targetCharacterId = null)
+                return@launch
+            }
+            
+            // Keine Warnung -> Direkt importieren
+            performImport(jsonString, targetCharacterId = null)
+        }
+    }
+    
+    /**
+     * Führt den eigentlichen Import durch (nach Bestätigung oder wenn keine Warnung vorhanden).
+     */
+    fun confirmImport(context: Context, uri: Uri, targetCharacterId: Long? = null) {
+        viewModelScope.launch {
+            importState = ImportState.Importing
+            
+            // JSON-String erneut laden
+            val jsonString = try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader().readText()
+                } ?: run {
+                    importState = ImportState.Error("Konnte Datei nicht lesen")
+                    return@launch
+                }
+            } catch (e: Exception) {
+                importState = ImportState.Error("Fehler beim Lesen der Datei: ${e.message}")
+                return@launch
+            }
+            
+            performImport(jsonString, targetCharacterId)
+        }
+    }
+    
+    /**
+     * Interner Helper zum Ausführen des Imports.
+     */
+    private suspend fun performImport(jsonString: String, targetCharacterId: Long?) {
+        val result = exportManager.importCharacter(jsonString, targetCharacterId)
+        importState = if (result.isSuccess) {
+            val (characterId, warning) = result.getOrNull()!!
+            val message = if (warning != null) {
+                "Import erfolgreich mit Warnung:\n$warning"
+            } else {
+                "Charakter erfolgreich importiert"
+            }
+            ImportState.Success(message, characterId)
+        } else {
+            ImportState.Error("Import fehlgeschlagen: ${result.exceptionOrNull()?.message}")
         }
     }
     
