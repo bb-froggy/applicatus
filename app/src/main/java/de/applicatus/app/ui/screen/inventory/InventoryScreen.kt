@@ -65,6 +65,11 @@ fun InventoryScreen(
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
     val dropTargets = remember { mutableStateMapOf<String, LocationDropTarget>() }
     
+    // Location Drag-and-Drop-State
+    var draggedLocation by remember { mutableStateOf<de.applicatus.app.data.model.inventory.Location?>(null) }
+    var locationDragOffset by remember { mutableStateOf(Offset.Zero) }
+    val locationDropTargets = remember { mutableStateMapOf<String, LocationDropTargetInfo>() }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -321,6 +326,32 @@ fun InventoryScreen(
                             },
                             onQuantityChange = { itemId, newQuantity ->
                                 viewModel.updateItemQuantity(itemId, newQuantity)
+                            },
+                            // Location Drag-Handler
+                            onStartLocationDrag = { loc ->
+                                draggedLocation = loc
+                            },
+                            onLocationDragUpdate = { offset ->
+                                locationDragOffset = offset
+                            },
+                            onLocationDragEnd = { loc, finalOffset ->
+                                // Finde den Ziel-Ort basierend auf der finalen Position
+                                val targetLocationInfo = locationDropTargets.values
+                                    .filter { it.locationId != loc.id }
+                                    .find { target ->
+                                        target.bounds.contains(finalOffset)
+                                    }
+                                
+                                if (targetLocationInfo != null) {
+                                    // Tausche die Sortierung
+                                    viewModel.swapLocationOrder(loc.id, targetLocationInfo.locationId)
+                                }
+                                
+                                draggedLocation = null
+                                locationDragOffset = Offset.Zero
+                            },
+                            onRegisterLocationDropTarget = { id, target ->
+                                locationDropTargets[id] = target
                             }
                         )
                     }
@@ -443,6 +474,43 @@ fun InventoryScreen(
                             text = draggedItem!!.weight.toDisplayString(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+            
+            // Floating dragged location
+            if (draggedLocation != null && locationDragOffset != Offset.Zero) {
+                Box(
+                    modifier = Modifier
+                        .offset(
+                            x = (locationDragOffset.x / density.density).dp,
+                            y = (locationDragOffset.y / density.density).dp
+                        )
+                        .zIndex(1001f)
+                        .width(250.dp)
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f),
+                            MaterialTheme.shapes.medium
+                        )
+                        .border(
+                            width = 3.dp,
+                            color = MaterialTheme.colorScheme.secondary,
+                            shape = MaterialTheme.shapes.medium
+                        )
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = draggedLocation!!.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = "Ort verschieben",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                         )
                     }
                 }

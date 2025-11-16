@@ -1,6 +1,8 @@
 package de.applicatus.app.ui.screen.inventory
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -8,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
@@ -37,10 +41,16 @@ fun LocationCard(
     onDragEnd: (ItemWithLocation, Offset) -> Unit,
     onRegisterDropTarget: (String, LocationDropTarget) -> Unit,
     onPurseAmountChange: (Long, Int) -> Unit,
-    onQuantityChange: (Long, Int) -> Unit
+    onQuantityChange: (Long, Int) -> Unit,
+    // Neue Parameter für Location-Drag
+    onStartLocationDrag: (Location) -> Unit = {},
+    onLocationDragUpdate: (Offset) -> Unit = {},
+    onLocationDragEnd: (Location, Offset) -> Unit = { _, _ -> },
+    onRegisterLocationDropTarget: (String, LocationDropTargetInfo) -> Unit = { _, _ -> }
 ) {
     var cardPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
+    var currentLocationDragOffset by remember { mutableStateOf(Offset.Zero) }
     
     // Registriere diese Card als Drop-Target
     LaunchedEffect(cardPosition, cardSize) {
@@ -51,6 +61,7 @@ fun LocationCard(
                 right = cardPosition.x + cardSize.width,
                 bottom = cardPosition.y + cardSize.height
             )
+            // Registriere als Item-Drop-Target
             onRegisterDropTarget(
                 "location_${location?.id ?: "null"}",
                 LocationDropTarget(
@@ -59,6 +70,18 @@ fun LocationCard(
                     bounds = bounds
                 )
             )
+            // Registriere als Location-Drop-Target (nur für nicht-Standard-Locations)
+            if (location != null && !location.isDefault) {
+                onRegisterLocationDropTarget(
+                    "location_sort_${location.id}",
+                    LocationDropTargetInfo(
+                        locationId = location.id,
+                        locationName = location.name,
+                        sortOrder = location.sortOrder,
+                        bounds = bounds
+                    )
+                )
+            }
         }
     }
     
@@ -92,6 +115,72 @@ fun LocationCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Drag-Handle (nur für nicht-Standard-Locations)
+                if (location != null && !location.isDefault) {
+                    Box(
+                        modifier = Modifier
+                            .width(32.dp)
+                            .height(48.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                MaterialTheme.shapes.small
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                shape = MaterialTheme.shapes.small
+                            )
+                            .pointerInput(location.id) {
+                                detectDragGestures(
+                                    onDragStart = {
+                                        currentLocationDragOffset = Offset.Zero
+                                        onStartLocationDrag(location)
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        currentLocationDragOffset += dragAmount
+                                        onLocationDragUpdate(cardPosition + currentLocationDragOffset)
+                                    },
+                                    onDragEnd = {
+                                        onLocationDragEnd(location, cardPosition + currentLocationDragOffset)
+                                        currentLocationDragOffset = Offset.Zero
+                                    },
+                                    onDragCancel = {
+                                        onLocationDragEnd(location, cardPosition + currentLocationDragOffset)
+                                        currentLocationDragOffset = Offset.Zero
+                                    }
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Gepunktetes Muster (3 Reihen mit je 2 Punkten)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            repeat(3) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    repeat(2) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(4.dp)
+                                                .background(
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                    androidx.compose.foundation.shape.CircleShape
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = location?.name ?: "Ohne Ort",

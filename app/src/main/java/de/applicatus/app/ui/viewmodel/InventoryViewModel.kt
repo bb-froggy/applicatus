@@ -233,6 +233,38 @@ class InventoryViewModel(
     }
     
     /**
+     * Tauscht die Sortierreihenfolge von zwei Locations
+     */
+    fun swapLocationOrder(location1Id: Long, location2Id: Long) {
+        viewModelScope.launch {
+            val allLocations = locations.value
+            val loc1 = allLocations.find { it.id == location1Id }
+            val loc2 = allLocations.find { it.id == location2Id }
+            
+            if (loc1 != null && loc2 != null) {
+                // Tausche sortOrder
+                repository.updateLocation(loc1.copy(sortOrder = loc2.sortOrder))
+                repository.updateLocation(loc2.copy(sortOrder = loc1.sortOrder))
+            }
+        }
+    }
+    
+    /**
+     * Aktualisiert die Sortierreihenfolge aller Locations basierend auf der aktuellen Liste
+     */
+    fun updateLocationOrder(orderedLocationIds: List<Long>) {
+        viewModelScope.launch {
+            val allLocations = locations.value
+            orderedLocationIds.forEachIndexed { index, locationId ->
+                val location = allLocations.find { it.id == locationId }
+                location?.let {
+                    repository.updateLocation(it.copy(sortOrder = index))
+                }
+            }
+        }
+    }
+    
+    /**
      * Fügt ein neues Item hinzu
      */
     fun addItem(
