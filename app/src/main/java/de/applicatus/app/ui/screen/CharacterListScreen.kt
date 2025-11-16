@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
@@ -57,6 +59,7 @@ fun CharacterListScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var showAddGroupDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
     var draggedCharacter by remember { mutableStateOf<Character?>(null) }
     var showMoveDialog by remember { mutableStateOf(false) }
     var characterToExport by remember { mutableStateOf<Character?>(null) }
@@ -122,6 +125,19 @@ fun CharacterListScreen(
                             onClick = {
                                 showMenu = false
                                 onNearbySyncClick()
+                            }
+                        )
+
+                        Divider()
+                        
+                        DropdownMenuItem(
+                            text = { Text("App-Informationen") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Info, null)
+                            },
+                            onClick = {
+                                showMenu = false
+                                showInfoDialog = true
                             }
                         )
                     }
@@ -514,6 +530,31 @@ fun CharacterListScreen(
             )
         }
         else -> {}
+    }
+    
+    // Info Dialog
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            icon = { Icon(Icons.Default.Info, contentDescription = null) },
+            title = { Text("App-Informationen") },
+            text = {
+                Column {
+                    Text("Datenbankschema-Version: ${DataModelVersion.CURRENT_VERSION}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Diese Version wird für den Import und Export von Charakteren verwendet. " +
+                        "Bei Versionskonflikten kann es zu Warnungen kommen.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showInfoDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 
