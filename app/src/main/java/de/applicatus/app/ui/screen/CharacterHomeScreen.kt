@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Share
@@ -23,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
+import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.ui.screen.spell.EditCharacterDialog
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
@@ -49,6 +51,7 @@ fun CharacterHomeScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var showRegenerationDialog by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
     
     // File pickers
     val exportLauncher = rememberLauncherForActivityResult(
@@ -208,6 +211,19 @@ fun CharacterHomeScreen(
                                 onClick = {
                                     showMoreMenu = false
                                     onNavigateToNearbySync(characterId, character?.name ?: "Charakter")
+                                }
+                            )
+                            
+                            Divider()
+                            
+                            DropdownMenuItem(
+                                text = { Text("App-Informationen") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Info, null)
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showInfoDialog = true
                                 }
                             )
                         }

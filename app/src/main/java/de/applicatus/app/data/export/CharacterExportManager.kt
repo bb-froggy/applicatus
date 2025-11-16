@@ -332,7 +332,11 @@ class CharacterExportManager(
                     isGameMaster = existingCharacter.isGameMaster,
                     lastModifiedDate = exportDto.exportTimestamp
                 )
-                repository.updateCharacter(updatedCharacter)
+                try {
+                    repository.updateCharacter(updatedCharacter)
+                } catch (e: Exception) {
+                    throw Exception("Fehler beim Aktualisieren des Charakters: ${e.message}", e)
+                }
                 
                 // Alte Slots löschen
                 val oldSlots = repository.getSlotsByCharacter(existingCharacter.id).first()
@@ -353,10 +357,18 @@ class CharacterExportManager(
                 val newCharacter = exportDto.character.toCharacter().copy(
                     lastModifiedDate = exportDto.exportTimestamp
                 )
-                val newCharacterId = repository.insertCharacter(newCharacter)
+                val newCharacterId = try {
+                    repository.insertCharacter(newCharacter)
+                } catch (e: Exception) {
+                    throw Exception("Fehler beim Erstellen des Charakters: ${e.message}", e)
+                }
                 
                 // Erstelle Standard-Locations (Rüstung/Kleidung, Rucksack)
-                repository.createDefaultLocationsForCharacter(newCharacterId)
+                try {
+                    repository.createDefaultLocationsForCharacter(newCharacterId)
+                } catch (e: Exception) {
+                    throw Exception("Fehler beim Erstellen der Standard-Locations: ${e.message}", e)
+                }
                 
                 newCharacterId
             }
@@ -371,7 +383,11 @@ class CharacterExportManager(
                 slotDto.toSpellSlot(characterId, resolvedSpellId)
             }
             
-            repository.insertSlots(newSlots)
+            try {
+                repository.insertSlots(newSlots)
+            } catch (e: Exception) {
+                throw Exception("Fehler beim Einfügen der Zauber-Slots (Foreign Key: Spell): ${e.message}", e)
+            }
             
             // Rezepte für spätere Zuordnung cachen
             val allRecipes = repository.allRecipes.first()
@@ -396,13 +412,18 @@ class CharacterExportManager(
                     val importedPotion = potionDto.toPotion(characterId, resolvedRecipeId)
                     val existingPotion = existingPotionsByGuid[potionDto.guid]
                     
-                    if (existingPotion != null) {
-                        // Trank existiert bereits -> Merge mit besserem Analyse-Ergebnis
-                        val mergedPotion = mergePotion(existingPotion, importedPotion)
-                        repository.updatePotion(mergedPotion)
-                    } else {
-                        // Neuer Trank -> Einfügen
-                        repository.insertPotion(importedPotion)
+                    try {
+                        if (existingPotion != null) {
+                            // Trank existiert bereits -> Merge mit besserem Analyse-Ergebnis
+                            val mergedPotion = mergePotion(existingPotion, importedPotion)
+                            repository.updatePotion(mergedPotion)
+                        } else {
+                            // Neuer Trank -> Einfügen
+                            repository.insertPotion(importedPotion)
+                        }
+                    } catch (e: Exception) {
+                        val recipeName = potionDto.recipeName ?: "Unbekannt"
+                        throw Exception("Fehler beim Einfügen/Aktualisieren des Tranks für Rezept '$recipeName' (Foreign Key: Recipe): ${e.message}", e)
                     }
                 }
             }
@@ -414,7 +435,12 @@ class CharacterExportManager(
                     val identifier = knowledgeDto.recipeName ?: knowledgeDto.recipeId?.toString() ?: "Unbekanntes Rezept"
                     additionalWarnings += "Rezeptwissen für '$identifier' konnte nicht importiert werden, da das Rezept nicht gefunden wurde."
                 } else {
-                    repository.insertRecipeKnowledge(knowledgeDto.toModel(characterId, resolvedRecipeId))
+                    try {
+                        repository.insertRecipeKnowledge(knowledgeDto.toModel(characterId, resolvedRecipeId))
+                    } catch (e: Exception) {
+                        val recipeName = knowledgeDto.recipeName ?: "Unbekannt"
+                        throw Exception("Fehler beim Einfügen des Rezeptwissens für '$recipeName' (Foreign Key: Recipe): ${e.message}", e)
+                    }
                 }
             }
             
@@ -434,15 +460,24 @@ class CharacterExportManager(
                     locationIdsByName[locationDto.name] = existingLocation.id
                 } else {
                     // Neue Location erstellen
-                    val newLocationId = repository.insertLocation(locationDto.toLocation(characterId))
-                    locationIdsByName[locationDto.name] = newLocationId
+                    try {
+                        val newLocationId = repository.insertLocation(locationDto.toLocation(characterId))
+                        locationIdsByName[locationDto.name] = newLocationId
+                    } catch (e: Exception) {
+                        throw Exception("Fehler beim Erstellen der Location '${locationDto.name}' (Foreign Key: Character): ${e.message}", e)
+                    }
                 }
             }
             
             // Items importieren
             exportDto.items.forEach { itemDto ->
                 val resolvedLocationId = itemDto.locationName?.let { locationIdsByName[it] }
-                repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
+                try {
+                    repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
+                } catch (e: Exception) {
+                    val locationInfo = itemDto.locationName?.let { " in Location '$it'" } ?: " ohne Location"
+                    throw Exception("Fehler beim Einfügen des Items '${itemDto.name}'$locationInfo (Foreign Key: Character oder Location): ${e.message}", e)
+                }
             }
             
             // WICHTIG: Nach allen Inserts (die touchCharacter aufrufen) das lastModifiedDate

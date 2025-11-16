@@ -732,6 +732,28 @@ class CharacterExportDtoTest {
         assertEquals("lastModifiedDate should equal exportTimestamp", 
             decoded.exportTimestamp, character.lastModifiedDate)
     }
+    
+    @Test
+    fun `ItemDto with unknown location name handles gracefully`() {
+        // Test dass Items mit unbekannten Location-Namen korrekt gehandhabt werden
+        val itemDto = ItemDto(
+            locationName = "NonExistentLocation",
+            name = "TestItem",
+            weightStone = 1,
+            weightOunces = 0,
+            isPurse = false,
+            kreuzerAmount = 0,
+            isCountable = false,
+            quantity = 1
+        )
+        
+        // toItem mit null locationId sollte funktionieren
+        val item = itemDto.toItem(characterId = 1, resolvedLocationId = null)
+        
+        assertEquals(1L, item.characterId)
+        assertNull("locationId should be null when location not found", item.locationId)
+        assertEquals("TestItem", item.name)
+    }
 }
 
 
