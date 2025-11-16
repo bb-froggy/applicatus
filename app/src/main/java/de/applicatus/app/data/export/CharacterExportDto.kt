@@ -68,11 +68,11 @@ data class CharacterDto(
     val hasKe: Boolean = false,
     val currentKe: Int = 0,
     val maxKe: Int = 0,
-    val groupId: Long? = null,
+    val groupName: String? = null,  // Gruppenname für portablen Export (nicht ID!)
     val lastModifiedDate: Long = System.currentTimeMillis()
 ) {
     companion object {
-        fun fromCharacter(character: Character) = CharacterDto(
+        suspend fun fromCharacter(character: Character, groupName: String?) = CharacterDto(
             id = character.id,
             guid = character.guid,
             name = character.name,
@@ -113,7 +113,7 @@ data class CharacterDto(
             hasKe = character.hasKe,
             currentKe = character.currentKe,
             maxKe = character.maxKe,
-            groupId = character.groupId,
+            groupName = groupName,  // Gruppenname wird vom Aufrufer übergeben
             lastModifiedDate = character.lastModifiedDate
         )
     }
@@ -159,7 +159,7 @@ data class CharacterDto(
         hasKe = hasKe,
         currentKe = currentKe,
         maxKe = maxKe,
-        groupId = groupId,
+        groupId = null,  // Wird beim Import separat aufgelöst basierend auf groupName
         lastModifiedDate = lastModifiedDate
     )
 }

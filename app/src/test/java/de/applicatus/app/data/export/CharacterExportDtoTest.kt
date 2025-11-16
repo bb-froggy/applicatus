@@ -461,17 +461,17 @@ class CharacterExportDtoTest {
             mu = 10, kl = 12, inValue = 11, ch = 10,
             ff = 11, ge = 10, ko = 10, kk = 9,
             defaultLaboratory = "LABORATORY",
-            groupId = 42
+            groupName = "TestGroup"
         )
         
         val jsonString = json.encodeToString(characterDto)
         
         assertTrue(jsonString.contains("\"defaultLaboratory\": \"LABORATORY\""))
-        assertTrue(jsonString.contains("\"groupId\": 42"))
+        assertTrue(jsonString.contains("\"groupName\": \"TestGroup\""))
         
         val decoded = json.decodeFromString<CharacterDto>(jsonString)
         assertEquals("LABORATORY", decoded.defaultLaboratory)
-        assertEquals(42L, decoded.groupId)
+        assertEquals("TestGroup", decoded.groupName)
     }
     
     @Test

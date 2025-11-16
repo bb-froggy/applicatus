@@ -59,6 +59,11 @@ class CharacterExportManager(
             val character = repository.getCharacterById(characterId)
                 ?: return@withContext Result.failure(Exception("Charakter nicht gefunden"))
             
+            // Lade Gruppenname für Export (falls vorhanden)
+            val groupName = character.groupId?.let { gId ->
+                repository.getGroupByIdOnce(gId)?.name
+            }
+            
             // Sammle Slots und zugehörige Zauber
             val slotsWithSpells = repository.getSlotsWithSpellsByCharacter(characterId).first()
             
@@ -101,7 +106,7 @@ class CharacterExportManager(
             
             val exportDto = CharacterExportDto(
                 version = DataModelVersion.CURRENT_VERSION,
-                character = CharacterDto.fromCharacter(character),
+                character = CharacterDto.fromCharacter(character, groupName),
                 spellSlots = slots,
                 potions = potions,
                 recipeKnowledge = recipeKnowledge,
@@ -326,10 +331,13 @@ class CharacterExportManager(
                 // isGameMaster wird bewusst NICHT überschrieben, damit Spieler und Spielleiter
                 // den gleichen Charakter teilen können, aber unterschiedliche Rechte behalten
                 // lastModifiedDate wird auf Export-Zeitstempel gesetzt (nicht aktuelle Zeit!)
+                // WICHTIG: groupId wird beim Überschreiben NICHT geändert!
+                
                 val updatedCharacter = exportDto.character.toCharacter().copy(
                     id = existingCharacter.id,
                     guid = existingCharacter.guid,
                     isGameMaster = existingCharacter.isGameMaster,
+                    groupId = existingCharacter.groupId,  // Gruppe wird NICHT überschrieben!
                     lastModifiedDate = exportDto.exportTimestamp
                 )
                 try {
@@ -354,7 +362,21 @@ class CharacterExportManager(
             } else {
                 // Neuen Charakter erstellen (mit GUID aus Import)
                 // lastModifiedDate wird auf Export-Zeitstempel gesetzt (nicht aktuelle Zeit!)
+                
+                // GroupId über Gruppennamen auflösen
+                val allGroups = repository.allGroups.first()
+                val resolvedGroupId = exportDto.character.groupName?.let { groupName ->
+                    // Suche Group nach Namen
+                    allGroups.find { it.name == groupName }?.id
+                        ?: allGroups.find { it.name == "Unbekannte Gruppe" }?.id  // Fallback
+                }
+                
+                if (exportDto.character.groupName != null && resolvedGroupId == null) {
+                    additionalWarnings += "Die Gruppe '${exportDto.character.groupName}' wurde nicht gefunden. Charakter wird in 'Unbekannte Gruppe' eingefügt."
+                }
+                
                 val newCharacter = exportDto.character.toCharacter().copy(
+                    groupId = resolvedGroupId,
                     lastModifiedDate = exportDto.exportTimestamp
                 )
                 val newCharacterId = try {
