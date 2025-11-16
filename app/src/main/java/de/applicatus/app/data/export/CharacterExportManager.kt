@@ -79,12 +79,34 @@ class CharacterExportManager(
                 RecipeKnowledgeDto.fromModel(knowledge, recipeNamesById[knowledge.recipeId]?.name)
             }
             
+            // Sammle Inventar: Locations und Items
+            val locations = repository.getLocationsForCharacter(characterId).first().map { location ->
+                LocationDto.fromLocation(location)
+            }
+            
+            val itemsWithLocation = repository.getItemsWithLocationForCharacter(characterId).first()
+            val items = itemsWithLocation.map { itemWithLocation ->
+                ItemDto(
+                    locationName = itemWithLocation.locationName,
+                    name = itemWithLocation.name,
+                    weightStone = itemWithLocation.stone,
+                    weightOunces = itemWithLocation.ounces,
+                    sortOrder = itemWithLocation.sortOrder,
+                    isPurse = itemWithLocation.isPurse,
+                    kreuzerAmount = itemWithLocation.kreuzerAmount,
+                    isCountable = itemWithLocation.isCountable,
+                    quantity = itemWithLocation.quantity
+                )
+            }
+            
             val exportDto = CharacterExportDto(
                 version = DataModelVersion.CURRENT_VERSION,
                 character = CharacterDto.fromCharacter(character),
                 spellSlots = slots,
                 potions = potions,
                 recipeKnowledge = recipeKnowledge,
+                locations = locations,
+                items = items,
                 exportTimestamp = System.currentTimeMillis()  // Explizit setzen
             )
             
@@ -287,6 +309,33 @@ class CharacterExportManager(
                 } else {
                     repository.insertRecipeKnowledge(knowledgeDto.toModel(characterId, resolvedRecipeId))
                 }
+            }
+            
+            // Inventar importieren: Locations und Items
+            // Bestehende Locations laden (für Namen-Matching)
+            val existingLocations = repository.getLocationsForCharacter(characterId).first()
+            val existingLocationsByName = existingLocations.associateBy { it.name }
+            
+            // Map für neue Location-Namen -> Location-IDs
+            val locationIdsByName = mutableMapOf<String, Long>()
+            
+            // Locations importieren
+            exportDto.locations.forEach { locationDto ->
+                val existingLocation = existingLocationsByName[locationDto.name]
+                if (existingLocation != null) {
+                    // Location existiert bereits -> ID merken, aber nicht neu erstellen
+                    locationIdsByName[locationDto.name] = existingLocation.id
+                } else {
+                    // Neue Location erstellen
+                    val newLocationId = repository.insertLocation(locationDto.toLocation(characterId))
+                    locationIdsByName[locationDto.name] = newLocationId
+                }
+            }
+            
+            // Items importieren
+            exportDto.items.forEach { itemDto ->
+                val resolvedLocationId = itemDto.locationName?.let { locationIdsByName[it] }
+                repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
             }
             
             val finalWarning = listOfNotNull(

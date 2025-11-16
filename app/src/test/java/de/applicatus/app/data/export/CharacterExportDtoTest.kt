@@ -413,4 +413,222 @@ class CharacterExportDtoTest {
         assertEquals(11, model.recipeId)
         assertEquals(RecipeKnowledgeLevel.UNDERSTOOD, model.knowledgeLevel)
     }
+    
+    @Test
+    fun `CharacterDto includes magical mastery fields`() {
+        val characterDto = CharacterDto(
+            guid = "mastery-guid",
+            name = "Magier",
+            mu = 12, kl = 14, inValue = 13, ch = 11,
+            ff = 10, ge = 12, ko = 11, kk = 10,
+            hasAlchemy = true,
+            alchemySkill = 10,
+            alchemyIsMagicalMastery = true,
+            hasCookingPotions = true,
+            cookingPotionsSkill = 8,
+            cookingPotionsIsMagicalMastery = true,
+            selfControlSkill = 7,
+            sensoryAcuitySkill = 9,
+            magicalLoreSkill = 12,
+            herbalLoreSkill = 6
+        )
+        
+        val jsonString = json.encodeToString(characterDto)
+        
+        assertTrue(jsonString.contains("\"alchemyIsMagicalMastery\": true"))
+        assertTrue(jsonString.contains("\"cookingPotionsIsMagicalMastery\": true"))
+        assertTrue(jsonString.contains("\"selfControlSkill\": 7"))
+        assertTrue(jsonString.contains("\"sensoryAcuitySkill\": 9"))
+        assertTrue(jsonString.contains("\"magicalLoreSkill\": 12"))
+        assertTrue(jsonString.contains("\"herbalLoreSkill\": 6"))
+        
+        val decoded = json.decodeFromString<CharacterDto>(jsonString)
+        assertTrue(decoded.alchemyIsMagicalMastery)
+        assertTrue(decoded.cookingPotionsIsMagicalMastery)
+        assertEquals(7, decoded.selfControlSkill)
+        assertEquals(9, decoded.sensoryAcuitySkill)
+        assertEquals(12, decoded.magicalLoreSkill)
+        assertEquals(6, decoded.herbalLoreSkill)
+    }
+    
+    @Test
+    fun `CharacterDto includes laboratory and group fields`() {
+        val characterDto = CharacterDto(
+            guid = "lab-guid",
+            name = "Alchemist",
+            mu = 10, kl = 12, inValue = 11, ch = 10,
+            ff = 11, ge = 10, ko = 10, kk = 9,
+            defaultLaboratory = "LABORATORY",
+            groupId = 42
+        )
+        
+        val jsonString = json.encodeToString(characterDto)
+        
+        assertTrue(jsonString.contains("\"defaultLaboratory\": \"LABORATORY\""))
+        assertTrue(jsonString.contains("\"groupId\": 42"))
+        
+        val decoded = json.decodeFromString<CharacterDto>(jsonString)
+        assertEquals("LABORATORY", decoded.defaultLaboratory)
+        assertEquals(42L, decoded.groupId)
+    }
+    
+    @Test
+    fun `LocationDto serializes correctly`() {
+        val locationDto = LocationDto(
+            name = "Rucksack",
+            isDefault = true,
+            isCarried = true,
+            sortOrder = 1
+        )
+        
+        val jsonString = json.encodeToString(locationDto)
+        
+        assertTrue(jsonString.contains("\"name\": \"Rucksack\""))
+        assertTrue(jsonString.contains("\"isDefault\": true"))
+        assertTrue(jsonString.contains("\"isCarried\": true"))
+        assertTrue(jsonString.contains("\"sortOrder\": 1"))
+        
+        val decoded = json.decodeFromString<LocationDto>(jsonString)
+        assertEquals(locationDto, decoded)
+    }
+    
+    @Test
+    fun `ItemDto serializes correctly`() {
+        val itemDto = ItemDto(
+            locationName = "Rucksack",
+            name = "Schwert",
+            weightStone = 2,
+            weightOunces = 10,
+            sortOrder = 0,
+            isPurse = false,
+            kreuzerAmount = 0,
+            isCountable = false,
+            quantity = 1
+        )
+        
+        val jsonString = json.encodeToString(itemDto)
+        
+        assertTrue(jsonString.contains("\"locationName\": \"Rucksack\""))
+        assertTrue(jsonString.contains("\"name\": \"Schwert\""))
+        assertTrue(jsonString.contains("\"weightStone\": 2"))
+        assertTrue(jsonString.contains("\"weightOunces\": 10"))
+        
+        val decoded = json.decodeFromString<ItemDto>(jsonString)
+        assertEquals(itemDto, decoded)
+    }
+    
+    @Test
+    fun `ItemDto with purse serializes correctly`() {
+        val purseDto = ItemDto(
+            locationName = "Gürtel",
+            name = "Geldbeutel",
+            weightStone = 0,
+            weightOunces = 5,
+            sortOrder = 0,
+            isPurse = true,
+            kreuzerAmount = 1250,
+            isCountable = false,
+            quantity = 1
+        )
+        
+        val jsonString = json.encodeToString(purseDto)
+        
+        assertTrue(jsonString.contains("\"isPurse\": true"))
+        assertTrue(jsonString.contains("\"kreuzerAmount\": 1250"))
+        
+        val decoded = json.decodeFromString<ItemDto>(jsonString)
+        assertTrue(decoded.isPurse)
+        assertEquals(1250, decoded.kreuzerAmount)
+    }
+    
+    @Test
+    fun `ItemDto with countable items serializes correctly`() {
+        val countableDto = ItemDto(
+            locationName = "Köcher",
+            name = "Pfeile",
+            weightStone = 0,
+            weightOunces = 2,
+            sortOrder = 0,
+            isPurse = false,
+            kreuzerAmount = 0,
+            isCountable = true,
+            quantity = 20
+        )
+        
+        val jsonString = json.encodeToString(countableDto)
+        
+        assertTrue(jsonString.contains("\"isCountable\": true"))
+        assertTrue(jsonString.contains("\"quantity\": 20"))
+        
+        val decoded = json.decodeFromString<ItemDto>(jsonString)
+        assertTrue(decoded.isCountable)
+        assertEquals(20, decoded.quantity)
+    }
+    
+    @Test
+    fun `CharacterExportDto with inventory serializes correctly`() {
+        val exportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = CharacterDto(
+                guid = "inventory-guid-123",
+                name = "Abenteurer",
+                mu = 10, kl = 10, inValue = 10, ch = 10,
+                ff = 10, ge = 10, ko = 10, kk = 12
+            ),
+            spellSlots = listOf(),
+            potions = listOf(),
+            recipeKnowledge = listOf(),
+            locations = listOf(
+                LocationDto(
+                    name = "Rucksack",
+                    isDefault = true,
+                    isCarried = true,
+                    sortOrder = 1
+                ),
+                LocationDto(
+                    name = "Pferd",
+                    isDefault = false,
+                    isCarried = false,
+                    sortOrder = 2
+                )
+            ),
+            items = listOf(
+                ItemDto(
+                    locationName = "Rucksack",
+                    name = "Heiltrank",
+                    weightStone = 0,
+                    weightOunces = 4,
+                    sortOrder = 0
+                ),
+                ItemDto(
+                    locationName = "Pferd",
+                    name = "Zelt",
+                    weightStone = 5,
+                    weightOunces = 0,
+                    sortOrder = 0
+                )
+            ),
+            exportTimestamp = System.currentTimeMillis()
+        )
+        
+        val jsonString = json.encodeToString(exportDto)
+        
+        assertTrue(jsonString.contains("\"locations\""))
+        assertTrue(jsonString.contains("\"items\""))
+        assertTrue(jsonString.contains("Rucksack"))
+        assertTrue(jsonString.contains("Pferd"))
+        assertTrue(jsonString.contains("Heiltrank"))
+        assertTrue(jsonString.contains("Zelt"))
+        
+        val decoded = json.decodeFromString<CharacterExportDto>(jsonString)
+        assertEquals(2, decoded.locations.size)
+        assertEquals(2, decoded.items.size)
+        assertEquals("Rucksack", decoded.locations[0].name)
+        assertEquals("Pferd", decoded.locations[1].name)
+        assertEquals("Heiltrank", decoded.items[0].name)
+        assertEquals("Zelt", decoded.items[1].name)
+        assertEquals("Rucksack", decoded.items[0].locationName)
+        assertEquals("Pferd", decoded.items[1].locationName)
+    }
 }
+

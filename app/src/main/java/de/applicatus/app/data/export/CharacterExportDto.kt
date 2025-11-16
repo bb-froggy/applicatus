@@ -18,6 +18,8 @@ data class CharacterExportDto(
     val spellSlots: List<SpellSlotDto>,
     val potions: List<PotionDto> = emptyList(),
     val recipeKnowledge: List<RecipeKnowledgeDto> = emptyList(),
+    val locations: List<LocationDto> = emptyList(),
+    val items: List<ItemDto> = emptyList(),
     val exportTimestamp: Long
 )
 
@@ -42,12 +44,19 @@ data class CharacterDto(
     val applicatusModifier: Int = 0,
     val hasAlchemy: Boolean = false,
     val alchemySkill: Int = 0,
+    val alchemyIsMagicalMastery: Boolean = false,
     val hasCookingPotions: Boolean = false,
     val cookingPotionsSkill: Int = 0,
+    val cookingPotionsIsMagicalMastery: Boolean = false,
+    val selfControlSkill: Int = 0,
+    val sensoryAcuitySkill: Int = 0,
+    val magicalLoreSkill: Int = 0,
+    val herbalLoreSkill: Int = 0,
     val hasOdem: Boolean = false,
     val odemZfw: Int = 0,
     val hasAnalys: Boolean = false,
     val analysZfw: Int = 0,
+    val defaultLaboratory: String? = null,
     val currentLe: Int = 30,
     val maxLe: Int = 30,
     val leRegenBonus: Int = 0,
@@ -58,7 +67,8 @@ data class CharacterDto(
     val hasMasteryRegeneration: Boolean = false,
     val hasKe: Boolean = false,
     val currentKe: Int = 0,
-    val maxKe: Int = 0
+    val maxKe: Int = 0,
+    val groupId: Long? = null
 ) {
     companion object {
         fun fromCharacter(character: Character) = CharacterDto(
@@ -78,12 +88,19 @@ data class CharacterDto(
             applicatusModifier = character.applicatusModifier,
             hasAlchemy = character.hasAlchemy,
             alchemySkill = character.alchemySkill,
+            alchemyIsMagicalMastery = character.alchemyIsMagicalMastery,
             hasCookingPotions = character.hasCookingPotions,
             cookingPotionsSkill = character.cookingPotionsSkill,
+            cookingPotionsIsMagicalMastery = character.cookingPotionsIsMagicalMastery,
+            selfControlSkill = character.selfControlSkill,
+            sensoryAcuitySkill = character.sensoryAcuitySkill,
+            magicalLoreSkill = character.magicalLoreSkill,
+            herbalLoreSkill = character.herbalLoreSkill,
             hasOdem = character.hasOdem,
             odemZfw = character.odemZfw,
             hasAnalys = character.hasAnalys,
             analysZfw = character.analysZfw,
+            defaultLaboratory = character.defaultLaboratory?.name,
             currentLe = character.currentLe,
             maxLe = character.maxLe,
             leRegenBonus = character.leRegenBonus,
@@ -94,7 +111,8 @@ data class CharacterDto(
             hasMasteryRegeneration = character.hasMasteryRegeneration,
             hasKe = character.hasKe,
             currentKe = character.currentKe,
-            maxKe = character.maxKe
+            maxKe = character.maxKe,
+            groupId = character.groupId
         )
     }
     
@@ -115,12 +133,19 @@ data class CharacterDto(
         applicatusModifier = applicatusModifier,
         hasAlchemy = hasAlchemy,
         alchemySkill = alchemySkill,
+        alchemyIsMagicalMastery = alchemyIsMagicalMastery,
         hasCookingPotions = hasCookingPotions,
         cookingPotionsSkill = cookingPotionsSkill,
+        cookingPotionsIsMagicalMastery = cookingPotionsIsMagicalMastery,
+        selfControlSkill = selfControlSkill,
+        sensoryAcuitySkill = sensoryAcuitySkill,
+        magicalLoreSkill = magicalLoreSkill,
+        herbalLoreSkill = herbalLoreSkill,
         hasOdem = hasOdem,
         odemZfw = odemZfw,
         hasAnalys = hasAnalys,
         analysZfw = analysZfw,
+        defaultLaboratory = defaultLaboratory?.let { runCatching { de.applicatus.app.data.model.potion.Laboratory.valueOf(it) }.getOrNull() },
         currentLe = currentLe,
         maxLe = maxLe,
         leRegenBonus = leRegenBonus,
@@ -131,7 +156,8 @@ data class CharacterDto(
         hasMasteryRegeneration = hasMasteryRegeneration,
         hasKe = hasKe,
         currentKe = currentKe,
-        maxKe = maxKe
+        maxKe = maxKe,
+        groupId = groupId
     )
 }
 
@@ -283,4 +309,79 @@ data class RecipeKnowledgeDto(
             knowledgeLevel = level
         )
     }
+}
+
+/**
+ * DTO für Location-Daten (ohne Room-Annotationen).
+ */
+@Serializable
+data class LocationDto(
+    val name: String,
+    val isDefault: Boolean = false,
+    val isCarried: Boolean = false,
+    val sortOrder: Int = 0
+) {
+    companion object {
+        fun fromLocation(location: de.applicatus.app.data.model.inventory.Location) = LocationDto(
+            name = location.name,
+            isDefault = location.isDefault,
+            isCarried = location.isCarried,
+            sortOrder = location.sortOrder
+        )
+    }
+
+    fun toLocation(characterId: Long) = de.applicatus.app.data.model.inventory.Location(
+        id = 0, // Neue ID wird bei Insert generiert
+        characterId = characterId,
+        name = name,
+        isDefault = isDefault,
+        isCarried = isCarried,
+        sortOrder = sortOrder
+    )
+}
+
+/**
+ * DTO für Item-Daten (ohne Room-Annotationen).
+ */
+@Serializable
+data class ItemDto(
+    val locationName: String?, // Referenz zum Location-Namen (null = kein Ort)
+    val name: String,
+    val weightStone: Int = 0,
+    val weightOunces: Int = 0,
+    val sortOrder: Int = 0,
+    val isPurse: Boolean = false,
+    val kreuzerAmount: Int = 0,
+    val isCountable: Boolean = false,
+    val quantity: Int = 1
+) {
+    companion object {
+        fun fromItem(item: de.applicatus.app.data.model.inventory.Item, locationName: String?) = ItemDto(
+            locationName = locationName,
+            name = item.name,
+            weightStone = item.weight.stone,
+            weightOunces = item.weight.ounces,
+            sortOrder = item.sortOrder,
+            isPurse = item.isPurse,
+            kreuzerAmount = item.kreuzerAmount,
+            isCountable = item.isCountable,
+            quantity = item.quantity
+        )
+    }
+
+    fun toItem(characterId: Long, resolvedLocationId: Long?) = de.applicatus.app.data.model.inventory.Item(
+        id = 0, // Neue ID wird bei Insert generiert
+        characterId = characterId,
+        locationId = resolvedLocationId,
+        name = name,
+        weight = de.applicatus.app.data.model.inventory.Weight(
+            stone = weightStone,
+            ounces = weightOunces
+        ),
+        sortOrder = sortOrder,
+        isPurse = isPurse,
+        kreuzerAmount = kreuzerAmount,
+        isCountable = isCountable,
+        quantity = quantity
+    )
 }
