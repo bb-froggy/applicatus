@@ -93,9 +93,9 @@ fun SpellStorageScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Applicatus info if available
+            // Applicatus info if available (immer anzeigen)
             character?.let { char ->
-                if (char.hasApplicatus && isEditMode) {
+                if (char.hasApplicatus) {
                     ApplicatusInfoCard(
                         character = char,
                         onDurationChange = { duration ->

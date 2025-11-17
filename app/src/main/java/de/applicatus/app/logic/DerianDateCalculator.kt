@@ -459,7 +459,13 @@ object DerianDateCalculator {
         // "unbegrenzt" läuft nie ab
         if (expiryDate == UNLIMITED_DATE) return false
         
-        return isExpired(expiryDate, currentDate)
+        val expiryDays = parseDateToDays(expiryDate)
+        val currentDays = parseDateToDays(currentDate)
+        return if (expiryDays != null && currentDays != null) {
+            currentDays >= expiryDays
+        } else {
+            false
+        }
     }
     
     /**
