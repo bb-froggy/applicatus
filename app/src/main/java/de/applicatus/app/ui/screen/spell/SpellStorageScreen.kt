@@ -40,7 +40,7 @@ fun SpellStorageScreen(
         AlertDialog(
             onDismissRequest = { viewModel.clearSpellCastMessage() },
             title = { Text("Zauber ausgelöst") },
-            text = { Text(message) },
+            text = { Text(message, style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearSpellCastMessage() }) {
                     Text("OK")
@@ -100,6 +100,9 @@ fun SpellStorageScreen(
                         character = char,
                         onDurationChange = { duration ->
                             viewModel.updateCharacter(char.copy(applicatusDuration = duration))
+                        },
+                        onModifierChange = { modifier ->
+                            viewModel.updateCharacter(char.copy(applicatusModifier = modifier))
                         }
                     )
                     Spacer(modifier = Modifier.height(16.dp))

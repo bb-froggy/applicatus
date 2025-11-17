@@ -2,7 +2,9 @@ package de.applicatus.app.ui.component.character
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -72,35 +74,55 @@ private fun PropertyItem(name: String, value: Int) {
 @Composable
 fun ApplicatusInfoCard(
     character: Character,
-    onDurationChange: (de.applicatus.app.data.model.spell.ApplicatusDuration) -> Unit
+    onDurationChange: (de.applicatus.app.data.model.spell.ApplicatusDuration) -> Unit,
+    onModifierChange: (Int) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Applicatus",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Column {
+                    Text(
+                        text = "Applicatus",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        "ZfW: ${character.applicatusZfw}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text("Probe: KL/FF/FF", style = MaterialTheme.typography.bodySmall)
+                }
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Mod:", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = "${if (character.applicatusModifier >= 0) "+" else ""}${character.applicatusModifier}",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            OutlinedButton(onClick = { onModifierChange(character.applicatusModifier - 1) }) {
+                                Icon(Icons.Filled.Remove, contentDescription = "Modifikator verringern")
+                            }
+                            OutlinedButton(onClick = { onModifierChange(character.applicatusModifier + 1) }) {
+                                Icon(Icons.Filled.Add, contentDescription = "Modifikator erhöhen")
+                            }
+                        }
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("ZfW: ${character.applicatusZfw}", style = MaterialTheme.typography.bodyMedium)
-            Text("Probe: KL/FF/FF", style = MaterialTheme.typography.bodySmall)
-            
+
             Spacer(modifier = Modifier.height(12.dp))
             Divider()
             Spacer(modifier = Modifier.height(12.dp))
-            
-            Text("Wirkungsdauer:", style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(8.dp))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),

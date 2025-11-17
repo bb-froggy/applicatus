@@ -17,6 +17,7 @@ import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.SpellChecker
+import de.applicatus.app.logic.SpellCheckResult
 import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -237,6 +238,14 @@ class CharacterDetailViewModel(
                 // Wenn Applicatus patzt, wird der Slot belegt aber der Zauber wird nicht gewürfelt
                 // Wenn der Zauber patzt (und Applicatus erfolgreich war), wird der Slot auch belegt
                 val isPatzer = applicatusPatzer || (result.applicatusResult?.success == true && spellPatzer)
+                val summaryText = buildSpellCastSummary(
+                    spell = spell,
+                    slot = slot,
+                    spellResult = result.spellResult,
+                    applicatusResult = result.applicatusResult,
+                    isPatzer = isPatzer,
+                    overallSuccess = result.overallSuccess
+                )
                 
                 // Berechne Ablaufdatum bei Erfolg
                 val expiryDate = if (result.overallSuccess) {
@@ -264,6 +273,7 @@ class CharacterDetailViewModel(
                         expiryDate = expiryDate
                     )
                 )
+                spellCastMessage = summaryText
             } else {
                 // Normale Zauberprobe (Zauberspeicher)
                 val result = SpellChecker.performSpellCheck(
@@ -276,6 +286,14 @@ class CharacterDetailViewModel(
                 
                 // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
                 val isPatzer = result.isDoubleTwenty || result.isTripleTwenty
+                val summaryText = buildSpellCastSummary(
+                    spell = spell,
+                    slot = slot,
+                    spellResult = result,
+                    applicatusResult = null,
+                    isPatzer = isPatzer,
+                    overallSuccess = result.success
+                )
                 
                 // Berechne Ablaufdatum bei Erfolg (für SPELL_STORAGE immer nächster Praios 1st)
                 val expiryDate = if (result.success) {
@@ -302,6 +320,7 @@ class CharacterDetailViewModel(
                         expiryDate = expiryDate
                     )
                 )
+                spellCastMessage = summaryText
             }
         }
     }
@@ -341,16 +360,49 @@ class CharacterDetailViewModel(
         }
     }
     
-    private fun formatRollResult(result: de.applicatus.app.logic.SpellCheckResult): String {
+    private fun formatRollResult(result: SpellCheckResult): String {
         val rollsStr = result.rolls.joinToString(", ")
+        val rollSuffix = if (rollsStr.isBlank()) "" else " [$rollsStr]"
         return when {
-            result.isTripleOne -> "Dreifach-1! [$rollsStr] ZfP*: ${result.zfpStar}"
-            result.isDoubleOne -> "Doppel-1! [$rollsStr] ZfP*: ${result.zfpStar}"
-            result.isTripleTwenty -> "Dreifach-20! [$rollsStr] Katastrophe!"
-            result.isDoubleTwenty -> "Doppel-20! [$rollsStr] Patzer!"
-            result.success -> "Erfolg! [$rollsStr] ZfP*: ${result.zfpStar}"
-            else -> "Fehlgeschlagen! [$rollsStr]"
+            result.isTripleOne -> "Dreifach-1!$rollSuffix ZfP*: ${result.zfpStar}"
+            result.isDoubleOne -> "Doppel-1!$rollSuffix ZfP*: ${result.zfpStar}"
+            result.isTripleTwenty -> "Dreifach-20!$rollSuffix Katastrophe!"
+            result.isDoubleTwenty -> "Doppel-20!$rollSuffix Patzer!"
+            result.success -> "Erfolg!$rollSuffix ZfP*: ${result.zfpStar}"
+            else -> "Fehlgeschlagen!$rollSuffix"
         }
+    }
+
+    private fun buildSpellCastSummary(
+        spell: Spell,
+        slot: SpellSlot,
+        spellResult: SpellCheckResult,
+        applicatusResult: SpellCheckResult?,
+        isPatzer: Boolean,
+        overallSuccess: Boolean
+    ): String {
+        val slotLabel = if (slot.slotType == SlotType.APPLICATUS) {
+            "Applicatus"
+        } else {
+            "Zauberspeicher (${slot.volumePoints} VP)"
+        }
+        val modifierText = if (slot.modifier >= 0) "+${slot.modifier}" else slot.modifier.toString()
+        val statusLine = when {
+            isPatzer -> "⚠️ Patzer beim Wirken von ${spell.name}!"
+            overallSuccess -> "✓ ${spell.name} erfolgreich eingespeichert."
+            else -> "✗ ${spell.name} fehlgeschlagen."
+        }
+        return buildString {
+            appendLine(statusLine)
+            appendLine("Slot: $slotLabel")
+            appendLine(
+                "Probe: ${spell.attribute1}/${spell.attribute2}/${spell.attribute3} | ZfW ${slot.zfw} | Mod $modifierText"
+            )
+            applicatusResult?.let {
+                appendLine("Applicatusprobe: ${formatRollResult(it)}")
+            }
+            appendLine("Zauberprobe: ${formatRollResult(spellResult)}")
+        }.trim()
     }
     
     // Export/Import Funktionen
