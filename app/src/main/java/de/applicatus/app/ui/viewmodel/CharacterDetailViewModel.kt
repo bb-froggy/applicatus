@@ -19,6 +19,7 @@ import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.SpellChecker
 import de.applicatus.app.logic.SpellCheckResult
 import de.applicatus.app.logic.DerianDateCalculator
+import de.applicatus.app.logic.ProbeChecker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -187,6 +188,12 @@ class CharacterDetailViewModel(
         }
     }
     
+    fun updateSlotDurationFormula(slot: SpellSlot, formula: String) {
+        viewModelScope.launch {
+            repository.updateSlot(slot.copy(longDurationFormula = formula.trim()))
+        }
+    }
+    
     fun updateAllModifiers(delta: Int) {
         viewModelScope.launch {
             spellSlots.value.forEach { slotWithSpell ->
@@ -249,8 +256,7 @@ class CharacterDetailViewModel(
                 
                 // Berechne Ablaufdatum bei Erfolg
                 val expiryDate = if (result.overallSuccess) {
-                    val group = char.groupId?.let { repository.getGroupByIdOnce(it) }
-                    val groupDate = group?.currentDerianDate ?: "1 Praios 1040 BF"
+                    val groupDate = resolveGroupDate(char)
                     DerianDateCalculator.calculateSpellExpiry(
                         currentDate = groupDate,
                         slotType = SlotType.APPLICATUS,
@@ -275,7 +281,7 @@ class CharacterDetailViewModel(
                 )
                 spellCastMessage = summaryText
             } else {
-                // Normale Zauberprobe (Zauberspeicher)
+                // Normale Zauberprobe (Zauberspeicher oder langwirkend)
                 val result = SpellChecker.performSpellCheck(
                     zfw = slot.zfw,
                     modifier = slot.modifier,
@@ -295,14 +301,17 @@ class CharacterDetailViewModel(
                     overallSuccess = result.success
                 )
                 
-                // Berechne Ablaufdatum bei Erfolg (für SPELL_STORAGE immer nächster Praios 1st)
+                // Berechne Ablaufdatum bei Erfolg
                 val expiryDate = if (result.success) {
-                    val group = char.groupId?.let { repository.getGroupByIdOnce(it) }
-                    val groupDate = group?.currentDerianDate ?: "1 Praios 1040 BF"
-                    DerianDateCalculator.calculateSpellExpiry(
-                        currentDate = groupDate,
-                        slotType = SlotType.SPELL_STORAGE
-                    )
+                    val groupDate = resolveGroupDate(char)
+                    when (slot.slotType) {
+                        SlotType.SPELL_STORAGE -> DerianDateCalculator.calculateSpellExpiry(
+                            currentDate = groupDate,
+                            slotType = SlotType.SPELL_STORAGE
+                        )
+                        SlotType.LONG_DURATION -> calculateLongDurationExpiry(slot, result.zfpStar, groupDate)
+                        else -> null
+                    }
                 } else {
                     null
                 }
@@ -381,10 +390,10 @@ class CharacterDetailViewModel(
         isPatzer: Boolean,
         overallSuccess: Boolean
     ): String {
-        val slotLabel = if (slot.slotType == SlotType.APPLICATUS) {
-            "Applicatus"
-        } else {
-            "Zauberspeicher (${slot.volumePoints} VP)"
+        val slotLabel = when (slot.slotType) {
+            SlotType.APPLICATUS -> "Applicatus"
+            SlotType.SPELL_STORAGE -> "Zauberspeicher (${slot.volumePoints} VP)"
+            SlotType.LONG_DURATION -> "Langwirkender Zauber"
         }
         val modifierText = if (slot.modifier >= 0) "+${slot.modifier}" else slot.modifier.toString()
         val statusLine = when {
@@ -416,6 +425,17 @@ class CharacterDetailViewModel(
                 ExportState.Error("Export fehlgeschlagen: ${result.exceptionOrNull()?.message}")
             }
         }
+    }
+    
+    private suspend fun resolveGroupDate(character: Character): String {
+        val group = character.groupId?.let { repository.getGroupByIdOnce(it) }
+        return group?.currentDerianDate ?: "1 Praios 1040 BF"
+    }
+    
+    private fun calculateLongDurationExpiry(slot: SpellSlot, zfpStar: Int, groupDate: String): String? {
+        val formula = slot.longDurationFormula.takeIf { it.isNotBlank() } ?: return null
+        val evaluation = ProbeChecker.evaluateDurationSpecification(formula, zfpStar) ?: return null
+        return DerianDateCalculator.calculateExpiryDate(groupDate, evaluation.toShelfLifeString())
     }
     
     /**

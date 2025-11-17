@@ -271,6 +271,175 @@ object ProbeChecker {
         return total + modifier
     }
     
+    data class DurationEvaluation(val amount: Int, val unit: String) {
+        fun toShelfLifeString(): String = "$amount $unit"
+    }
+    
+    private val supportedDurationUnits = setOf(
+        "tag", "tage",
+        "woche", "wochen",
+        "mond", "monde",
+        "monat", "monate",
+        "jahr", "jahre"
+    )
+    
+    /**
+     * Parst eine Wirkdauerbeschreibung (z.B. "3*ZfP*+2 Tage") und liefert die tatsächliche Dauer.
+     * Unterstützt Addition, Subtraktion und Multiplikation sowie Terme aus Zahlen, ZfP* und Würfelwürfen.
+     */
+    fun evaluateDurationSpecification(
+        specification: String,
+        zfpStar: Int,
+        diceRoll: (diceSize: Int) -> Int = { diceSize -> Random.nextInt(1, diceSize + 1) }
+    ): DurationEvaluation? {
+        val trimmed = specification.trim()
+        if (trimmed.isBlank()) return null
+        val parts = trimmed.split(Regex("\\s+"))
+        if (parts.size < 2) return null
+        val unitRaw = parts.last()
+        val unitNormalized = unitRaw.lowercase()
+        if (unitNormalized !in supportedDurationUnits) return null
+        val expression = trimmed.dropLast(unitRaw.length).trim()
+        if (expression.isBlank()) return null
+        val amount = DurationExpressionParser(expression, zfpStar, diceRoll).parse() ?: return null
+        if (amount <= 0) return null
+        return DurationEvaluation(amount, unitRaw)
+    }
+
+    private class DurationExpressionParser(
+        private val input: String,
+        private val zfpStar: Int,
+        private val diceRoll: (Int) -> Int
+    ) {
+        private var index = 0
+
+        fun parse(): Int? {
+            val value = parseSum() ?: return null
+            skipWhitespace()
+            return if (index == input.length) value else null
+        }
+
+        private fun parseSum(): Int? {
+            var value = parseProduct() ?: return null
+            while (true) {
+                skipWhitespace()
+                when (peek()) {
+                    '+' -> {
+                        index++
+                        val rhs = parseProduct() ?: return null
+                        value += rhs
+                    }
+                    '-' -> {
+                        index++
+                        val rhs = parseProduct() ?: return null
+                        value -= rhs
+                    }
+                    else -> return value
+                }
+            }
+        }
+
+        private fun parseProduct(): Int? {
+            var value = parseFactor() ?: return null
+            while (true) {
+                skipWhitespace()
+                if (peek() == '*') {
+                    index++
+                    val rhs = parseFactor() ?: return null
+                    value *= rhs
+                } else {
+                    return value
+                }
+            }
+        }
+
+        private fun parseFactor(): Int? {
+            skipWhitespace()
+            if (match('+')) {
+                return parseFactor()
+            }
+            if (match('-')) {
+                val value = parseFactor() ?: return null
+                return -value
+            }
+            if (matchKeyword("ZFP*")) {
+                return zfpStar
+            }
+
+            val numberStr = readDigits()
+            if (!numberStr.isNullOrEmpty()) {
+                if (isDiceStart()) {
+                    val count = numberStr.toIntOrNull() ?: return null
+                    return rollDiceTerm(count)
+                }
+                return numberStr.toIntOrNull()
+            }
+
+            if (isDiceStart()) {
+                return rollDiceTerm(1)
+            }
+
+            return null
+        }
+
+        private fun rollDiceTerm(count: Int): Int? {
+            if (count <= 0) return null
+            if (!consumeDiceMarker()) return null
+            val sidesStr = readDigits() ?: return null
+            val sides = sidesStr.toIntOrNull()?.takeIf { it > 0 } ?: return null
+            return rollDice("${count}W$sides", diceRoll)
+        }
+
+        private fun skipWhitespace() {
+            while (index < input.length && input[index].isWhitespace()) {
+                index++
+            }
+        }
+
+        private fun readDigits(): String? {
+            val start = index
+            while (index < input.length && input[index].isDigit()) {
+                index++
+            }
+            return if (index > start) input.substring(start, index) else null
+        }
+
+        private fun isDiceStart(): Boolean {
+            val c = peek()
+            return c.equals('w', ignoreCase = true)
+        }
+
+        private fun consumeDiceMarker(): Boolean {
+            return if (isDiceStart()) {
+                index++
+                true
+            } else {
+                false
+            }
+        }
+
+        private fun match(expected: Char): Boolean {
+            if (peek() == expected) {
+                index++
+                return true
+            }
+            return false
+        }
+
+        private fun matchKeyword(keyword: String): Boolean {
+            if (index + keyword.length > input.length) return false
+            if (input.regionMatches(index, keyword, 0, keyword.length, ignoreCase = true)) {
+                index += keyword.length
+                return true
+            }
+            return false
+        }
+
+        private fun peek(): Char {
+            return if (index < input.length) input[index] else '\u0000'
+        }
+    }
+    
     /**
      * Zählt Einsen in einer Würfelliste
      */

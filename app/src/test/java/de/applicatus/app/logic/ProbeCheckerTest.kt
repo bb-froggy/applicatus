@@ -92,4 +92,52 @@ class ProbeCheckerTest {
         assertNotNull(result)
         assertTrue(result!! in 2..12)
     }
+
+    // ==================== Duration Specification Tests ====================
+
+    @Test
+    fun testEvaluateDurationSpecification_fixedNumber() {
+        val result = ProbeChecker.evaluateDurationSpecification("2 Monate", 5)
+        assertNotNull(result)
+        assertEquals(2, result!!.amount)
+        assertEquals("Monate", result.unit)
+    }
+
+    @Test
+    fun testEvaluateDurationSpecification_usesZfpStar() {
+        val result = ProbeChecker.evaluateDurationSpecification("ZfP* Wochen", 4)
+        assertNotNull(result)
+        assertEquals(4, result!!.amount)
+        assertEquals("Wochen", result.unit)
+    }
+
+    @Test
+    fun testEvaluateDurationSpecification_withMultiplicationAndAddition() {
+        val result = ProbeChecker.evaluateDurationSpecification("3*ZfP*+2 Tage", 3)
+        assertNotNull(result)
+        assertEquals(11, result!!.amount)
+        assertEquals("Tage", result.unit)
+    }
+
+    @Test
+    fun testEvaluateDurationSpecification_withDiceExpression() {
+        val fixedRoll: (Int) -> Int = { 4 }
+        val result = ProbeChecker.evaluateDurationSpecification("2W6+3 Tage", 1, fixedRoll)
+        assertNotNull(result)
+        // 2 Würfe à 4 + 3 = 11
+        assertEquals(11, result!!.amount)
+        assertEquals("Tage", result.unit)
+    }
+
+    @Test
+    fun testEvaluateDurationSpecification_invalidUnitReturnsNull() {
+        val result = ProbeChecker.evaluateDurationSpecification("2 Zyklen", 3)
+        assertNull(result)
+    }
+
+    @Test
+    fun testEvaluateDurationSpecification_negativeResultReturnsNull() {
+        val result = ProbeChecker.evaluateDurationSpecification("-1 Tage", 3)
+        assertNull(result)
+    }
 }

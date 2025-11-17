@@ -2,5 +2,6 @@ package de.applicatus.app.data.model.spell
 
 enum class SlotType {
     SPELL_STORAGE,  // Zauberspeicher
-    APPLICATUS      // Applicatus-Slot
+    APPLICATUS,     // Applicatus-Slot
+    LONG_DURATION   // Langwirkender Zauber mit eigener Wirkdauer
 }

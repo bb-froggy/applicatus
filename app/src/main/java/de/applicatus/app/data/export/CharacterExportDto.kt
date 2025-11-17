@@ -180,7 +180,10 @@ data class SpellSlotDto(
     val isFilled: Boolean = false,
     val zfpStar: Int? = null,
     val lastRollResult: String? = null,
-    val applicatusRollResult: String? = null
+    val applicatusRollResult: String? = null,
+    val isBotched: Boolean = false,
+    val expiryDate: String? = null,
+    val longDurationFormula: String = ""
 ) {
     companion object {
         fun fromSpellSlot(slot: SpellSlot, spellName: String?) = SpellSlotDto(
@@ -195,7 +198,10 @@ data class SpellSlotDto(
             isFilled = slot.isFilled,
             zfpStar = slot.zfpStar,
             lastRollResult = slot.lastRollResult,
-            applicatusRollResult = slot.applicatusRollResult
+            applicatusRollResult = slot.applicatusRollResult,
+            isBotched = slot.isBotched,
+            expiryDate = slot.expiryDate,
+            longDurationFormula = slot.longDurationFormula
         )
     }
     
@@ -212,7 +218,10 @@ data class SpellSlotDto(
         isFilled = isFilled,
         zfpStar = zfpStar,
         lastRollResult = lastRollResult,
-        applicatusRollResult = applicatusRollResult
+        applicatusRollResult = applicatusRollResult,
+        isBotched = isBotched,
+        expiryDate = expiryDate,
+        longDurationFormula = longDurationFormula
     )
 }
 

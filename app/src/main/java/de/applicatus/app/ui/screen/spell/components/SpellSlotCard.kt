@@ -80,6 +80,13 @@ fun SpellSlotCardUsageMode(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
+                        } else if (slot.slotType == SlotType.LONG_DURATION) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "(langwirkend)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
                         }
                     }
                     
@@ -91,6 +98,13 @@ fun SpellSlotCardUsageMode(
                         if (slot.variant.isNotBlank()) {
                             Text(
                                 text = slot.variant,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        if (slot.slotType == SlotType.LONG_DURATION && slot.longDurationFormula.isNotBlank()) {
+                            Text(
+                                text = "Wirkdauer: ${slot.longDurationFormula}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -229,6 +243,7 @@ fun SpellSlotCardEditMode(
     onZfwChanged: (Int) -> Unit,
     onModifierChanged: (Int) -> Unit,
     onVariantChanged: (String) -> Unit,
+    onDurationFormulaChanged: (String) -> Unit,
     onDeleteSlot: () -> Unit
 ) {
     val slot = slotWithSpell.slot
@@ -237,6 +252,7 @@ fun SpellSlotCardEditMode(
     var zfwText by remember(slot.zfw) { mutableStateOf(slot.zfw.toString()) }
     var modifierText by remember(slot.modifier) { mutableStateOf(slot.modifier.toString()) }
     var variantText by remember(slot.variant) { mutableStateOf(slot.variant) }
+    var durationFormulaText by remember(slot.longDurationFormula) { mutableStateOf(slot.longDurationFormula) }
     
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -257,13 +273,13 @@ fun SpellSlotCardEditMode(
                     Spacer(modifier = Modifier.width(8.dp))
                     Chip(
                         onClick = {},
-                        label = { 
-                            Text(
-                                if (slot.slotType == SlotType.APPLICATUS) 
-                                    "Applicatus" 
-                                else 
-                                    "Speicher (${slot.volumePoints}VP)"
-                            ) 
+                        label = {
+                            val slotLabel = when (slot.slotType) {
+                                SlotType.APPLICATUS -> "Applicatus"
+                                SlotType.SPELL_STORAGE -> "Zauberspeicher (${slot.volumePoints}VP)"
+                                SlotType.LONG_DURATION -> "Langwirkend"
+                            }
+                            Text(slotLabel)
                         }
                     )
                 }
@@ -349,6 +365,27 @@ fun SpellSlotCardEditMode(
             }
             
             Spacer(modifier = Modifier.height(8.dp))
+            
+            if (slot.slotType == SlotType.LONG_DURATION) {
+                OutlinedTextField(
+                    value = durationFormulaText,
+                    onValueChange = {
+                        durationFormulaText = it
+                        onDurationFormulaChanged(it)
+                    },
+                    label = { Text("Wirkdauer-Formel") },
+                    placeholder = { Text("z. B. ZfP* Wochen") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Formel + Einheit, z. B. 3*ZfP*+2 Tage oder 2W6+3 Monde.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             
             OutlinedTextField(
                 value = variantText,

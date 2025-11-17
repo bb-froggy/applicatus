@@ -181,6 +181,9 @@ fun SpellStorageScreen(
                             onVariantChanged = { variant ->
                                 viewModel.updateSlotVariant(slotWithSpell.slot, variant)
                             },
+                            onDurationFormulaChanged = { formula ->
+                                viewModel.updateSlotDurationFormula(slotWithSpell.slot, formula)
+                            },
                             onDeleteSlot = {
                                 viewModel.removeSlot(slotWithSpell.slot)
                             }

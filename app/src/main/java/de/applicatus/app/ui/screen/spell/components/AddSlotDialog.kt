@@ -44,6 +44,12 @@ fun AddSlotDialog(
                         enabled = canAddApplicatus,
                         modifier = Modifier.weight(1f)
                     )
+                    FilterChip(
+                        selected = selectedType == SlotType.LONG_DURATION,
+                        onClick = { selectedType = SlotType.LONG_DURATION },
+                        label = { Text("Langwirkend") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 
                 if (selectedType == SlotType.SPELL_STORAGE) {

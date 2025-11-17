@@ -43,5 +43,6 @@ data class SpellSlot(
     val lastRollResult: String? = null, // Letztes Würfelergebnis (für Anzeige)
     val applicatusRollResult: String? = null, // Applicatus-Würfelergebnis (falls relevant)
     val isBotched: Boolean = false, // Ist der Zauber verpatzt? (nur für Spieler-Ansicht relevant)
-    val expiryDate: String? = null  // Ablaufdatum im derischen Format (z.B. "1 Praios 1040 BF")
+    val expiryDate: String? = null,  // Ablaufdatum im derischen Format (z.B. "1 Praios 1040 BF")
+    val longDurationFormula: String = "" // Formel für langwirkende Zauber (z.B. "ZfP* Wochen")
 )
