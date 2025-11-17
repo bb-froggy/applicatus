@@ -200,7 +200,7 @@ fun SpellStorageScreen(
                                 }
                             },
                             onClearSlot = {
-                                viewModel.clearSlot(slotWithSpell.slot)
+                                viewModel.clearSlot(slotWithSpell.slot, slotWithSpell.spell)
                             },
                             onAnimationEnd = {
                                 viewModel.hideSpellAnimation()

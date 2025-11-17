@@ -25,33 +25,38 @@ fun AddSlotDialog(
             Column {
                 Text("Slot-Typ auswählen:")
                 Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = selectedType == SlotType.SPELL_STORAGE,
-                        onClick = { selectedType = SlotType.SPELL_STORAGE },
-                        label = { Text("Zauberspeicher") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    FilterChip(
-                        selected = selectedType == SlotType.APPLICATUS,
-                        onClick = { selectedType = SlotType.APPLICATUS },
-                        label = { Text("Applicatus") },
-                        enabled = canAddApplicatus,
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = selectedType == SlotType.LONG_DURATION,
-                        onClick = { selectedType = SlotType.LONG_DURATION },
-                        label = { Text("Langwirkend") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                
+
+                FilterChip(
+                    selected = selectedType == SlotType.SPELL_STORAGE,
+                    onClick = { selectedType = SlotType.SPELL_STORAGE },
+                    label = { Text("Zauberspeicher") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 32.dp)
+                        .padding(vertical = 0.dp)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                FilterChip(
+                    selected = selectedType == SlotType.APPLICATUS,
+                    onClick = { selectedType = SlotType.APPLICATUS },
+                    label = { Text("Applicatus") },
+                    enabled = canAddApplicatus,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 32.dp)
+                        .padding(vertical = 0.dp)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                FilterChip(
+                    selected = selectedType == SlotType.LONG_DURATION,
+                    onClick = { selectedType = SlotType.LONG_DURATION },
+                    label = { Text("Langwirkend") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 32.dp)
+                        .padding(vertical = 0.dp)
+                )
+
                 if (selectedType == SlotType.SPELL_STORAGE) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Volumenpunkte (1-100):")

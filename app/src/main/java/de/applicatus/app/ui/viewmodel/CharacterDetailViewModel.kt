@@ -334,14 +334,9 @@ class CharacterDetailViewModel(
         }
     }
     
-    fun clearSlot(slot: SpellSlot) {
+    fun clearSlot(slot: SpellSlot, spell: Spell?) {
         viewModelScope.launch {
-            // Prüfe, ob der Slot einen verpatzten Zauber enthält
-            if (slot.isBotched) {
-                spellCastMessage = "⚠️ PATZER! Der Zauber ist fehlgeschlagen und verpufft wirkungslos!"
-            } else if (slot.isFilled) {
-                spellCastMessage = "✓ Zauber erfolgreich ausgelöst!"
-            }
+            spellCastMessage = buildSlotReleaseSummary(slot, spell)
             
             repository.updateSlot(
                 slot.copy(
@@ -411,6 +406,29 @@ class CharacterDetailViewModel(
                 appendLine("Applicatusprobe: ${formatRollResult(it)}")
             }
             appendLine("Zauberprobe: ${formatRollResult(spellResult)}")
+        }.trim()
+    }
+
+    private fun buildSlotReleaseSummary(slot: SpellSlot, spell: Spell?): String {
+        val spellName = spell?.name ?: "Zauber"
+        val statusLine = when {
+            slot.isBotched -> "⚠️ Patzer! $spellName verpufft wirkungslos."
+            slot.isFilled -> "✓ $spellName erfolgreich ausgelöst."
+            else -> "$spellName wurde geleert."
+        }
+        return buildString {
+            appendLine(statusLine)
+            slot.applicatusRollResult?.let {
+                appendLine("Applicatusprobe: $it")
+            }
+            slot.lastRollResult?.let {
+                appendLine("Zauberprobe: $it")
+            }
+            if (!slot.isBotched) {
+                slot.zfpStar?.let {
+                    appendLine("Gespeicherte ZfP*: $it")
+                }
+            }
         }.trim()
     }
     
