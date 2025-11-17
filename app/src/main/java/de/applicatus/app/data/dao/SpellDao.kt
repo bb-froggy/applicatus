@@ -9,6 +9,9 @@ interface SpellDao {
     @Query("SELECT * FROM spells ORDER BY name ASC")
     fun getAllSpells(): Flow<List<Spell>>
     
+    @Query("SELECT * FROM spells ORDER BY name ASC")
+    suspend fun getAllSpellsOnce(): List<Spell>
+    
     @Query("SELECT * FROM spells WHERE id = :id")
     suspend fun getSpellById(id: Long): Spell?
     

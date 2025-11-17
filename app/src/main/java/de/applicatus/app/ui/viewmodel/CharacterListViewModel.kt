@@ -50,6 +50,14 @@ class CharacterListViewModel(
     var selectedGroupId by mutableStateOf<Long?>(null)
         private set
     
+    // Expiry warning state
+    var expiryWarningMessage by mutableStateOf<String?>(null)
+        private set
+    
+    fun dismissExpiryWarning() {
+        expiryWarningMessage = null
+    }
+    
     sealed class SpellSyncState {
         object Idle : SpellSyncState()
         object Syncing : SpellSyncState()
@@ -393,18 +401,15 @@ class CharacterListViewModel(
         isDateEditMode = !isDateEditMode
     }
     
-    fun updateDerianDate(newDate: String) {
-        viewModelScope.launch {
-            val groupId = selectedGroupId ?: return@launch
-            repository.updateGroupDerianDate(groupId, newDate)
-        }
-    }
-    
     fun incrementDerianDate() {
         viewModelScope.launch {
             val group = currentGroup.value ?: return@launch
             val currentDate = group.currentDerianDate
             val newDate = DerianDateCalculator.calculateExpiryDate(currentDate, "1 Tag")
+            
+            // Prüfe auf ablaufende Zauber
+            checkExpiringSpells(group.id, newDate)
+            
             repository.updateGroupDerianDate(group.id, newDate)
         }
     }
@@ -460,6 +465,60 @@ class CharacterListViewModel(
             val newMonthName = months[monthIndex]
             val newDate = "$day $newMonthName $currentYear $era"
             repository.updateGroupDerianDate(group.id, newDate)
+        }
+    }
+    
+    fun updateDerianDate(newDate: String) {
+        viewModelScope.launch {
+            val group = currentGroup.value ?: return@launch
+            
+            // Prüfe auf ablaufende Zauber
+            checkExpiringSpells(group.id, newDate)
+            
+            repository.updateGroupDerianDate(group.id, newDate)
+            isDateEditMode = false
+        }
+    }
+    
+    /**
+     * Prüft, ob beim Aktualisieren des Datums Zauber ablaufen
+     */
+    private suspend fun checkExpiringSpells(groupId: Long, newDate: String) {
+        // Hole alle Charaktere der Gruppe
+        val characters = repository.getCharactersByGroupOnce(groupId)
+        
+        val expiredSpells = mutableListOf<Pair<String, String>>() // (Character name, Spell name)
+        
+        for (character in characters) {
+            // Hole alle gefüllten Slots des Charakters
+            val slots = repository.getSlotsWithSpellsByCharacterOnce(character.id)
+            
+            for (slotWithSpell in slots) {
+                val slot = slotWithSpell.slot
+                val spell = slotWithSpell.spell
+                
+                // Prüfe, ob Slot gefüllt ist und ein Ablaufdatum hat
+                if (slot.isFilled && slot.expiryDate != null && spell != null) {
+                    if (DerianDateCalculator.isSpellExpired(slot.expiryDate, newDate)) {
+                        expiredSpells.add(character.name to spell.name)
+                    }
+                }
+            }
+        }
+        
+        // Zeige Warnung, wenn Zauber ablaufen
+        if (expiredSpells.isNotEmpty()) {
+            val message = buildString {
+                appendLine("⚠️ Folgende Zauber laufen am $newDate ab:")
+                appendLine()
+                expiredSpells.groupBy { it.first }.forEach { (charName, spells) ->
+                    appendLine("$charName:")
+                    spells.forEach { (_, spellName) ->
+                        appendLine("  • $spellName")
+                    }
+                }
+            }
+            expiryWarningMessage = message
         }
     }
 }

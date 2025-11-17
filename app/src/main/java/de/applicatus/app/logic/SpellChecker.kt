@@ -78,14 +78,16 @@ object SpellChecker {
         spellAttribute3: Int,
         applicatusZfw: Int,
         applicatusModifier: Int,
+        applicatusDurationModifier: Int = 0, // Schwierigkeitsmodifikator durch Wirkungsdauer
         characterKl: Int,
         characterFf: Int,
         diceRoll: () -> Int = { Random.nextInt(1, 21) }
     ): ApplicatusCheckResult {
-        // Erst Applicatus-Probe
+        // Erst Applicatus-Probe (mit Wirkungsdauer-Modifikator)
+        val totalApplicatusModifier = applicatusModifier + applicatusDurationModifier
         val applicatusResult = performSpellCheck(
             zfw = applicatusZfw,
-            modifier = applicatusModifier,
+            modifier = totalApplicatusModifier,
             attribute1 = characterKl,
             attribute2 = characterFf,
             attribute3 = characterFf,

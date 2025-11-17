@@ -9,6 +9,9 @@ interface SpellSlotDao {
     @Query("SELECT * FROM spell_slots WHERE characterId = :characterId ORDER BY slotNumber ASC")
     fun getSlotsByCharacter(characterId: Long): Flow<List<SpellSlot>>
     
+    @Query("SELECT * FROM spell_slots WHERE characterId = :characterId ORDER BY slotNumber ASC")
+    suspend fun getSlotsByCharacterOnce(characterId: Long): List<SpellSlot>
+    
     @Query("SELECT * FROM spell_slots WHERE id = :id")
     suspend fun getSlotById(id: Long): SpellSlot?
     

@@ -42,5 +42,6 @@ data class SpellSlot(
     val zfpStar: Int? = null,     // ZfP* (nur wenn gefüllt)
     val lastRollResult: String? = null, // Letztes Würfelergebnis (für Anzeige)
     val applicatusRollResult: String? = null, // Applicatus-Würfelergebnis (falls relevant)
-    val isBotched: Boolean = false // Ist der Zauber verpatzt? (nur für Spieler-Ansicht relevant)
+    val isBotched: Boolean = false, // Ist der Zauber verpatzt? (nur für Spieler-Ansicht relevant)
+    val expiryDate: String? = null  // Ablaufdatum im derischen Format (z.B. "1 Praios 1040 BF")
 )

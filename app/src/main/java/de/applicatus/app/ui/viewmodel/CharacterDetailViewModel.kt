@@ -17,6 +17,8 @@ import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.SpellChecker
+import de.applicatus.app.logic.DerianDateCalculator
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -67,6 +69,19 @@ class CharacterDetailViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
+        )
+    
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val groupDate: StateFlow<String> = character
+        .mapLatest { char ->
+            char?.groupId?.let { groupId ->
+                repository.getGroupByIdOnce(groupId)?.currentDerianDate
+            } ?: "1 Praios 1040 BF"
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "1 Praios 1040 BF"
         )
     
     val spellSlots: StateFlow<List<SpellSlotWithSpell>> = 
@@ -197,7 +212,7 @@ class CharacterDetailViewModel(
             
             // Prüfe, ob es ein Applicatus-Slot ist
             if (slot.slotType == SlotType.APPLICATUS && char.hasApplicatus) {
-                // Führe Applicatus-Probe durch
+                // Führe Applicatus-Probe durch (mit Wirkungsdauer-Modifikator)
                 val result = SpellChecker.performApplicatusCheck(
                     spellZfw = slot.zfw,
                     spellModifier = slot.modifier,
@@ -206,6 +221,7 @@ class CharacterDetailViewModel(
                     spellAttribute3 = attr3,
                     applicatusZfw = char.applicatusZfw,
                     applicatusModifier = char.applicatusModifier,
+                    applicatusDurationModifier = char.applicatusDuration.difficultyModifier,
                     characterKl = char.kl,
                     characterFf = char.ff
                 )
@@ -222,6 +238,19 @@ class CharacterDetailViewModel(
                 // Wenn der Zauber patzt (und Applicatus erfolgreich war), wird der Slot auch belegt
                 val isPatzer = applicatusPatzer || (result.applicatusResult?.success == true && spellPatzer)
                 
+                // Berechne Ablaufdatum bei Erfolg
+                val expiryDate = if (result.overallSuccess) {
+                    val group = char.groupId?.let { repository.getGroupByIdOnce(it) }
+                    val groupDate = group?.currentDerianDate ?: "1 Praios 1040 BF"
+                    DerianDateCalculator.calculateSpellExpiry(
+                        currentDate = groupDate,
+                        slotType = SlotType.APPLICATUS,
+                        applicatusDuration = char.applicatusDuration
+                    )
+                } else {
+                    null
+                }
+                
                 // Aktualisiere den Slot
                 repository.updateSlot(
                     slot.copy(
@@ -231,7 +260,8 @@ class CharacterDetailViewModel(
                         zfpStar = if (result.overallSuccess) result.spellResult.zfpStar else null,
                         lastRollResult = formatRollResult(result.spellResult),
                         applicatusRollResult = result.applicatusResult?.let { formatRollResult(it) },
-                        isBotched = isPatzer // true wenn Patzer, false sonst
+                        isBotched = isPatzer, // true wenn Patzer, false sonst
+                        expiryDate = expiryDate
                     )
                 )
             } else {
@@ -247,6 +277,18 @@ class CharacterDetailViewModel(
                 // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
                 val isPatzer = result.isDoubleTwenty || result.isTripleTwenty
                 
+                // Berechne Ablaufdatum bei Erfolg (für SPELL_STORAGE immer nächster Praios 1st)
+                val expiryDate = if (result.success) {
+                    val group = char.groupId?.let { repository.getGroupByIdOnce(it) }
+                    val groupDate = group?.currentDerianDate ?: "1 Praios 1040 BF"
+                    DerianDateCalculator.calculateSpellExpiry(
+                        currentDate = groupDate,
+                        slotType = SlotType.SPELL_STORAGE
+                    )
+                } else {
+                    null
+                }
+                
                 // Aktualisiere den Slot
                 repository.updateSlot(
                     slot.copy(
@@ -256,7 +298,8 @@ class CharacterDetailViewModel(
                         zfpStar = if (result.success) result.zfpStar else null,
                         lastRollResult = formatRollResult(result),
                         applicatusRollResult = null,
-                        isBotched = isPatzer // true wenn Patzer, false sonst
+                        isBotched = isPatzer, // true wenn Patzer, false sonst
+                        expiryDate = expiryDate
                     )
                 )
             }

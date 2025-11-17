@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -344,6 +345,21 @@ fun CharacterListScreen(
             onConfirm = { groupName ->
                 viewModel.addGroup(groupName)
                 showAddGroupDialog = false
+            }
+        )
+    }
+    
+    // Dialog für ablaufende Zauber
+    viewModel.expiryWarningMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissExpiryWarning() },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+            title = { Text("Zauber laufen ab!") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissExpiryWarning() }) {
+                    Text("OK")
+                }
             }
         )
     }

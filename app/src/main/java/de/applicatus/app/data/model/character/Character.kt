@@ -35,6 +35,7 @@ data class Character(
     val hasApplicatus: Boolean = false,  // Hat der Charakter Applicatus?
     val applicatusZfw: Int = 0,          // Applicatus-Zauberfertigkeit
     val applicatusModifier: Int = 0,     // Applicatus-Modifikator
+    val applicatusDuration: de.applicatus.app.data.model.spell.ApplicatusDuration = de.applicatus.app.data.model.spell.ApplicatusDuration.DAY,  // Applicatus-Wirkungsdauer
     // Talente für Alchimie
     val hasAlchemy: Boolean = false,     // Beherrscht der Charakter Alchimie?
     val alchemySkill: Int = 0,           // Alchimie-Talentwert (0-18)

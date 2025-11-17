@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
-import de.applicatus.app.ui.screen.spell.EditCharacterDialog
+import de.applicatus.app.ui.component.character.EditCharacterDialog
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModelFactory
 

@@ -408,4 +408,166 @@ object DerianDateCalculator {
             else -> MoonPhase.WANING_CRESCENT
         }
     }
+    
+    /**
+     * Berechnet das Ablaufdatum für einen gespeicherten Zauber
+     * 
+     * @param currentDate Aktuelles Datum im Format "Tag Monat Jahr BF"
+     * @param slotType Typ des Zauberslots (SPELL_STORAGE für Zauberstab, APPLICATUS für Applicatus)
+     * @param applicatusDuration Wirkungsdauer des Applicatus (nur relevant wenn slotType = APPLICATUS)
+     * @return Ablaufdatum im Format "Tag Monat Jahr BF" oder UNLIMITED_DATE
+     */
+    fun calculateSpellExpiry(
+        currentDate: String,
+        slotType: de.applicatus.app.data.model.spell.SlotType,
+        applicatusDuration: de.applicatus.app.data.model.spell.ApplicatusDuration = de.applicatus.app.data.model.spell.ApplicatusDuration.DAY
+    ): String {
+        // Für SPELL_STORAGE: nächste Sommersonnenwende (1. Praios)
+        if (slotType == de.applicatus.app.data.model.spell.SlotType.SPELL_STORAGE) {
+            return calculateNextSummerSolstice(currentDate)
+        }
+        
+        // Für APPLICATUS: je nach gewählter Wirkungsdauer
+        return when (applicatusDuration) {
+            de.applicatus.app.data.model.spell.ApplicatusDuration.DAY -> {
+                // Bis zum nächsten Tag (Mitternacht)
+                calculateExpiryDate(currentDate, "1 Tage")
+            }
+            de.applicatus.app.data.model.spell.ApplicatusDuration.MOON -> {
+                // Bis zum Ende des aktuellen Mondes (Vollmond -> Neumond Übergang)
+                calculateNextMoonEnd(currentDate)
+            }
+            de.applicatus.app.data.model.spell.ApplicatusDuration.QUARTER -> {
+                // Bis zum Ende des aktuellen Quartals (alle 3 Monate)
+                calculateNextQuarterEnd(currentDate)
+            }
+            de.applicatus.app.data.model.spell.ApplicatusDuration.WINTER_SOLSTICE -> {
+                // Bis zur nächsten Wintersonnenwende (1. Firun)
+                calculateNextWinterSolstice(currentDate)
+            }
+        }
+    }
+    
+    /**
+     * Prüft, ob ein Zauber abgelaufen ist
+     * 
+     * @param expiryDate Ablaufdatum im Format "Tag Monat Jahr BF"
+     * @param currentDate Aktuelles Datum im Format "Tag Monat Jahr BF"
+     * @return true wenn der Zauber abgelaufen ist
+     */
+    fun isSpellExpired(expiryDate: String, currentDate: String): Boolean {
+        // "unbegrenzt" läuft nie ab
+        if (expiryDate == UNLIMITED_DATE) return false
+        
+        return isExpired(expiryDate, currentDate)
+    }
+    
+    /**
+     * Hilfsfunktion: Parst ein Datum und gibt (Tag, Monat, Jahr, Ära) zurück
+     */
+    private fun parseDateComponents(date: String): Quadruple<Int, String, Int, String>? {
+        try {
+            val dateParts = date.split(" ")
+            
+            // Behandle "Namenlose Tage" als zwei Wörter
+            if (dateParts.size >= 5 && dateParts[1] == "Namenlose" && dateParts[2] == "Tage") {
+                val day = dateParts[0].toIntOrNull() ?: return null
+                val month = "Namenlose Tage"
+                val year = dateParts[3].toIntOrNull() ?: return null
+                val era = dateParts.getOrNull(4) ?: "BF"
+                return Quadruple(day, month, year, era)
+            } else if (dateParts.size >= 4) {
+                val day = dateParts[0].toIntOrNull() ?: return null
+                val month = dateParts[1]
+                val year = dateParts[2].toIntOrNull() ?: return null
+                val era = dateParts.getOrNull(3) ?: "BF"
+                return Quadruple(day, month, year, era)
+            }
+            
+            return null
+        } catch (e: Exception) {
+            return null
+        }
+    }
+    
+    /**
+     * Hilfsklasse für Quadrupel
+     */
+    private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+    
+    /**
+     * Berechnet die nächste Sommersonnenwende (1. Praios)
+     * Wird für SPELL_STORAGE (Zauberstab) verwendet
+     */
+    private fun calculateNextSummerSolstice(currentDate: String): String {
+        val parsed = parseDateComponents(currentDate) ?: return currentDate
+        val (day, month, year, era) = parsed
+        
+        val targetYear = year + 1
+        
+        return "1 Praios $targetYear $era"
+    }
+    
+    /**
+     * Berechnet die nächste Wintersonnenwende (1. Firun)
+     * Wird für APPLICATUS mit WINTER_SOLSTICE Wirkungsdauer verwendet
+     */
+    private fun calculateNextWinterSolstice(currentDate: String): String {
+        val parsed = parseDateComponents(currentDate) ?: return currentDate
+        val (day, month, year, era) = parsed
+        
+        val currentMonthIndex = months.indexOf(month)
+        val firunIndex = months.indexOf("Firun") // Index 6
+        
+        // Wenn wir bereits im oder nach Firun sind, dann nächstes Jahr
+        val targetYear = if (currentMonthIndex >= firunIndex) {
+            year + 1
+        } else {
+            year
+        }
+        
+        return "1 Firun $targetYear $era"
+    }
+    
+    /**
+     * Berechnet das Ende des aktuellen Mondes (28-Tage-Zyklus)
+     * Nächster Neumond nach aktuellem Datum
+     */
+    private fun calculateNextMoonEnd(currentDate: String): String {
+        val totalDays = parseDateToDays(currentDate) ?: return currentDate
+        val dayInCycle = (totalDays % MADA_CYCLE + MADA_CYCLE) % MADA_CYCLE
+        
+        // Neumond ist an Tag 13 des Zyklus
+        val daysUntilNewMoon = if (dayInCycle <= 13) {
+            13 - dayInCycle
+        } else {
+            MADA_CYCLE - dayInCycle + 13
+        }
+        
+        return calculateExpiryDate(currentDate, "$daysUntilNewMoon Tage")
+    }
+    
+    /**
+     * Berechnet das Ende des aktuellen Quartals
+     * Quartale: Praios-Efferd (1-3), Travia-Hesinde (4-6), Firun-Phex (7-9), Peraine-Namenlose (10-13)
+     */
+    private fun calculateNextQuarterEnd(currentDate: String): String {
+        val parsed = parseDateComponents(currentDate) ?: return currentDate
+        val (_, month, year, era) = parsed
+        
+        val currentMonthIndex = months.indexOf(month)
+        
+        // Bestimme das Quartals-Ende
+        val (endMonth, endYear) = when (currentMonthIndex) {
+            in 0..2 -> "Efferd" to year        // Quartal 1: bis Ende Efferd
+            in 3..5 -> "Hesinde" to year       // Quartal 2: bis Ende Hesinde
+            in 6..8 -> "Phex" to year          // Quartal 3: bis Ende Phex
+            else -> "Namenlose Tage" to year   // Quartal 4: bis Ende Namenlose Tage
+        }
+        
+        val endMonthIndex = months.indexOf(endMonth)
+        val maxDay = getDaysInMonth(endMonthIndex)
+        
+        return "$maxDay $endMonth $endYear $era"
+    }
 }

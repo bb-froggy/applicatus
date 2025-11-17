@@ -3,6 +3,7 @@ package de.applicatus.app.data
 import androidx.room.TypeConverter
 import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.potion.*
+import de.applicatus.app.data.model.spell.ApplicatusDuration
 import de.applicatus.app.data.model.spell.SlotType
 
 class Converters {
@@ -14,6 +15,16 @@ class Converters {
     @TypeConverter
     fun toSlotType(value: String): SlotType {
         return SlotType.valueOf(value)
+    }
+    
+    @TypeConverter
+    fun fromApplicatusDuration(value: ApplicatusDuration): String {
+        return value.name
+    }
+    
+    @TypeConverter
+    fun toApplicatusDuration(value: String): ApplicatusDuration {
+        return ApplicatusDuration.valueOf(value)
     }
     
     @TypeConverter

@@ -535,6 +535,18 @@ class ApplicatusRepository(
     fun getCharactersByGroupId(groupId: Long): Flow<List<Character>> =
         characterDao.getCharactersByGroupId(groupId)
     
+    suspend fun getCharactersByGroupOnce(groupId: Long): List<Character> =
+        characterDao.getCharactersByGroupIdOnce(groupId)
+    
+    suspend fun getSlotsWithSpellsByCharacterOnce(characterId: Long): List<de.applicatus.app.data.model.spell.SpellSlotWithSpell> {
+        val slots = spellSlotDao.getSlotsByCharacterOnce(characterId)
+        val spells = spellDao.getAllSpellsOnce()
+        return slots.map { slot ->
+            val spell = spells.find { it.id == slot.spellId }
+            de.applicatus.app.data.model.spell.SpellSlotWithSpell(slot, spell)
+        }
+    }
+    
     /**
      * Überträgt eine Location mit allen Items und Tränken zu einem anderen Charakter.
      * Die Location wird beim Zielcharakter neu erstellt (nicht verschoben).
