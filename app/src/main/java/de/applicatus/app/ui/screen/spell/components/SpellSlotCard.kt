@@ -28,6 +28,7 @@ fun SpellSlotCardUsageMode(
     currentDate: String,
     isGameMaster: Boolean,
     showAnimation: Boolean,
+    character: de.applicatus.app.data.model.character.Character? = null,
     onCastSpell: () -> Unit,
     onClearSlot: () -> Unit,
     onAnimationEnd: () -> Unit = {}
@@ -95,6 +96,22 @@ fun SpellSlotCardUsageMode(
                             text = "ZfW: ${slot.zfw} | Mod: ${slot.modifier}",
                             style = MaterialTheme.typography.bodySmall
                         )
+                        
+                        // AsP-Kosten anzeigen (nur wenn definiert)
+                        if (slot.aspCost.isNotBlank()) {
+                            val aspInfo = buildString {
+                                append("AsP: ${slot.aspCost}")
+                                if (slot.useHexenRepresentation) {
+                                    append(" (Hexe)")
+                                }
+                            }
+                            Text(
+                                text = aspInfo,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                        
                         if (slot.variant.isNotBlank()) {
                             Text(
                                 text = slot.variant,
@@ -244,6 +261,8 @@ fun SpellSlotCardEditMode(
     onModifierChanged: (Int) -> Unit,
     onVariantChanged: (String) -> Unit,
     onDurationFormulaChanged: (String) -> Unit,
+    onAspCostChanged: (String) -> Unit,
+    onUseHexenRepresentationChanged: (Boolean) -> Unit,
     onDeleteSlot: () -> Unit
 ) {
     val slot = slotWithSpell.slot
@@ -253,6 +272,8 @@ fun SpellSlotCardEditMode(
     var modifierText by remember(slot.modifier) { mutableStateOf(slot.modifier.toString()) }
     var variantText by remember(slot.variant) { mutableStateOf(slot.variant) }
     var durationFormulaText by remember(slot.longDurationFormula) { mutableStateOf(slot.longDurationFormula) }
+    var aspCostText by remember(slot.aspCost) { mutableStateOf(slot.aspCost) }
+    var useHexenRepresentation by remember(slot.useHexenRepresentation) { mutableStateOf(slot.useHexenRepresentation) }
     
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -397,6 +418,50 @@ fun SpellSlotCardEditMode(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // AsP-Kosten Eingabe
+            Text(
+                text = "AsP-Kosten",
+                style = MaterialTheme.typography.titleSmall
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            OutlinedTextField(
+                value = aspCostText,
+                onValueChange = {
+                    aspCostText = it
+                    onAspCostChanged(it)
+                },
+                label = { Text("Kosten") },
+                placeholder = { Text("z.B. 8 oder 16-ZfP/2") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Zahl (8) oder Formel (16-ZfP/2). ZfP, +, -, *, /, Klammern erlaubt",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = useHexenRepresentation,
+                    onCheckedChange = {
+                        useHexenRepresentation = it
+                        onUseHexenRepresentationChanged(it)
+                    }
+                )
+                Text("Hexische Repräsentation (1/3 statt 1/2 AsP bei Fehlschlag)")
+            }
         }
     }
     

@@ -75,7 +75,8 @@ private fun PropertyItem(name: String, value: Int) {
 fun ApplicatusInfoCard(
     character: Character,
     onDurationChange: (de.applicatus.app.data.model.spell.ApplicatusDuration) -> Unit,
-    onModifierChange: (Int) -> Unit
+    onModifierChange: (Int) -> Unit,
+    onAspSavingPercentChange: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -141,6 +142,54 @@ fun ApplicatusInfoCard(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // AsP-Kosten-Ersparnis
+            Text(
+                text = "AsP-Kosten-Ersparnis",
+                style = MaterialTheme.typography.titleSmall
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            val requiredZfw = (character.applicatusAspSavingPercent / 10) * 3
+            if (requiredZfw > character.applicatusZfw) {
+                Text(
+                    text = "⚠ Benoetigt ZfW ${requiredZfw} (aktuell: ${character.applicatusZfw})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else if (character.applicatusAspSavingPercent > 0) {
+                Text(
+                    text = "✓ ZfW ${character.applicatusZfw} ausreichend (min. ${requiredZfw})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Slider(
+                value = character.applicatusAspSavingPercent.toFloat(),
+                onValueChange = { onAspSavingPercentChange(it.toInt()) },
+                valueRange = 0f..50f,
+                steps = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("0%", style = MaterialTheme.typography.labelSmall)
+                Text("10%", style = MaterialTheme.typography.labelSmall)
+                Text("20%", style = MaterialTheme.typography.labelSmall)
+                Text("30%", style = MaterialTheme.typography.labelSmall)
+                Text("40%", style = MaterialTheme.typography.labelSmall)
+                Text("50%", style = MaterialTheme.typography.labelSmall)
             }
         }
     }

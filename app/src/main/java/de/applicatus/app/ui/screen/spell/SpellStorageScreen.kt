@@ -82,17 +82,6 @@ fun SpellStorageScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // Character attributes
-            character?.let { char ->
-                CharacterAttributesCard(
-                    character = char,
-                    isEditMode = isEditMode,
-                    onEditCharacter = { showEditCharacterDialog = true }
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
             // Applicatus info if available (immer anzeigen)
             character?.let { char ->
                 if (char.hasApplicatus) {
@@ -103,6 +92,9 @@ fun SpellStorageScreen(
                         },
                         onModifierChange = { modifier ->
                             viewModel.updateCharacter(char.copy(applicatusModifier = modifier))
+                        },
+                        onAspSavingPercentChange = { percent ->
+                            viewModel.updateCharacter(char.copy(applicatusAspSavingPercent = percent.coerceIn(0, 50)))
                         }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -127,7 +119,7 @@ fun SpellStorageScreen(
                         style = MaterialTheme.typography.titleSmall
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
             
             // Global modifier controls (only in usage mode)
@@ -138,7 +130,7 @@ fun SpellStorageScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Globaler Modifikator:",
+                        text = "Alle Modifikatoren ändern:",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -150,7 +142,7 @@ fun SpellStorageScreen(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
             
             // Spell slots
@@ -184,6 +176,12 @@ fun SpellStorageScreen(
                             onDurationFormulaChanged = { formula ->
                                 viewModel.updateSlotDurationFormula(slotWithSpell.slot, formula)
                             },
+                            onAspCostChanged = { cost ->
+                                viewModel.updateSlotAspCost(slotWithSpell.slot, cost)
+                            },
+                            onUseHexenRepresentationChanged = { useHexen ->
+                                viewModel.updateSlotUseHexenRepresentation(slotWithSpell.slot, useHexen)
+                            },
                             onDeleteSlot = {
                                 viewModel.removeSlot(slotWithSpell.slot)
                             }
@@ -194,6 +192,7 @@ fun SpellStorageScreen(
                             currentDate = groupDate,
                             isGameMaster = character?.isGameMaster ?: false,
                             showAnimation = viewModel.showSpellAnimation && viewModel.animatingSlotId == slotWithSpell.slot.id,
+                            character = character,
                             onCastSpell = {
                                 slotWithSpell.spell?.let { spell ->
                                     viewModel.castSpell(slotWithSpell.slot, spell)

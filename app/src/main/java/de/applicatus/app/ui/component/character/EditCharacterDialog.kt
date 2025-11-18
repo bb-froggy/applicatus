@@ -54,6 +54,10 @@ fun EditCharacterDialog(
     var magicalLoreSkill by remember { mutableStateOf(character.magicalLoreSkill.toString()) }
     var herbalLoreSkill by remember { mutableStateOf(character.herbalLoreSkill.toString()) }
     
+    // Zauber-Sonderfertigkeiten
+    var kraftkontrolle by remember { mutableStateOf(character.kraftkontrolle) }
+    var hasStaffWithKraftfokus by remember { mutableStateOf(character.hasStaffWithKraftfokus) }
+    
     // Spieler/Spielleiter-Modus
     var isGameMaster by remember { mutableStateOf(character.isGameMaster) }
     
@@ -430,6 +434,38 @@ fun EditCharacterDialog(
                     }
                 }
                 
+                // Zauber-Sonderfertigkeiten
+                if (hasAe) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Zauber-Sonderfertigkeiten:", style = MaterialTheme.typography.titleSmall)
+                    }
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = kraftkontrolle,
+                                onCheckedChange = { kraftkontrolle = it }
+                            )
+                            Text("Kraftkontrolle (-1 AsP pro Zauber)")
+                        }
+                    }
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = hasStaffWithKraftfokus,
+                                onCheckedChange = { hasStaffWithKraftfokus = it }
+                            )
+                            Text("Hat Zauberstab mit Kraftfokus (-1 AsP pro Zauber)")
+                        }
+                    }
+                }
+                
                 // Spieler/Spielleiter-Modus
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -493,6 +529,8 @@ fun EditCharacterDialog(
                         sensoryAcuitySkill = (sensoryAcuitySkill.toIntOrNull() ?: 0).coerceIn(0, 18),
                         magicalLoreSkill = (magicalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
                         herbalLoreSkill = (herbalLoreSkill.toIntOrNull() ?: 0).coerceIn(0, 18),
+                        kraftkontrolle = if (hasAe) kraftkontrolle else false,
+                        hasStaffWithKraftfokus = if (hasAe) hasStaffWithKraftfokus else false,
                         isGameMaster = isGameMaster
                     )
                     onConfirm(updatedCharacter)

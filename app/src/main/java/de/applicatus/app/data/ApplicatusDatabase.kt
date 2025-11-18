@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 28,
+    version = 30,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -911,6 +911,86 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Füge AsP-Kosten-Verwaltung zu Character und SpellSlot hinzu
+                
+                // Character: Kraftkontrolle, Kraftfokus und Applicatus-Kostenersparnis
+                database.execSQL("ALTER TABLE characters ADD COLUMN applicatusAspSavingPercent INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN kraftkontrolle INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE characters ADD COLUMN hasStaffWithKraftfokus INTEGER NOT NULL DEFAULT 0")
+                
+                // SpellSlot: AsP-Kosten und Hexenrepräsentation
+                database.execSQL("ALTER TABLE spell_slots ADD COLUMN aspCostBase INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE spell_slots ADD COLUMN aspCostFormula TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE spell_slots ADD COLUMN useHexenRepresentation INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+        
+        val MIGRATION_29_30 = object : Migration(29, 30) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Führe aspCostBase und aspCostFormula zu einem Feld aspCost zusammen
+                // SQLite unterstützt kein DROP COLUMN, daher müssen wir die Tabelle neu erstellen
+                
+                // 1. Temporäre Tabelle mit neuer Struktur erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS spell_slots_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        slotNumber INTEGER NOT NULL,
+                        slotType TEXT NOT NULL,
+                        volumePoints INTEGER NOT NULL,
+                        spellId INTEGER,
+                        zfw INTEGER NOT NULL,
+                        modifier INTEGER NOT NULL,
+                        variant TEXT NOT NULL,
+                        isFilled INTEGER NOT NULL,
+                        zfpStar INTEGER,
+                        lastRollResult TEXT,
+                        applicatusRollResult TEXT,
+                        isBotched INTEGER NOT NULL,
+                        expiryDate TEXT,
+                        longDurationFormula TEXT NOT NULL DEFAULT '',
+                        aspCost TEXT NOT NULL DEFAULT '',
+                        useHexenRepresentation INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
+                        FOREIGN KEY(spellId) REFERENCES spells(id) ON DELETE SET NULL
+                    )
+                """)
+                
+                // 2. Daten migrieren: aspCostFormula hat Priorität, sonst aspCostBase als String
+                database.execSQL("""
+                    INSERT INTO spell_slots_new (
+                        id, characterId, slotNumber, slotType, volumePoints, spellId,
+                        zfw, modifier, variant, isFilled, zfpStar, lastRollResult,
+                        applicatusRollResult, isBotched, expiryDate, longDurationFormula,
+                        aspCost, useHexenRepresentation
+                    )
+                    SELECT 
+                        id, characterId, slotNumber, slotType, volumePoints, spellId,
+                        zfw, modifier, variant, isFilled, zfpStar, lastRollResult,
+                        applicatusRollResult, isBotched, expiryDate, longDurationFormula,
+                        CASE 
+                            WHEN aspCostFormula != '' THEN aspCostFormula
+                            WHEN aspCostBase > 0 THEN CAST(aspCostBase AS TEXT)
+                            ELSE ''
+                        END,
+                        useHexenRepresentation
+                    FROM spell_slots
+                """)
+                
+                // 3. Alte Tabelle löschen
+                database.execSQL("DROP TABLE spell_slots")
+                
+                // 4. Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE spell_slots_new RENAME TO spell_slots")
+                
+                // 5. Indices neu erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_characterId ON spell_slots(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_spellId ON spell_slots(spellId)")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -918,7 +998,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

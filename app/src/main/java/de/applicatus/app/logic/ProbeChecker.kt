@@ -589,4 +589,266 @@ object ProbeChecker {
             else -> throw IllegalArgumentException("Unbekannte Eigenschaft: $attributeName")
         }
     }
+    
+    /**
+     * Berechnet die tatsaechlichen AsP-Kosten eines Zaubers unter Beruecksichtigung aller Modifikatoren
+     * 
+     * @param baseCost Basis-AsP-Kosten (fester Wert, 0 wenn nur Formel)
+     * @param costFormula AsP-Kosten-Formel (z.B. 16-ZfP/2)
+     * @param zfpStar ZfP des Zaubers (fuer Formelauswertung)
+     * @param success War die Probe erfolgreich?
+     * @param useHexenRepresentation Wurde in hexischer Repraesentation gesprochen?
+     * @param hasKraftkontrolle Hat der Charakter Kraftkontrolle?
+     * @param hasKraftfokus Hat der Charakter einen Kraftfokus? (nicht bei Zauberspeicher)
+     * @param applicKraftfokus Kraftfokus bei Applicatus anwendbar? (false fuer Zauberspeicher)
+     * @return Tatsaechliche AsP-Kosten
+     */
+    fun calculateAspCost(
+        costFormula: String,
+        zfpStar: Int,
+        success: Boolean,
+        useHexenRepresentation: Boolean,
+        hasKraftkontrolle: Boolean,
+        hasKraftfokus: Boolean,
+        applicKraftfokus: Boolean = true
+    ): Int {
+        // 1. Berechne Basis-Kosten aus Formel oder fester Zahl
+        var cost = if (costFormula.isNotBlank()) {
+            evaluateAspCostFormula(costFormula, zfpStar) ?: 0
+        } else {
+            0
+        }
+        
+        // 2. Bei Misserfolg: Halbierung (hexisch: Drittelung)
+        if (!success) {
+            cost = if (useHexenRepresentation) {
+                // Drittelung, kaufmännisch gerundet
+                (cost + 1) / 3
+            } else {
+                // Halbierung, aufgerundet
+                (cost + 1) / 2
+            }
+        }
+        
+        // 3. Kraftkontrolle: -1 AsP (immer anwendbar)
+        if (hasKraftkontrolle) {
+            cost = maxOf(1, cost - 1)
+        }
+        
+        // 4. Kraftfokus: -1 AsP (nur wenn applicKraftfokus = true)
+        if (hasKraftfokus && applicKraftfokus) {
+            cost = maxOf(1, cost - 1)
+        }
+        
+        // 5. Minimum 1 AsP für jeden Zauber
+        return maxOf(1, cost)
+    }
+    
+    /**
+     * Wertet eine AsP-Kosten-Formel aus (z.B. 16-ZfP/2 fuer Armatrutz)
+     * 
+     * Unterstuetzt:
+     * - Zahlen: 8
+     * - ZfP: Variable fuer Qualitaetspunkte
+     * - Addition: ZfP+2
+     * - Subtraktion: 16-ZfP/2
+     * - Multiplikation: ZfP*2
+     * - Division: ZfP/2
+     * 
+     * @param formula Die Formel als String
+     * @param zfpStar Der Wert von ZfP
+     * @return Berechnete AsP-Kosten oder null bei Fehler
+     */
+    fun evaluateAspCostFormula(formula: String, zfpStar: Int): Int? {
+        if (formula.isBlank()) return null
+        
+        try {
+            // Ersetze ZfP durch tatsaechlichen Wert
+            // ZfP* wird als "ZfP*" erkannt (nicht als "ZfP" + "*")
+            val substituted = formula.replace("ZfP", zfpStar.toString(), ignoreCase = true)
+            
+            // Parse und evaluiere die Formel
+            return AspCostExpressionParser(substituted).parseExpression()
+        } catch (e: Exception) {
+            return null
+        }
+    }
+    
+    /**
+     * Parser fuer AsP-Kosten-Formeln (aehnlich wie DurationExpressionParser)
+     * Unterstuetzt +, -, *, / mit korrekter Operator-Praezedenz
+     */
+    private class AspCostExpressionParser(private val expression: String) {
+        private var index = 0
+        
+        fun parseExpression(): Int {
+            return parseAddSubtract()
+        }
+        
+        private fun parseAddSubtract(): Int {
+            var result = parseMultDivide()
+            
+            while (index < expression.length) {
+                skipWhitespace()
+                if (index >= expression.length) break
+                
+                when (expression[index]) {
+                    '+' -> {
+                        index++
+                        result += parseMultDivide()
+                    }
+                    '-' -> {
+                        index++
+                        result -= parseMultDivide()
+                    }
+                    else -> break
+                }
+            }
+            
+            return result
+        }
+        
+        private fun parseMultDivide(): Int {
+            var result = parsePrimary()
+            
+            while (index < expression.length) {
+                skipWhitespace()
+                if (index >= expression.length) break
+                
+                when (expression[index]) {
+                    '*' -> {
+                        index++
+                        result *= parsePrimary()
+                    }
+                    '/' -> {
+                        index++
+                        val divisor = parsePrimary()
+                        if (divisor != 0) {
+                            // Division durch 2 wird aufgerundet, durch 3 kaufmaennisch gerundet
+                            if (divisor == 2) {
+                                result = (result + 1) / 2
+                            } else if (divisor == 3) {
+                                result = (result + 1) / 3
+                            } else {
+                                result /= divisor
+                            }
+                        }
+                    }
+                    else -> break
+                }
+            }
+            
+            return result
+        }
+        
+        private fun parsePrimary(): Int {
+            skipWhitespace()
+            
+            if (index >= expression.length) {
+                throw IllegalArgumentException("Unerwartetes Ende der Formel")
+            }
+            
+            // Negative Zahlen
+            if (expression[index] == '-') {
+                index++
+                return -parsePrimary()
+            }
+            
+            // Klammern
+            if (expression[index] == '(') {
+                index++
+                val result = parseExpression()
+                skipWhitespace()
+                if (index < expression.length && expression[index] == ')') {
+                    index++
+                }
+                return result
+            }
+            
+            // Zahlen
+            val start = index
+            while (index < expression.length && expression[index].isDigit()) {
+                index++
+            }
+            
+            if (start == index) {
+                throw IllegalArgumentException("Ungültiges Zeichen in Formel: ${expression[index]}")
+            }
+            
+            return expression.substring(start, index).toInt()
+        }
+        
+        private fun skipWhitespace() {
+            while (index < expression.length && expression[index].isWhitespace()) {
+                index++
+            }
+        }
+    }
+    
+    /**
+     * Berechnet die Applicatus-AsP-Kosten mit optionaler Kostenersparnis
+     * 
+     * @param duration Applicatus-Dauer
+     * @param savingPercent Kostenersparnis in Prozent (0-50)
+     * @param hasKraftkontrolle Hat der Charakter Kraftkontrolle?
+     * @param hasKraftfokus Hat der Charakter einen Kraftfokus?
+     * @param diceRoll Lambda fuer Wuerfelwuerfe (Standard: W6)
+     * @return Tuple (tatsaechliche Kosten, Basis-Kosten, Wuerfelergebnis-Text)
+     */
+    fun calculateApplicatusAspCost(
+        duration: de.applicatus.app.data.model.spell.ApplicatusDuration,
+        savingPercent: Int,
+        hasKraftkontrolle: Boolean,
+        hasKraftfokus: Boolean,
+        diceRoll: (diceSize: Int) -> Int = { diceSize -> Random.nextInt(1, diceSize + 1) }
+    ): Triple<Int, Int, String> {
+        // Basis-Kosten würfeln
+        val (baseCost, rollText) = when (duration) {
+            de.applicatus.app.data.model.spell.ApplicatusDuration.DAY -> {
+                val roll1 = diceRoll(6)
+                val roll2 = diceRoll(6)
+                Pair(roll1 + roll2, "2W6: $roll1 + $roll2")
+            }
+            de.applicatus.app.data.model.spell.ApplicatusDuration.MOON -> {
+                val roll1 = diceRoll(6)
+                val roll2 = diceRoll(6)
+                val roll3 = diceRoll(6)
+                Pair(roll1 + roll2 + roll3, "3W6: $roll1 + $roll2 + $roll3")
+            }
+            de.applicatus.app.data.model.spell.ApplicatusDuration.QUARTER -> {
+                val roll1 = diceRoll(6)
+                val roll2 = diceRoll(6)
+                val roll3 = diceRoll(6)
+                Pair(roll1 + roll2 + roll3 + 2, "3W6+2: $roll1 + $roll2 + $roll3 + 2")
+            }
+            de.applicatus.app.data.model.spell.ApplicatusDuration.WINTER_SOLSTICE -> {
+                val roll1 = diceRoll(6)
+                val roll2 = diceRoll(6)
+                val roll3 = diceRoll(6)
+                val roll4 = diceRoll(6)
+                Pair(roll1 + roll2 + roll3 + roll4, "4W6: $roll1 + $roll2 + $roll3 + $roll4")
+            }
+        }
+        
+        // Kostenersparnis anwenden (kaufmaennisch gerundet)
+        val validSavingPercent = savingPercent.coerceIn(0, 50)
+        val costAfterSaving = if (validSavingPercent > 0) {
+            val savingAmount = (baseCost * validSavingPercent + 50) / 100
+            maxOf(0, baseCost - savingAmount)
+        } else {
+            baseCost
+        }
+        
+        // Kraftkontrolle und Kraftfokus anwenden
+        var finalCost = costAfterSaving
+        if (hasKraftkontrolle) {
+            finalCost = maxOf(0, finalCost - 1)
+        }
+        if (hasKraftfokus) {
+            finalCost = maxOf(0, finalCost - 1)
+        }
+        
+        return Triple(finalCost, baseCost, rollText)
+    }
 }
+

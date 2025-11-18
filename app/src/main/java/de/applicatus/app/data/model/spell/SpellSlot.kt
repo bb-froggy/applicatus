@@ -44,5 +44,7 @@ data class SpellSlot(
     val applicatusRollResult: String? = null, // Applicatus-Würfelergebnis (falls relevant)
     val isBotched: Boolean = false, // Ist der Zauber verpatzt? (nur für Spieler-Ansicht relevant)
     val expiryDate: String? = null,  // Ablaufdatum im derischen Format (z.B. "1 Praios 1040 BF")
-    val longDurationFormula: String = "" // Formel für langwirkende Zauber (z.B. "ZfP* Wochen")
+    val longDurationFormula: String = "", // Formel für langwirkende Zauber (z.B. "ZfP* Wochen")
+    val aspCost: String = "",           // AsP-Kosten: Zahl ("8") oder Formel ("16-ZfP/2")
+    val useHexenRepresentation: Boolean = false // Wird in hexischer Repräsentation gesprochen? (1/3 AsP bei Fehlschlag statt 1/2)
 )

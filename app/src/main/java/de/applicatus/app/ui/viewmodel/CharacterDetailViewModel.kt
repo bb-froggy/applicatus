@@ -194,6 +194,18 @@ class CharacterDetailViewModel(
         }
     }
     
+    fun updateSlotAspCost(slot: SpellSlot, cost: String) {
+        viewModelScope.launch {
+            repository.updateSlot(slot.copy(aspCost = cost.trim()))
+        }
+    }
+    
+    fun updateSlotUseHexenRepresentation(slot: SpellSlot, useHexen: Boolean) {
+        viewModelScope.launch {
+            repository.updateSlot(slot.copy(useHexenRepresentation = useHexen))
+        }
+    }
+    
     fun updateAllModifiers(delta: Int) {
         viewModelScope.launch {
             spellSlots.value.forEach { slotWithSpell ->
@@ -208,6 +220,12 @@ class CharacterDetailViewModel(
     fun castSpell(slot: SpellSlot, spell: Spell) {
         viewModelScope.launch {
             val char = character.value ?: return@launch
+            
+            // Prüfe ob Charakter AE hat
+            if (!char.hasAe) {
+                spellCastMessage = "❌ Fehler: Charakter hat keine Astralenergie!"
+                return@launch
+            }
             
             // Starte die Animation
             showSpellAnimation = true
@@ -227,12 +245,25 @@ class CharacterDetailViewModel(
                     spellAttribute1 = attr1,
                     spellAttribute2 = attr2,
                     spellAttribute3 = attr3,
+                    spellAspCost = slot.aspCost,
+                    spellUseHexenRepresentation = slot.useHexenRepresentation,
                     applicatusZfw = char.applicatusZfw,
                     applicatusModifier = char.applicatusModifier,
+                    applicatusDuration = char.applicatusDuration,
                     applicatusDurationModifier = char.applicatusDuration.difficultyModifier,
+                    applicatusAspSavingPercent = char.applicatusAspSavingPercent,
                     characterKl = char.kl,
-                    characterFf = char.ff
+                    characterFf = char.ff,
+                    hasKraftkontrolle = char.kraftkontrolle,
+                    hasKraftfokus = char.hasStaffWithKraftfokus
                 )
+                
+                // Prüfe AsP-Verfügbarkeit
+                if (result.totalAspCost > char.currentAe) {
+                    spellCastMessage = "❌ Fehler: Nicht genug AsP! Benötigt: ${result.totalAspCost}, Verfügbar: ${char.currentAe}"
+                    hideSpellAnimation()
+                    return@launch
+                }
                 
                 // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
                 // Patzer kann sowohl bei Applicatus als auch beim eigentlichen Zauber auftreten
@@ -251,7 +282,11 @@ class CharacterDetailViewModel(
                     spellResult = result.spellResult,
                     applicatusResult = result.applicatusResult,
                     isPatzer = isPatzer,
-                    overallSuccess = result.overallSuccess
+                    overallSuccess = result.overallSuccess,
+                    aspCost = result.totalAspCost,
+                    char = char,
+                    applicatusAspCost = result.applicatusResult?.aspCost ?: 0,
+                    applicatusAspRollText = result.applicatusResult?.message?.substringBefore(" = ")?.substringAfter("! ") ?: ""
                 )
                 
                 // Berechne Ablaufdatum bei Erfolg
@@ -279,16 +314,65 @@ class CharacterDetailViewModel(
                         expiryDate = expiryDate
                     )
                 )
+                
+                // Ziehe AsP ab
+                repository.updateCharacter(
+                    char.copy(currentAe = char.currentAe - result.totalAspCost)
+                )
+                
                 spellCastMessage = summaryText
             } else {
                 // Normale Zauberprobe (Zauberspeicher oder langwirkend)
+                // Bei Zauberspeicher: Prüfe Volumenpunkte als AsP-Limit
+                val maxAspForStorage = if (slot.slotType == SlotType.SPELL_STORAGE) {
+                    slot.volumePoints
+                } else {
+                    Int.MAX_VALUE
+                }
+                
                 val result = SpellChecker.performSpellCheck(
                     zfw = slot.zfw,
                     modifier = slot.modifier,
                     attribute1 = attr1,
                     attribute2 = attr2,
-                    attribute3 = attr3
+                    attribute3 = attr3,
+                    aspCost = slot.aspCost,
+                    useHexenRepresentation = slot.useHexenRepresentation,
+                    hasKraftkontrolle = char.kraftkontrolle,
+                    hasKraftfokus = char.hasStaffWithKraftfokus,
+                    applicKraftfokus = false // Kraftfokus NICHT bei Zauberspeicher
                 )
+                
+                // Prüfe AsP-Kosten gegen Volumenpunkte-Limit bei Zauberspeicher
+                if (slot.slotType == SlotType.SPELL_STORAGE && result.aspCost > maxAspForStorage) {
+                    spellCastMessage = "❌ Fehler: AsP-Kosten (${result.aspCost}) überschreiten Volumenpunkte (${maxAspForStorage})! Zauber schlägt fehl."
+                    
+                    // Slot wird NICHT belegt, aber AsP werden trotzdem halbiert abgezogen (Fehlschlag)
+                    val failedAspCost = if (slot.useHexenRepresentation) {
+                        (result.aspCost + 1) / 3
+                    } else {
+                        (result.aspCost + 1) / 2
+                    }
+                    
+                    if (failedAspCost > char.currentAe) {
+                        spellCastMessage += "\n(Nicht genug AsP für Fehlschlag-Kosten: $failedAspCost)"
+                        hideSpellAnimation()
+                        return@launch
+                    }
+                    
+                    repository.updateCharacter(
+                        char.copy(currentAe = char.currentAe - failedAspCost)
+                    )
+                    hideSpellAnimation()
+                    return@launch
+                }
+                
+                // Prüfe AsP-Verfügbarkeit
+                if (result.aspCost > char.currentAe) {
+                    spellCastMessage = "❌ Fehler: Nicht genug AsP! Benötigt: ${result.aspCost}, Verfügbar: ${char.currentAe}"
+                    hideSpellAnimation()
+                    return@launch
+                }
                 
                 // Prüfe auf Patzer (Doppel-20 oder Dreifach-20)
                 val isPatzer = result.isDoubleTwenty || result.isTripleTwenty
@@ -298,7 +382,9 @@ class CharacterDetailViewModel(
                     spellResult = result,
                     applicatusResult = null,
                     isPatzer = isPatzer,
-                    overallSuccess = result.success
+                    overallSuccess = result.success,
+                    aspCost = result.aspCost,
+                    char = char
                 )
                 
                 // Berechne Ablaufdatum bei Erfolg
@@ -329,6 +415,12 @@ class CharacterDetailViewModel(
                         expiryDate = expiryDate
                     )
                 )
+                
+                // Ziehe AsP ab
+                repository.updateCharacter(
+                    char.copy(currentAe = char.currentAe - result.aspCost)
+                )
+                
                 spellCastMessage = summaryText
             }
         }
@@ -383,7 +475,11 @@ class CharacterDetailViewModel(
         spellResult: SpellCheckResult,
         applicatusResult: SpellCheckResult?,
         isPatzer: Boolean,
-        overallSuccess: Boolean
+        overallSuccess: Boolean,
+        aspCost: Int,
+        char: Character,
+        applicatusAspCost: Int = 0,
+        applicatusAspRollText: String = ""
     ): String {
         val slotLabel = when (slot.slotType) {
             SlotType.APPLICATUS -> "Applicatus"
@@ -406,6 +502,29 @@ class CharacterDetailViewModel(
                 appendLine("Applicatusprobe: ${formatRollResult(it)}")
             }
             appendLine("Zauberprobe: ${formatRollResult(spellResult)}")
+            
+            // GM-Modus: Detaillierte AsP-Kostenaufschlüsselung
+            if (char.isGameMaster) {
+                appendLine("\nAsP-Kosten Details:")
+                if (slot.slotType == SlotType.APPLICATUS && applicatusAspCost > 0) {
+                    appendLine("  • Applicatus: $applicatusAspRollText = $applicatusAspCost AsP")
+                }
+                val spellAspCost = aspCost - applicatusAspCost
+                if (spellAspCost > 0) {
+                    val formula = slot.aspCost.ifBlank { "0" }
+                    appendLine("  • Zauber ($formula): $spellAspCost AsP")
+                    if (char.kraftkontrolle) appendLine("    - Kraftkontrolle: -1 AsP")
+                    if (char.hasStaffWithKraftfokus) appendLine("    - Kraftfokus: -1 AsP")
+                    if (!overallSuccess && slot.useHexenRepresentation) {
+                        appendLine("    - Fehlschlag mit Hexenrepräsentation: 1/3 Kosten")
+                    } else if (!overallSuccess) {
+                        appendLine("    - Fehlschlag: 1/2 Kosten")
+                    }
+                }
+                appendLine("  Gesamt: $aspCost AsP")
+            } else {
+                appendLine("AsP-Kosten: $aspCost")
+            }
         }.trim()
     }
 

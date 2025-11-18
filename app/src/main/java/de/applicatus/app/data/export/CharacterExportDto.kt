@@ -183,7 +183,9 @@ data class SpellSlotDto(
     val applicatusRollResult: String? = null,
     val isBotched: Boolean = false,
     val expiryDate: String? = null,
-    val longDurationFormula: String = ""
+    val longDurationFormula: String = "",
+    val aspCost: String = "",
+    val useHexenRepresentation: Boolean = false
 ) {
     companion object {
         fun fromSpellSlot(slot: SpellSlot, spellName: String?) = SpellSlotDto(
@@ -201,7 +203,9 @@ data class SpellSlotDto(
             applicatusRollResult = slot.applicatusRollResult,
             isBotched = slot.isBotched,
             expiryDate = slot.expiryDate,
-            longDurationFormula = slot.longDurationFormula
+            longDurationFormula = slot.longDurationFormula,
+            aspCost = slot.aspCost,
+            useHexenRepresentation = slot.useHexenRepresentation
         )
     }
     
@@ -221,7 +225,9 @@ data class SpellSlotDto(
         applicatusRollResult = applicatusRollResult,
         isBotched = isBotched,
         expiryDate = expiryDate,
-        longDurationFormula = longDurationFormula
+        longDurationFormula = longDurationFormula,
+        aspCost = aspCost,
+        useHexenRepresentation = useHexenRepresentation
     )
 }
 

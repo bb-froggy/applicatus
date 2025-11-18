@@ -36,6 +36,10 @@ data class Character(
     val applicatusZfw: Int = 0,          // Applicatus-Zauberfertigkeit
     val applicatusModifier: Int = 0,     // Applicatus-Modifikator
     val applicatusDuration: de.applicatus.app.data.model.spell.ApplicatusDuration = de.applicatus.app.data.model.spell.ApplicatusDuration.DAY,  // Applicatus-Wirkungsdauer
+    val applicatusAspSavingPercent: Int = 0,  // AsP-Kostenersparnis beim Applicatus in Prozent (0-50%)
+    // Kraftkontrolle und Kraftfokus
+    val kraftkontrolle: Boolean = false,     // Hat der Charakter Kraftkontrolle? (-1 AsP pro Zauber)
+    val hasStaffWithKraftfokus: Boolean = false,  // Hat der Charakter einen Zauberstab mit Kraftfokus? (-1 AsP pro Zauber, nicht bei Zauberspeicher)
     // Talente für Alchimie
     val hasAlchemy: Boolean = false,     // Beherrscht der Charakter Alchimie?
     val alchemySkill: Int = 0,           // Alchimie-Talentwert (0-18)
