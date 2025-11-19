@@ -1,5 +1,6 @@
 package de.applicatus.app.ui.screen.character
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -10,16 +11,23 @@ import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
 
 @Composable
-fun CharacterSpellsCard(character: Character) {
+fun CharacterSpellsCard(
+    character: Character,
+    isEditMode: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     // Prüfe, ob der Charakter überhaupt Zauber beherrscht
     val hasSpells = character.hasApplicatus || 
                     character.hasOdem || 
                     character.hasAnalys
     
-    if (!hasSpells) return
+    // Im Edit-Modus zeigen wir die Card immer an, damit Zauber hinzugefügt werden können
+    if (!hasSpells && !isEditMode) return
     
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isEditMode) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

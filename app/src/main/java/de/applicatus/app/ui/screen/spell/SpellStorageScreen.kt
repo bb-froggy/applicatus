@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.ui.screen.spell.components.*
 import de.applicatus.app.ui.screen.character.EditCharacterDialog
-import de.applicatus.app.ui.screen.character.CharacterAttributesCard
 import de.applicatus.app.ui.screen.character.ApplicatusInfoCard
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 
@@ -192,7 +191,6 @@ fun SpellStorageScreen(
                             currentDate = groupDate,
                             isGameMaster = character?.isGameMaster ?: false,
                             showAnimation = viewModel.showSpellAnimation && viewModel.animatingSlotId == slotWithSpell.slot.id,
-                            character = character,
                             onCastSpell = {
                                 slotWithSpell.spell?.let { spell ->
                                     viewModel.castSpell(slotWithSpell.slot, spell)

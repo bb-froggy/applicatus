@@ -12,5 +12,6 @@ data class Group(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,  // Name der Gruppe (z.B. "Die Helden von Gareth")
-    val currentDerianDate: String = "1 Praios 1040 BF"  // Aktuelles derisches Datum der Gruppe
+    val currentDerianDate: String = "1 Praios 1040 BF",  // Aktuelles derisches Datum der Gruppe
+    val isGameMasterGroup: Boolean = false  // Spielleiter-Modus für die gesamte Gruppe
 )

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -189,12 +190,54 @@ fun CharacterListScreen(
                 // Gruppenname als Überschrift mit Datum darunter
                 item {
                     Column {
-                        Text(
-                            text = group.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
+                        // Gruppenname mit Spielleiter-Toggle
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = group.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (group.isGameMasterGroup) {
+                                    Icon(
+                                        imageVector = Icons.Default.School,
+                                        contentDescription = "Spielleiter-Modus",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.updateGroupGameMasterMode(
+                                            group.id,
+                                            !group.isGameMasterGroup
+                                        )
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.School,
+                                        contentDescription = if (group.isGameMasterGroup) 
+                                            "Spielleiter-Modus deaktivieren" 
+                                        else 
+                                            "Spielleiter-Modus aktivieren",
+                                        tint = if (group.isGameMasterGroup)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                         
                         DerianDateCard(
                             currentDate = group.currentDerianDate,

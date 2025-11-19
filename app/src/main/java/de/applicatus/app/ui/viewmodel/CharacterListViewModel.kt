@@ -214,6 +214,13 @@ class CharacterListViewModel(
         }
     }
     
+    fun updateGroupGameMasterMode(groupId: Long, isGameMaster: Boolean) {
+        viewModelScope.launch {
+            val group = groups.value.find { it.id == groupId } ?: return@launch
+            repository.updateGroup(group.copy(isGameMasterGroup = isGameMaster))
+        }
+    }
+    
     fun deleteGroup(groupId: Long) {
         viewModelScope.launch {
             repository.deleteGroup(groupId)

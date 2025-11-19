@@ -1,5 +1,6 @@
 package de.applicatus.app.ui.screen.character
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NightsStay
@@ -18,10 +19,14 @@ fun CharacterEnergiesCard(
     onAdjustLe: (Int) -> Unit,
     onAdjustAe: (Int) -> Unit,
     onAdjustKe: (Int) -> Unit,
-    onRegeneration: () -> Unit
+    onRegeneration: () -> Unit,
+    isEditMode: Boolean = false,
+    onClick: () -> Unit = {}
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isEditMode) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

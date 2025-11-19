@@ -17,9 +17,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.LocalContentColor
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
@@ -44,7 +46,11 @@ fun CharacterHomeScreen(
     val importState = viewModel.importState
     val exportState = viewModel.exportState
     
-    var showEditDialog by remember { mutableStateOf(false) }
+    var isEditMode by remember { mutableStateOf(false) }
+    var showEditPropertiesDialog by remember { mutableStateOf(false) }
+    var showEditEnergiesDialog by remember { mutableStateOf(false) }
+    var showEditTalentsDialog by remember { mutableStateOf(false) }
+    var showEditSpellsDialog by remember { mutableStateOf(false) }
     var showRegenerationDialog by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     
@@ -160,8 +166,12 @@ fun CharacterHomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showEditDialog = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_character))
+                    IconButton(onClick = { isEditMode = !isEditMode }) {
+                        Icon(
+                            Icons.Default.Edit, 
+                            contentDescription = if (isEditMode) "Bearbeitung beenden" else stringResource(R.string.edit_character),
+                            tint = if (isEditMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
                     }
                     
                     // More Menu
@@ -225,7 +235,11 @@ fun CharacterHomeScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Eigenschaften
-                CharacterPropertiesCard(character = char)
+                CharacterPropertiesCard(
+                    character = char,
+                    isEditMode = isEditMode,
+                    onClick = { showEditPropertiesDialog = true }
+                )
                 
                 // Energien
                 CharacterEnergiesCard(
@@ -233,14 +247,24 @@ fun CharacterHomeScreen(
                     onAdjustLe = { delta -> viewModel.adjustCurrentLe(delta) },
                     onAdjustAe = { delta -> viewModel.adjustCurrentAe(delta) },
                     onAdjustKe = { delta -> viewModel.adjustCurrentKe(delta) },
-                    onRegeneration = { showRegenerationDialog = true }
+                    onRegeneration = { showRegenerationDialog = true },
+                    isEditMode = isEditMode,
+                    onClick = { showEditEnergiesDialog = true }
                 )
                 
                 // Talente
-                CharacterTalentsCard(character = char)
+                CharacterTalentsCard(
+                    character = char,
+                    isEditMode = isEditMode,
+                    onClick = { showEditTalentsDialog = true }
+                )
                 
                 // Zauber
-                CharacterSpellsCard(character = char)
+                CharacterSpellsCard(
+                    character = char,
+                    isEditMode = isEditMode,
+                    onClick = { showEditSpellsDialog = true }
+                )
                 
                 // Navigation Buttons
                 Spacer(modifier = Modifier.height(16.dp))
@@ -296,13 +320,47 @@ fun CharacterHomeScreen(
         )
     }
     
-    if (showEditDialog && character != null) {
-        EditCharacterDialog(
+    // Edit Dialogs
+    if (showEditPropertiesDialog && character != null) {
+        EditCharacterPropertiesDialog(
             character = character!!,
-            onDismiss = { showEditDialog = false },
+            onDismiss = { showEditPropertiesDialog = false },
             onConfirm = { updatedChar ->
                 viewModel.updateCharacter(updatedChar)
-                showEditDialog = false
+                showEditPropertiesDialog = false
+            }
+        )
+    }
+    
+    if (showEditEnergiesDialog && character != null) {
+        EditCharacterEnergiesDialog(
+            character = character!!,
+            onDismiss = { showEditEnergiesDialog = false },
+            onConfirm = { updatedChar ->
+                viewModel.updateCharacter(updatedChar)
+                showEditEnergiesDialog = false
+            }
+        )
+    }
+    
+    if (showEditTalentsDialog && character != null) {
+        EditCharacterTalentsDialog(
+            character = character!!,
+            onDismiss = { showEditTalentsDialog = false },
+            onConfirm = { updatedChar ->
+                viewModel.updateCharacter(updatedChar)
+                showEditTalentsDialog = false
+            }
+        )
+    }
+    
+    if (showEditSpellsDialog && character != null) {
+        EditCharacterSpellsDialog(
+            character = character!!,
+            onDismiss = { showEditSpellsDialog = false },
+            onConfirm = { updatedChar ->
+                viewModel.updateCharacter(updatedChar)
+                showEditSpellsDialog = false
             }
         )
     }

@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.spell.Spell
-import de.applicatus.app.data.model.spell.SpellSlot
 import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.logic.DerianDateCalculator
@@ -28,7 +27,6 @@ fun SpellSlotCardUsageMode(
     currentDate: String,
     isGameMaster: Boolean,
     showAnimation: Boolean,
-    character: de.applicatus.app.data.model.character.Character? = null,
     onCastSpell: () -> Unit,
     onClearSlot: () -> Unit,
     onAnimationEnd: () -> Unit = {}

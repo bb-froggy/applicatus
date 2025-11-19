@@ -1,5 +1,6 @@
 package de.applicatus.app.ui.screen.character
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -10,7 +11,11 @@ import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
 
 @Composable
-fun CharacterTalentsCard(character: Character) {
+fun CharacterTalentsCard(
+    character: Character,
+    isEditMode: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     // Prüfe, ob der Charakter überhaupt Talente hat
     val hasTalents = character.hasAlchemy || 
                      character.hasCookingPotions || 
@@ -19,10 +24,13 @@ fun CharacterTalentsCard(character: Character) {
                      character.magicalLoreSkill > 0 || 
                      character.herbalLoreSkill > 0
     
-    if (!hasTalents) return
+    // Im Edit-Modus zeigen wir die Card immer an, damit Talente hinzugefügt werden können
+    if (!hasTalents && !isEditMode) return
     
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isEditMode) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
