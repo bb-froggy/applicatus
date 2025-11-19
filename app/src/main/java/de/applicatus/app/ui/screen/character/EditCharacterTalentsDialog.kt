@@ -28,6 +28,9 @@ fun EditCharacterTalentsDialog(
     var sensoryAcuitySkill by remember { mutableStateOf(character.sensoryAcuitySkill.toString()) }
     var magicalLoreSkill by remember { mutableStateOf(character.magicalLoreSkill.toString()) }
     var herbalLoreSkill by remember { mutableStateOf(character.herbalLoreSkill.toString()) }
+    
+    var ritualKnowledgeValue by remember { mutableStateOf(character.ritualKnowledgeValue.toString()) }
+    var hasKonzentrationsstärke by remember { mutableStateOf(character.hasKonzentrationsstärke) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -159,6 +162,44 @@ fun EditCharacterTalentsDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+                
+                // Astrale Meditation
+                if (character.hasAe) {
+                    item {
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                    
+                    item {
+                        Text(
+                            "Astrale Meditation",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    
+                    item {
+                        OutlinedTextField(
+                            value = ritualKnowledgeValue,
+                            onValueChange = { ritualKnowledgeValue = it },
+                            label = { Text("Ritualkenntnis RkW") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Text("SF Konzentrationsstärke")
+                            Switch(
+                                checked = hasKonzentrationsstärke,
+                                onCheckedChange = { hasKonzentrationsstärke = it }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -175,7 +216,9 @@ fun EditCharacterTalentsDialog(
                             selfControlSkill = selfControlSkill.toIntOrNull() ?: 0,
                             sensoryAcuitySkill = sensoryAcuitySkill.toIntOrNull() ?: 0,
                             magicalLoreSkill = magicalLoreSkill.toIntOrNull() ?: 0,
-                            herbalLoreSkill = herbalLoreSkill.toIntOrNull() ?: 0
+                            herbalLoreSkill = herbalLoreSkill.toIntOrNull() ?: 0,
+                            ritualKnowledgeValue = if (character.hasAe) ritualKnowledgeValue.toIntOrNull() ?: 0 else 0,
+                            hasKonzentrationsstärke = if (character.hasAe) hasKonzentrationsstärke else false
                         )
                     )
                 }

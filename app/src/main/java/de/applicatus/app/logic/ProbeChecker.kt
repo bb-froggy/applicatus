@@ -541,7 +541,7 @@ object ProbeChecker {
     }
     
     /**
-     * Holt die Eigenschaftswerte für ein Talent aus dem Charakter
+     * Holt die Eigenschaftswerte für einen Talent aus dem Charakter
      */
     private fun getAttributesForTalent(talent: Talent, character: Character): Triple<Int, Int, Int> {
         return Triple(
@@ -549,6 +549,51 @@ object ProbeChecker {
             getAttributeValue(talent.attribute2, character),
             getAttributeValue(talent.attribute3, character)
         )
+    }
+    
+    /**
+     * Führt eine Astrale Meditation durch
+     * 
+     * Die Astrale Meditation erlaubt es einem Charakter, LE in AE umzuwandeln.
+     * 
+     * Regelwerk:
+     * - Probe auf IN/CH/KO
+     * - Erleichterung um RkW/2 (aufgerundet)
+     * - Zusätzlich -2 Erschwernis bei SF Konzentrationsstärke
+     * - Bei Erfolg: 1:1 LE → AE Umwandlung
+     * - Zusätzliche Kosten: 1 AsP + 1W3-1 LE
+     * 
+     * @param character Charakter, der meditiert
+     * @param leToConvert Anzahl LE, die umgewandelt werden sollen
+     * @param diceRoll Lambda für W20-Würfe (überschreibbar für Tests)
+     * @return Paar aus ProbeResult und zusätzlichen LE-Kosten (1W3-1)
+     */
+    fun performAstralMeditation(
+        character: Character,
+        leToConvert: Int,
+        diceRoll: () -> Int = { rollD20() }
+    ): Pair<ProbeResult, Int> {
+        // Berechne Erleichterung
+        // RkW/2 (aufgerundet) + optional 2 für SF Konzentrationsstärke
+        val ritualBonus = (character.ritualKnowledgeValue + 1) / 2
+        val sfBonus = if (character.hasKonzentrationsstärke) 2 else 0
+        val totalFacilitation = ritualBonus + sfBonus
+        
+        // Probe auf IN/CH/KO mit Erleichterung (negative Erschwernis = Erleichterung)
+        val probeResult = performThreeAttributeProbe(
+            fertigkeitswert = 0, // Keine Fertigkeitspunkte, nur Eigenschaftsprobe
+            difficulty = -totalFacilitation, // Negativ = Erleichterung
+            attribute1 = character.inValue,
+            attribute2 = character.ch,
+            attribute3 = character.ko,
+            diceRoll = diceRoll,
+            qualityPointName = "FP*"
+        )
+        
+        // Würfle zusätzliche LE-Kosten: 1W3-1 = W3 - 1
+        val additionalLeCost = (Random.nextInt(1, 4) - 1).coerceAtLeast(0) // W3-1, min 0
+        
+        return Pair(probeResult, additionalLeCost)
     }
     
     /**

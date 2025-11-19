@@ -25,6 +25,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.ui.component.EnergyChangeNotification
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModelFactory
 
@@ -42,6 +43,8 @@ fun CharacterHomeScreen(
     val viewModel: CharacterHomeViewModel = viewModel(factory = viewModelFactory)
     val character by viewModel.character.collectAsState()
     val lastRegenerationResult by viewModel.lastRegenerationResult.collectAsState()
+    val lastAstralMeditationResult by viewModel.lastAstralMeditationResult.collectAsState()
+    val energyChanges by viewModel.energyChanges.collectAsState()
     val context = LocalContext.current
     val importState = viewModel.importState
     val exportState = viewModel.exportState
@@ -52,6 +55,7 @@ fun CharacterHomeScreen(
     var showEditTalentsDialog by remember { mutableStateOf(false) }
     var showEditSpellsDialog by remember { mutableStateOf(false) }
     var showRegenerationDialog by remember { mutableStateOf(false) }
+    var showAstralMeditationDialog by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     
     // File pickers
@@ -241,16 +245,30 @@ fun CharacterHomeScreen(
                     onClick = { showEditPropertiesDialog = true }
                 )
                 
-                // Energien
-                CharacterEnergiesCard(
-                    character = char,
-                    onAdjustLe = { delta -> viewModel.adjustCurrentLe(delta) },
-                    onAdjustAe = { delta -> viewModel.adjustCurrentAe(delta) },
-                    onAdjustKe = { delta -> viewModel.adjustCurrentKe(delta) },
-                    onRegeneration = { showRegenerationDialog = true },
-                    isEditMode = isEditMode,
-                    onClick = { showEditEnergiesDialog = true }
-                )
+                // Energien mit Change Notification Overlay
+                Box {
+                    CharacterEnergiesCard(
+                        character = char,
+                        onAdjustLe = { delta -> viewModel.adjustCurrentLe(delta) },
+                        onAdjustAe = { delta -> viewModel.adjustCurrentAe(delta) },
+                        onAdjustKe = { delta -> viewModel.adjustCurrentKe(delta) },
+                        onRegeneration = { showRegenerationDialog = true },
+                        onAstralMeditation = { showAstralMeditationDialog = true },
+                        isEditMode = isEditMode,
+                        onClick = { showEditEnergiesDialog = true }
+                    )
+                    
+                    // Energie-Änderungs-Benachrichtigung
+                    if (energyChanges.isNotEmpty()) {
+                        EnergyChangeNotification(
+                            changes = energyChanges,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 8.dp),
+                            onAnimationEnd = { viewModel.clearEnergyChanges() }
+                        )
+                    }
+                }
                 
                 // Talente
                 CharacterTalentsCard(
@@ -306,6 +324,19 @@ fun CharacterHomeScreen(
         )
     }
     
+    if (showAstralMeditationDialog) {
+        character?.let { char ->
+            AstralMeditationDialog(
+                character = char,
+                onDismiss = { showAstralMeditationDialog = false },
+                onConfirm = { leToConvert ->
+                    viewModel.performAstralMeditation(leToConvert)
+                    showAstralMeditationDialog = false
+                }
+            )
+        }
+    }
+    
     // Zeige Regenerationsergebnis
     lastRegenerationResult?.let { result ->
         AlertDialog(
@@ -314,6 +345,20 @@ fun CharacterHomeScreen(
             text = { Text(result.getFormattedResult()) },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearRegenerationResult() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+    
+    // Zeige Astrale Meditation Ergebnis
+    lastAstralMeditationResult?.let { result ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearAstralMeditationResult() },
+            title = { Text("Astrale Meditation") },
+            text = { Text(result) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearAstralMeditationResult() }) {
                     Text("OK")
                 }
             }

@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -20,6 +20,7 @@ fun CharacterEnergiesCard(
     onAdjustAe: (Int) -> Unit,
     onAdjustKe: (Int) -> Unit,
     onRegeneration: () -> Unit,
+    onAstralMeditation: () -> Unit = {},
     isEditMode: Boolean = false,
     onClick: () -> Unit = {}
 ) {
@@ -96,6 +97,20 @@ fun CharacterEnergiesCard(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+                
+                // Astrale Meditation Button (nur wenn AE vorhanden)
+                if (character.hasAe) {
+                    FilledTonalButton(
+                        onClick = onAstralMeditation,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(8.dp)
+                    ) {
+                        Text("AM", style = MaterialTheme.typography.labelLarge)
+                    }
+                } else {
+                    // Platzhalter wenn keine AE
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
             
             // Zweite Zeile: Werte und Anpassungs-Buttons
@@ -145,7 +160,12 @@ fun CharacterEnergiesCard(
                 }
                 
                 // Platzhalter für Button-Spalte
-                Spacer(modifier = Modifier.weight(1f))
+                if (character.hasAe) {
+                    Spacer(modifier = Modifier.weight(1f))
+                } else {
+                    // Zwei Platzhalter wenn keine AE (weil ein Button fehlt)
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
         }
     }
@@ -161,7 +181,7 @@ private fun EnergyValueRow(
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         // Wert-Anzeige
         Text(
@@ -169,46 +189,58 @@ private fun EnergyValueRow(
             style = MaterialTheme.typography.bodyMedium
         )
         
-        // Anpassungs-Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+        // 2x2 Button-Grid
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // -5 Button
-            IconButton(
-                onClick = { onAdjust(-5) },
-                enabled = current > 0,
-                modifier = Modifier.size(32.dp)
+            // Erste Zeile: -5 und -1
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("-5", style = MaterialTheme.typography.labelSmall)
+                IconButton(
+                    onClick = { onAdjust(-5) },
+                    enabled = current > 0,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Text("-5", style = MaterialTheme.typography.labelSmall)
+                }
+                
+                Spacer(modifier = Modifier.width(2.dp))
+                
+                IconButton(
+                    onClick = { onAdjust(-1) },
+                    enabled = current > 0,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Text("-", style = MaterialTheme.typography.titleMedium)
+                }
             }
             
-            // -1 Button
-            IconButton(
-                onClick = { onAdjust(-1) },
-                enabled = current > 0,
-                modifier = Modifier.size(32.dp)
+            // Zweite Zeile: +1 und +5
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("-", style = MaterialTheme.typography.titleMedium)
-            }
-            
-            // +1 Button
-            IconButton(
-                onClick = { onAdjust(1) },
-                enabled = current < max,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text("+", style = MaterialTheme.typography.titleMedium)
-            }
-            
-            // +5 Button
-            IconButton(
-                onClick = { onAdjust(5) },
-                enabled = current < max,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text("+5", style = MaterialTheme.typography.labelSmall)
+                IconButton(
+                    onClick = { onAdjust(1) },
+                    enabled = current < max,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Text("+", style = MaterialTheme.typography.titleMedium)
+                }
+                
+                Spacer(modifier = Modifier.width(2.dp))
+                
+                IconButton(
+                    onClick = { onAdjust(5) },
+                    enabled = current < max,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Text("+5", style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }

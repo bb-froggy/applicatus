@@ -14,6 +14,7 @@ import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.RegenerationCalculator
 import de.applicatus.app.logic.RegenerationResult
+import de.applicatus.app.logic.ProbeChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,6 +61,13 @@ class CharacterHomeViewModel(
     private val _lastRegenerationResult = MutableStateFlow<RegenerationResult?>(null)
     val lastRegenerationResult: StateFlow<RegenerationResult?> = _lastRegenerationResult.asStateFlow()
     
+    // Energy Change Tracking (5-second sliding window)
+    private val _energyChanges = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val energyChanges: StateFlow<Map<String, Int>> = _energyChanges.asStateFlow()
+    
+    private var changeWindowStartTime = 0L
+    private val windowDurationMs = 5000L // 5 seconds
+    
     init {
         loadCharacter()
     }
@@ -88,6 +96,7 @@ class CharacterHomeViewModel(
     fun adjustCurrentLe(delta: Int) {
         _character.value?.let { char ->
             updateCurrentLe(char.currentLe + delta)
+            trackEnergyChange("LE", delta)
         }
     }
     
@@ -101,6 +110,7 @@ class CharacterHomeViewModel(
     fun adjustCurrentAe(delta: Int) {
         _character.value?.let { char ->
             updateCurrentAe(char.currentAe + delta)
+            trackEnergyChange("AE", delta)
         }
     }
     
@@ -114,7 +124,33 @@ class CharacterHomeViewModel(
     fun adjustCurrentKe(delta: Int) {
         _character.value?.let { char ->
             updateCurrentKe(char.currentKe + delta)
+            trackEnergyChange("KE", delta)
         }
+    }
+    
+    /**
+     * Tracks cumulative energy changes within a 5-second sliding window.
+     * The window extends with each new change (resets the 5-second timer).
+     */
+    private fun trackEnergyChange(energyType: String, delta: Int) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Reset window if expired (no activity for 5 seconds)
+        if (currentTime - changeWindowStartTime > windowDurationMs) {
+            _energyChanges.value = mapOf(energyType to delta)
+        } else {
+            // Accumulate within window
+            _energyChanges.value = _energyChanges.value.toMutableMap().apply {
+                this[energyType] = (this[energyType] ?: 0) + delta
+            }
+        }
+        // Reset change window
+        changeWindowStartTime = currentTime
+    }
+    
+    fun clearEnergyChanges() {
+        _energyChanges.value = emptyMap()
+        changeWindowStartTime = 0L
     }
     
     fun performRegeneration(modifier: Int) {
@@ -134,6 +170,86 @@ class CharacterHomeViewModel(
     
     fun clearRegenerationResult() {
         _lastRegenerationResult.value = null
+    }
+    
+    // Astrale Meditation State
+    private val _lastAstralMeditationResult = MutableStateFlow<String?>(null)
+    val lastAstralMeditationResult: StateFlow<String?> = _lastAstralMeditationResult.asStateFlow()
+    
+    fun performAstralMeditation(leToConvert: Int) {
+        _character.value?.let { char ->
+            // Prüfe Voraussetzungen
+            if (!char.hasAe) {
+                _lastAstralMeditationResult.value = "❌ Fehler: Charakter hat keine Astralenergie!"
+                return
+            }
+            
+            if (leToConvert <= 0) {
+                _lastAstralMeditationResult.value = "❌ Fehler: Ungültige LE-Anzahl!"
+                return
+            }
+            
+            // Führe Probe durch
+            val result = ProbeChecker.performAstralMeditation(char, leToConvert)
+            val probeResult = result.first
+            val additionalLeCost = result.second
+            
+            if (probeResult.success) {
+                // Berechne Gesamt-LE-Kosten: leToConvert + 1W3-1
+                val totalLeCost = leToConvert + additionalLeCost
+                
+                // Prüfe ob genug LE vorhanden
+                if (char.currentLe < totalLeCost) {
+                    _lastAstralMeditationResult.value = "❌ Fehler: Nicht genug LE! Benötigt: $totalLeCost (${leToConvert} + ${additionalLeCost}), Verfügbar: ${char.currentLe}"
+                    return
+                }
+                
+                // Prüfe ob genug AsP vorhanden (1 AsP Kosten)
+                if (char.currentAe < 1) {
+                    _lastAstralMeditationResult.value = "❌ Fehler: Nicht genug AsP! Benötigt: 1, Verfügbar: ${char.currentAe}"
+                    return
+                }
+                
+                // Prüfe ob AE-Maximum erreicht wäre
+                if (char.currentAe + leToConvert - 1 > char.maxAe) {
+                    val maxConvertible = char.maxAe - char.currentAe + 1
+                    _lastAstralMeditationResult.value = "❌ Fehler: AE-Maximum würde überschritten! Maximum konvertierbar: $maxConvertible LE"
+                    return
+                }
+                
+                // Umwandlung durchführen
+                val newChar = char.copy(
+                    currentLe = char.currentLe - totalLeCost,
+                    currentAe = (char.currentAe - 1 + leToConvert).coerceAtMost(char.maxAe)
+                )
+                updateCharacter(newChar)
+                
+                // Erfolgsmeldung
+                _lastAstralMeditationResult.value = buildString {
+                    append("✅ Astrale Meditation erfolgreich!\n\n")
+                    append("Probe: IN/CH/KO\n")
+                    append("Würfe: ${probeResult.rolls.joinToString(", ")}\n")
+                    append("${probeResult.message}\n\n")
+                    append("Umwandlung: $leToConvert LE → $leToConvert AE\n")
+                    append("Kosten: 1 AsP + $totalLeCost LE (${leToConvert} + ${additionalLeCost})\n\n")
+                    append("Neue Werte:\n")
+                    append("LE: ${char.currentLe} → ${newChar.currentLe}\n")
+                    append("AE: ${char.currentAe} → ${newChar.currentAe}")
+                }
+            } else {
+                // Fehlschlag
+                _lastAstralMeditationResult.value = buildString {
+                    append("❌ Astrale Meditation fehlgeschlagen!\n\n")
+                    append("Probe: IN/CH/KO\n")
+                    append("Würfe: ${probeResult.rolls.joinToString(", ")}\n")
+                    append(probeResult.message)
+                }
+            }
+        }
+    }
+    
+    fun clearAstralMeditationResult() {
+        _lastAstralMeditationResult.value = null
     }
     
     // Export/Import Funktionen
