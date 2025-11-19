@@ -1,4 +1,4 @@
-package de.applicatus.app.ui.component.character
+package de.applicatus.app.ui.screen.character
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

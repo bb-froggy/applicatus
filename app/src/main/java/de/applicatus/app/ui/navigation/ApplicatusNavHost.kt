@@ -11,7 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.ui.screen.spell.SpellStorageScreen
-import de.applicatus.app.ui.screen.CharacterHomeScreen
+import de.applicatus.app.ui.screen.character.CharacterHomeScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
 import de.applicatus.app.ui.screen.NearbySyncScreen
 import de.applicatus.app.ui.screen.inventory.InventoryScreen

@@ -212,7 +212,7 @@ fun SpellSlotCardUsageMode(
             
             // Sternchen-Animation beim Einspeichern
             if (showAnimation) {
-                de.applicatus.app.ui.component.SpellCastAnimation(
+                de.applicatus.app.ui.component.spell.SpellCastAnimation(
                     modifier = Modifier.align(Alignment.Center),
                     onAnimationEnd = onAnimationEnd
                 )

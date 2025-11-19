@@ -1,4 +1,4 @@
-package de.applicatus.app.ui.component
+package de.applicatus.app.ui.component.spell
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.Box

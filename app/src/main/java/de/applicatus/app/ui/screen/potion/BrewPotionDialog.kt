@@ -22,7 +22,7 @@ import de.applicatus.app.data.model.potion.SubstitutionType
 import de.applicatus.app.data.model.talent.Talent
 import de.applicatus.app.logic.PotionBrewer
 import de.applicatus.app.ui.component.MagicalMasteryControl
-import de.applicatus.app.ui.component.PotionBrewAnimation
+import de.applicatus.app.ui.component.potion.PotionBrewAnimation
 import de.applicatus.app.ui.viewmodel.PotionViewModel
 import kotlinx.coroutines.launch
 
