@@ -23,6 +23,7 @@ fun StructureAnalysisDialog(
     potion: Potion,
     recipe: Recipe,
     character: de.applicatus.app.data.model.character.Character,
+    isGameMasterGroup: Boolean,
     characterId: Long,
     viewModel: PotionViewModel,
     onDismiss: () -> Unit,
@@ -54,7 +55,7 @@ fun StructureAnalysisDialog(
     val bestFacilitation = maxOf(intensityFacilitation, potion.bestStructureAnalysisFacilitation)
     
     // Rezeptname nur anzeigen, wenn Spielleiter oder Rezept bekannt/verstanden
-    val showRecipeName = character.isGameMaster || isRecipeKnown
+    val showRecipeName = isGameMasterGroup || isRecipeKnown
     
     Dialog(onDismissRequest = onDismiss) {
         Card(

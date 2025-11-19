@@ -72,8 +72,6 @@ data class Character(
     val hasKe: Boolean = false,          // Hat der Charakter KE?
     val currentKe: Int = 0,              // Aktuelle Karmaenergie
     val maxKe: Int = 0,                  // Maximale Karmaenergie
-    // Spieler/Spielleiter-Modus
-    val isGameMaster: Boolean = false,   // Ist der Nutzer Spielleiter? (zeigt alle Infos)
     // Gruppe
     val groupId: Long? = null,           // Foreign Key zur Gruppe (null = Standard-Gruppe wird verwendet)
     // Metadata

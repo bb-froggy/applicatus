@@ -61,6 +61,7 @@ fun PotionScreen(
     val character by viewModel.character.collectAsState()
     val groupCharacters by viewModel.groupCharacters.collectAsState()
     val currentGroup by viewModel.currentGroup.collectAsState()
+    val isGameMasterGroup by viewModel.isGameMasterGroup.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showBrewDialog by remember { mutableStateOf(false) }
@@ -69,8 +70,6 @@ fun PotionScreen(
     var showDilutionDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showPreservationDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
     var showConsumeDialog by remember { mutableStateOf<PotionWithRecipe?>(null) }
-
-    val isGameMaster = character?.isGameMaster ?: false
 
     Scaffold(
         topBar = {
@@ -93,7 +92,7 @@ fun PotionScreen(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (isGameMaster) {
+                if (isGameMasterGroup) {
                     // Spielleiter: Button zum direkten Hinzufügen
                     FloatingActionButton(
                         onClick = { showAddDialog = true },
@@ -139,7 +138,7 @@ fun PotionScreen(
                     
                     PotionCard(
                         potionWithRecipe = potionWithRecipe,
-                        isGameMaster = character?.isGameMaster ?: false,
+                        isGameMaster = isGameMasterGroup,
                         isNameKnown = isNameKnown,
                         groupCharacters = groupCharacters,
                         character = character,
@@ -165,6 +164,7 @@ fun PotionScreen(
                 potion = potionWithRecipe.potion,
                 recipe = potionWithRecipe.recipe,
                 character = char,
+                isGameMasterGroup = isGameMasterGroup,
                 characterId = characterId,
                 viewModel = viewModel,
                 onDismiss = { showAnalysisDialog = null }
@@ -180,6 +180,7 @@ fun PotionScreen(
                 potion = potionWithRecipe.potion,
                 recipe = potionWithRecipe.recipe,
                 character = char,
+                isGameMasterGroup = isGameMasterGroup,
                 viewModel = viewModel,
                 onDismiss = { showDilutionDialog = null },
                 onComplete = { showDilutionDialog = null }
@@ -233,6 +234,7 @@ fun PotionScreen(
     if (showBrewDialog && character != null) {
         BrewPotionDialog(
             character = character!!,
+            isGameMasterGroup = isGameMasterGroup,
             viewModel = viewModel,
             onDismiss = { showBrewDialog = false }
         )

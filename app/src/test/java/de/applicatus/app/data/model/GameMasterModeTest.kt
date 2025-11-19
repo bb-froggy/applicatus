@@ -1,6 +1,6 @@
 package de.applicatus.app.data.model
 
-import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.spell.SpellSlot
 import de.applicatus.app.data.model.spell.SlotType
 import org.junit.Test
@@ -8,28 +8,31 @@ import org.junit.Assert.*
 
 /**
  * Tests für die Spieler/Spielleiter-Funktionalität
+ * 
+ * Hinweis: Der Spielleitermodus ist jetzt auf Gruppen-Ebene (Group.isGameMasterGroup),
+ * nicht mehr auf Charakter-Ebene.
  */
 class GameMasterModeTest {
     
     @Test
-    fun `Character hat isGameMaster Standardwert false`() {
-        val character = Character(
+    fun `Group hat isGameMasterGroup Standardwert false`() {
+        val group = Group(
             id = 1,
-            name = "Test Charakter"
+            name = "Test Gruppe"
         )
         
-        assertFalse("isGameMaster sollte standardmäßig false sein", character.isGameMaster)
+        assertFalse("isGameMasterGroup sollte standardmäßig false sein", group.isGameMasterGroup)
     }
     
     @Test
-    fun `Character kann als Spielleiter markiert werden`() {
-        val character = Character(
+    fun `Group kann als Spielleiter-Gruppe markiert werden`() {
+        val group = Group(
             id = 1,
-            name = "Test Charakter",
-            isGameMaster = true
+            name = "Test Gruppe",
+            isGameMasterGroup = true
         )
         
-        assertTrue("isGameMaster sollte true sein", character.isGameMaster)
+        assertTrue("isGameMasterGroup sollte true sein", group.isGameMasterGroup)
     }
     
     @Test
@@ -97,17 +100,17 @@ class GameMasterModeTest {
     }
     
     @Test
-    fun `Character kann von Spieler zu Spielleiter geändert werden`() {
-        var character = Character(
+    fun `Group kann von Spieler zu Spielleiter geändert werden`() {
+        var group = Group(
             id = 1,
-            name = "Test Charakter",
-            isGameMaster = false
+            name = "Test Gruppe",
+            isGameMasterGroup = false
         )
         
-        assertFalse(character.isGameMaster)
+        assertFalse(group.isGameMasterGroup)
         
-        character = character.copy(isGameMaster = true)
+        group = group.copy(isGameMasterGroup = true)
         
-        assertTrue("Character sollte jetzt Spielleiter sein", character.isGameMaster)
+        assertTrue("Group sollte jetzt Spielleiter-Gruppe sein", group.isGameMasterGroup)
     }
 }

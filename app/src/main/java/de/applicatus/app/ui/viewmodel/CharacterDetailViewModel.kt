@@ -86,6 +86,19 @@ class CharacterDetailViewModel(
             initialValue = "1 Praios 1040 BF"
         )
     
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val isGameMasterGroup: StateFlow<Boolean> = character
+        .mapLatest { char ->
+            char?.groupId?.let { groupId ->
+                repository.getGroupByIdOnce(groupId)?.isGameMasterGroup
+            } ?: false
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+    
     val spellSlots: StateFlow<List<SpellSlotWithSpell>> = 
         repository.getSlotsWithSpellsByCharacter(characterId)
             .stateIn(
@@ -469,7 +482,7 @@ class CharacterDetailViewModel(
         }
     }
 
-    private fun buildSpellCastSummary(
+    private suspend fun buildSpellCastSummary(
         spell: Spell,
         slot: SpellSlot,
         spellResult: SpellCheckResult,
@@ -504,7 +517,10 @@ class CharacterDetailViewModel(
             appendLine("Zauberprobe: ${formatRollResult(spellResult)}")
             
             // GM-Modus: Detaillierte AsP-Kostenaufschlüsselung
-            if (char.isGameMaster) {
+            val isGM = char.groupId?.let { groupId ->
+                repository.getGroupByIdOnce(groupId)?.isGameMasterGroup
+            } ?: false
+            if (isGM) {
                 appendLine("\nAsP-Kosten Details:")
                 if (slot.slotType == SlotType.APPLICATUS && applicatusAspCost > 0) {
                     appendLine("  • Applicatus: $applicatusAspRollText = $applicatusAspCost AsP")

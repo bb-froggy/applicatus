@@ -29,6 +29,7 @@ fun DilutionDialog(
     potion: Potion,
     recipe: Recipe,
     character: Character,
+    isGameMasterGroup: Boolean,
     viewModel: PotionViewModel,
     onDismiss: () -> Unit,
     onComplete: () -> Unit
@@ -80,7 +81,7 @@ fun DilutionDialog(
     val maxDilutionSteps = 5
     
     // Prüfen ob Spieler die exakte Qualität kennt
-    val knowsExactQuality = character.isGameMaster || 
+    val knowsExactQuality = isGameMasterGroup || 
                             potion.knownExactQuality != null ||
                             potion.knownQualityLevel == de.applicatus.app.data.model.potion.KnownQualityLevel.EXACT
     
@@ -122,7 +123,7 @@ fun DilutionDialog(
                     )
                     
                     // Aktuelle Qualität nur für Spielleiter anzeigen
-                    if (character.isGameMaster) {
+                    if (isGameMasterGroup) {
                         Text(
                             text = "Aktuelle Qualität: ${potion.actualQuality.name}",
                             style = MaterialTheme.typography.bodyMedium,
@@ -271,7 +272,7 @@ fun DilutionDialog(
                                         dilutionSteps = dilutionSteps,
                                         magicalMasteryAsp = magicalMasteryAsp
                                     )
-                                    resultMessage = PotionBrewer.formatDilutionResult(result, character.isGameMaster)
+                                    resultMessage = PotionBrewer.formatDilutionResult(result, isGameMasterGroup)
                                 } catch (e: Exception) {
                                     resultMessage = "Fehler: ${e.message}"
                                 } finally {

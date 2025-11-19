@@ -38,6 +38,7 @@ fun InventoryScreen(
     )
     
     val character by viewModel.character.collectAsState()
+    val isGameMasterGroup by viewModel.isGameMasterGroup.collectAsState()
     val locations by viewModel.locations.collectAsState()
     val itemsByLocation by viewModel.itemsByLocation.collectAsState()
     val weightByLocation by viewModel.weightByLocation.collectAsState()
@@ -246,7 +247,7 @@ fun InventoryScreen(
                             totalWeight = weightByLocation[location.id] ?: Weight.ZERO,
                             draggedItem = draggedItem,
                             isEditMode = isEditMode,
-                            isGameMaster = character?.isGameMaster ?: false,
+                            isGameMaster = isGameMasterGroup,
                             onAddItem = {
                                 selectedLocationForNewItem = location.id
                                 showAddItemDialog = true
@@ -367,7 +368,7 @@ fun InventoryScreen(
                             totalWeight = weightByLocation[null] ?: Weight.ZERO,
                             draggedItem = draggedItem,
                             isEditMode = isEditMode,
-                            isGameMaster = character?.isGameMaster ?: false,
+                            isGameMaster = isGameMasterGroup,
                             onAddItem = {
                                 selectedLocationForNewItem = null
                                 showAddItemDialog = true

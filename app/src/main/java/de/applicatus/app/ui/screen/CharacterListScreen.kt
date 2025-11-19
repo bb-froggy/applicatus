@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -31,8 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.R
 import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.Group
@@ -210,7 +211,7 @@ fun CharacterListScreen(
                             ) {
                                 if (group.isGameMasterGroup) {
                                     Icon(
-                                        imageVector = Icons.Default.School,
+                                        painter = painterResource(R.drawable.ic_game_master_mask),
                                         contentDescription = "Spielleiter-Modus",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -225,7 +226,7 @@ fun CharacterListScreen(
                                     }
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.School,
+                                        painter = painterResource(R.drawable.ic_game_master_mask),
                                         contentDescription = if (group.isGameMasterGroup) 
                                             "Spielleiter-Modus deaktivieren" 
                                         else 

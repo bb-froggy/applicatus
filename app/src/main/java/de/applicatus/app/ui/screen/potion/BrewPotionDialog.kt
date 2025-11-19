@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BrewPotionDialog(
     character: Character,
+    isGameMasterGroup: Boolean,
     viewModel: PotionViewModel,
     onDismiss: () -> Unit
 ) {
@@ -136,7 +137,7 @@ fun BrewPotionDialog(
                 if (brewingResult != null) {
                 // Ergebnis anzeigen
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (character.isGameMaster) {
+                    if (isGameMasterGroup) {
                         // Spielleiter sieht alle Details
                         Text(
                             text = PotionBrewer.formatBrewingResult(brewingResult!!, true),

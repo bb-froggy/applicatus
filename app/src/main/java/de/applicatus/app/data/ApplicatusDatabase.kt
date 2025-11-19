@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 31,
+    version = 32,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -998,6 +998,112 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Entferne isGameMaster aus characters-Tabelle (migriert zu Group.isGameMasterGroup)
+                // SQLite unterstützt ALTER TABLE DROP COLUMN erst ab Version 3.35.0 (Android API 30+)
+                // Daher verwenden wir die klassische Methode: neue Tabelle erstellen, Daten kopieren, alte Tabelle löschen
+                
+                // 1. Neue Tabelle ohne isGameMaster erstellen
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS characters_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        guid TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        mu INTEGER NOT NULL,
+                        kl INTEGER NOT NULL,
+                        inValue INTEGER NOT NULL,
+                        ch INTEGER NOT NULL,
+                        ff INTEGER NOT NULL,
+                        ge INTEGER NOT NULL,
+                        ko INTEGER NOT NULL,
+                        kk INTEGER NOT NULL,
+                        hasApplicatus INTEGER NOT NULL,
+                        applicatusZfw INTEGER NOT NULL,
+                        applicatusModifier INTEGER NOT NULL,
+                        currentLe INTEGER NOT NULL,
+                        maxLe INTEGER NOT NULL,
+                        hasAe INTEGER NOT NULL,
+                        currentAe INTEGER NOT NULL,
+                        maxAe INTEGER NOT NULL,
+                        hasKe INTEGER NOT NULL,
+                        currentKe INTEGER NOT NULL,
+                        maxKe INTEGER NOT NULL,
+                        leRegenBonus INTEGER NOT NULL,
+                        aeRegenBonus INTEGER NOT NULL,
+                        hasMasteryRegeneration INTEGER NOT NULL,
+                        alchemySkill INTEGER NOT NULL,
+                        cookingPotionsSkill INTEGER NOT NULL,
+                        odemZfw INTEGER NOT NULL,
+                        analysZfw INTEGER NOT NULL,
+                        hasAlchemy INTEGER NOT NULL,
+                        hasCookingPotions INTEGER NOT NULL,
+                        hasOdem INTEGER NOT NULL,
+                        hasAnalys INTEGER NOT NULL,
+                        selfControlSkill INTEGER NOT NULL,
+                        sensoryAcuitySkill INTEGER NOT NULL,
+                        magicalLoreSkill INTEGER NOT NULL,
+                        herbalLoreSkill INTEGER NOT NULL,
+                        alchemyIsMagicalMastery INTEGER NOT NULL,
+                        cookingPotionsIsMagicalMastery INTEGER NOT NULL,
+                        defaultLaboratory TEXT,
+                        groupId INTEGER,
+                        kraftkontrolle INTEGER NOT NULL,
+                        hasStaffWithKraftfokus INTEGER NOT NULL,
+                        applicatusDuration TEXT NOT NULL,
+                        applicatusAspSavingPercent INTEGER NOT NULL,
+                        lastModifiedDate INTEGER NOT NULL,
+                        FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // 2. Daten kopieren (ohne isGameMaster)
+                database.execSQL("""
+                    INSERT INTO characters_new (
+                        id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                        hasApplicatus, applicatusZfw, applicatusModifier,
+                        currentLe, maxLe, hasAe, currentAe, maxAe, hasKe, currentKe, maxKe,
+                        leRegenBonus, aeRegenBonus, hasMasteryRegeneration,
+                        alchemySkill, cookingPotionsSkill,
+                        odemZfw, analysZfw,
+                        hasAlchemy, hasCookingPotions, hasOdem, hasAnalys,
+                        selfControlSkill, sensoryAcuitySkill, magicalLoreSkill, herbalLoreSkill,
+                        alchemyIsMagicalMastery, cookingPotionsIsMagicalMastery,
+                        defaultLaboratory,
+                        groupId,
+                        kraftkontrolle, hasStaffWithKraftfokus,
+                        applicatusDuration, applicatusAspSavingPercent,
+                        lastModifiedDate
+                    )
+                    SELECT 
+                        id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
+                        hasApplicatus, applicatusZfw, applicatusModifier,
+                        currentLe, maxLe, hasAe, currentAe, maxAe, hasKe, currentKe, maxKe,
+                        leRegenBonus, aeRegenBonus, hasMasteryRegeneration,
+                        alchemySkill, cookingPotionsSkill,
+                        odemZfw, analysZfw,
+                        hasAlchemy, hasCookingPotions, hasOdem, hasAnalys,
+                        selfControlSkill, sensoryAcuitySkill, magicalLoreSkill, herbalLoreSkill,
+                        alchemyIsMagicalMastery, cookingPotionsIsMagicalMastery,
+                        defaultLaboratory,
+                        groupId,
+                        kraftkontrolle, hasStaffWithKraftfokus,
+                        applicatusDuration, applicatusAspSavingPercent,
+                        lastModifiedDate
+                    FROM characters
+                """.trimIndent())
+                
+                // 3. Alte Tabelle löschen
+                database.execSQL("DROP TABLE characters")
+                
+                // 4. Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE characters_new RENAME TO characters")
+                
+                // 5. Indices neu erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -1005,7 +1111,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

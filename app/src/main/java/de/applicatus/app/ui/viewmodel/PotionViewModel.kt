@@ -18,10 +18,12 @@ import de.applicatus.app.logic.PotionBrewer
 import de.applicatus.app.logic.PotionHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -44,6 +46,14 @@ class PotionViewModel(
     
     private val _currentGroup = MutableStateFlow<de.applicatus.app.data.model.character.Group?>(null)
     val currentGroup: StateFlow<de.applicatus.app.data.model.character.Group?> = _currentGroup.asStateFlow()
+    
+    val isGameMasterGroup: StateFlow<Boolean> = _currentGroup
+        .combine(_character) { group, _ -> group?.isGameMasterGroup ?: false }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
     
     init {
         loadPotions()
@@ -80,18 +90,21 @@ class PotionViewModel(
     private fun loadGroupCharacters() {
         viewModelScope.launch {
             repository.getCharacterByIdFlow(characterId).collect { currentChar ->
-                if (currentChar != null) {
-                    repository.allCharacters.collect { allChars ->
-                        // Prüfe ob es einen Spielleiter-Charakter gibt
-                        val hasGameMaster = allChars.any { it.isGameMaster }
+                currentChar?.let { char ->
+                    char.groupId?.let { groupId ->
+                        // Hole die Gruppe des aktuellen Charakters
+                        val currentGroup = repository.getGroupByIdOnce(groupId)
+                        val isGameMasterGroup = currentGroup?.isGameMasterGroup ?: false
                         
-                        // Wenn ein Spielleiter existiert: Alle anderen Charaktere anzeigen
-                        // Sonst: Nur Charaktere aus derselben Gruppe
-                        _groupCharacters.value = if (hasGameMaster) {
-                            allChars.filter { it.id != currentChar.id }
-                        } else {
-                            allChars.filter { 
-                                it.groupId == currentChar.groupId && it.id != currentChar.id 
+                        repository.allCharacters.collect { allChars ->
+                            // Wenn Gruppe im Spielleiter-Modus: Alle anderen Charaktere anzeigen
+                            // Sonst: Nur Charaktere aus derselben Gruppe
+                            _groupCharacters.value = if (isGameMasterGroup) {
+                                allChars.filter { it.id != char.id }
+                            } else {
+                                allChars.filter { 
+                                    it.groupId == groupId && it.id != char.id 
+                                }
                             }
                         }
                     }
@@ -103,8 +116,8 @@ class PotionViewModel(
     private fun loadCurrentGroup() {
         viewModelScope.launch {
             repository.getCharacterByIdFlow(characterId).collect { char ->
-                if (char?.groupId != null) {
-                    repository.getGroupById(char.groupId).collect { group ->
+                char?.groupId?.let { groupId ->
+                    repository.getGroupById(groupId).collect { group ->
                         _currentGroup.value = group
                     }
                 }
@@ -115,20 +128,17 @@ class PotionViewModel(
     fun transferPotionToCharacter(potion: Potion, targetCharacterId: Long) {
         viewModelScope.launch {
             // Prüfe ob Zielcharakter existiert
-            val currentChar = _character.value
-            val targetChar = repository.getCharacterById(targetCharacterId)
+            val currentChar = _character.value ?: return@launch
+            val targetChar = repository.getCharacterById(targetCharacterId) ?: return@launch
+            val currentGroupId = currentChar.groupId ?: return@launch
             
-            if (currentChar == null || targetChar == null) {
-                return@launch
-            }
+            // Prüfe ob die Gruppe im Spielleiter-Modus ist
+            val currentGroup = repository.getGroupByIdOnce(currentGroupId)
+            val isGameMasterGroup = currentGroup?.isGameMasterGroup ?: false
             
-            // Prüfe ob es einen Spielleiter gibt
-            val allChars = repository.allCharacters.first()
-            val hasGameMaster = allChars.any { it.isGameMaster }
-            
-            // Gruppen-Einschränkung nur ohne Spielleiter
-            if (!hasGameMaster && currentChar.groupId != targetChar.groupId) {
-                return@launch // Nur innerhalb der Gruppe erlaubt (wenn kein Spielleiter)
+            // Gruppen-Einschränkung nur ohne Spielleiter-Modus
+            if (!isGameMasterGroup && currentGroupId != targetChar.groupId) {
+                return@launch // Nur innerhalb der Gruppe erlaubt (wenn kein Spielleiter-Modus)
             }
             
             // Prüfe ob Trank mit dieser GUID bereits beim Ziel existiert

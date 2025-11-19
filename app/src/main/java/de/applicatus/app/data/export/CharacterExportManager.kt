@@ -327,16 +327,13 @@ class CharacterExportManager(
             }
             
             val characterId = if (existingCharacter != null) {
-                // Bestehenden Charakter aktualisieren (ID, GUID und isGameMaster beibehalten)
-                // isGameMaster wird bewusst NICHT überschrieben, damit Spieler und Spielleiter
-                // den gleichen Charakter teilen können, aber unterschiedliche Rechte behalten
+                // Bestehenden Charakter aktualisieren (ID und GUID beibehalten)
                 // lastModifiedDate wird auf Export-Zeitstempel gesetzt (nicht aktuelle Zeit!)
                 // WICHTIG: groupId wird beim Überschreiben NICHT geändert!
                 
                 val updatedCharacter = exportDto.character.toCharacter().copy(
                     id = existingCharacter.id,
                     guid = existingCharacter.guid,
-                    isGameMaster = existingCharacter.isGameMaster,
                     groupId = existingCharacter.groupId,  // Gruppe wird NICHT überschrieben!
                     lastModifiedDate = exportDto.exportTimestamp
                 )

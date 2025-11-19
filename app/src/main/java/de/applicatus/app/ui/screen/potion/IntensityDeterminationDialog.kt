@@ -18,6 +18,7 @@ fun IntensityDeterminationDialog(
     potion: Potion,
     recipe: Recipe,
     character: de.applicatus.app.data.model.character.Character,
+    isGameMasterGroup: Boolean,
     viewModel: PotionViewModel,
     onDismiss: () -> Unit,
     onBack: () -> Unit,
@@ -30,7 +31,7 @@ fun IntensityDeterminationDialog(
     val isRecipeKnown = recipeKnowledge?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
     
     // Rezeptname nur anzeigen, wenn Spielleiter oder Rezept bekannt/verstanden
-    val showRecipeName = character.isGameMaster || isRecipeKnown
+    val showRecipeName = isGameMasterGroup || isRecipeKnown
     
     Dialog(onDismissRequest = onDismiss) {
         Card(

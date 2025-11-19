@@ -20,6 +20,7 @@ fun PotionAnalysisDialog(
     potion: Potion,
     recipe: Recipe,
     character: de.applicatus.app.data.model.character.Character,
+    isGameMasterGroup: Boolean,
     characterId: Long,
     viewModel: PotionViewModel,
     onDismiss: () -> Unit
@@ -30,7 +31,7 @@ fun PotionAnalysisDialog(
     val isRecipeKnown = recipeKnowledge?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
     
     // Rezeptname nur anzeigen, wenn Spielleiter oder Rezept bekannt/verstanden
-    val showRecipeName = character.isGameMaster || isRecipeKnown
+    val showRecipeName = isGameMasterGroup || isRecipeKnown
     
     when (selectedMode) {
         null -> {
@@ -123,6 +124,7 @@ fun PotionAnalysisDialog(
                 potion = potion,
                 recipe = recipe,
                 character = character,
+                isGameMasterGroup = isGameMasterGroup,
                 viewModel = viewModel,
                 onDismiss = onDismiss,
                 onBack = { selectedMode = null },
@@ -135,6 +137,7 @@ fun PotionAnalysisDialog(
                 potion = potion,
                 recipe = recipe,
                 character = character,
+                isGameMasterGroup = isGameMasterGroup,
                 characterId = characterId,
                 viewModel = viewModel,
                 onDismiss = onDismiss,

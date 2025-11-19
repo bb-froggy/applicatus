@@ -27,6 +27,20 @@ class InventoryViewModel(
     val character = repository.getCharacterByIdFlow(characterId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     
+    // Game Master Mode (auf Gruppen-Ebene)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val isGameMasterGroup: StateFlow<Boolean> = character
+        .mapLatest { char ->
+            char?.groupId?.let { groupId ->
+                repository.getGroupByIdOnce(groupId)?.isGameMasterGroup
+            } ?: false
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+    
     // Locations
     val locations = repository.getLocationsForCharacter(characterId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

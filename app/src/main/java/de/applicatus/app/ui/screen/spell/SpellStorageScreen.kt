@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.ui.screen.spell.components.*
-import de.applicatus.app.ui.screen.character.EditCharacterDialog
 import de.applicatus.app.ui.screen.character.ApplicatusInfoCard
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 
@@ -28,11 +27,11 @@ fun SpellStorageScreen(
     val spellSlots by viewModel.spellSlots.collectAsState()
     val allSpells by viewModel.allSpells.collectAsState()
     val groupDate by viewModel.groupDate.collectAsState()
+    val isGameMasterGroup by viewModel.isGameMasterGroup.collectAsState()
     val isEditMode = viewModel.isEditMode
     val spellCastMessage = viewModel.spellCastMessage
     
     var showAddSlotDialog by remember { mutableStateOf(false) }
-    var showEditCharacterDialog by remember { mutableStateOf(false) }
     
     // Zauber-Auslösungs-Meldung Dialog
     spellCastMessage?.let { message ->
@@ -189,7 +188,7 @@ fun SpellStorageScreen(
                         SpellSlotCardUsageMode(
                             slotWithSpell = slotWithSpell,
                             currentDate = groupDate,
-                            isGameMaster = character?.isGameMaster ?: false,
+                            isGameMaster = isGameMasterGroup,
                             showAnimation = viewModel.showSpellAnimation && viewModel.animatingSlotId == slotWithSpell.slot.id,
                             onCastSpell = {
                                 slotWithSpell.spell?.let { spell ->
@@ -219,18 +218,5 @@ fun SpellStorageScreen(
                 showAddSlotDialog = false
             }
         )
-    }
-    
-    if (showEditCharacterDialog) {
-        character?.let { char ->
-            EditCharacterDialog(
-                character = char,
-                onDismiss = { showEditCharacterDialog = false },
-                onConfirm = { updatedCharacter ->
-                    viewModel.updateCharacter(updatedCharacter)
-                    showEditCharacterDialog = false
-                }
-            )
-        }
     }
 }
