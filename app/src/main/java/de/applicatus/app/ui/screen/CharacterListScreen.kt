@@ -18,6 +18,7 @@ import androidx.compose.material.rememberDismissState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
@@ -55,6 +56,8 @@ fun CharacterListScreen(
     val currentGroup by viewModel.currentGroup.collectAsState()
     val importState = viewModel.importState
     val exportState = viewModel.exportState
+    val backupImportState = viewModel.backupImportState
+    val backupExportState = viewModel.backupExportState
     val spellSyncState = viewModel.spellSyncState
     val recipeSyncState = viewModel.recipeSyncState
     val isDateEditMode by remember { derivedStateOf { viewModel.isDateEditMode } }
@@ -83,6 +86,20 @@ fun CharacterListScreen(
                 viewModel.exportCharacterToFile(context, character.id, it)
             }
         }
+    }
+    
+    // File picker für Vollständiges Backup Export
+    val backupExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let { viewModel.exportFullBackup(context, it) }
+    }
+    
+    // File picker für Vollständiges Backup Import
+    val backupImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.validateAndPrepareBackupImport(context, it) }
     }
     
     Scaffold(
@@ -128,6 +145,38 @@ fun CharacterListScreen(
                             onClick = {
                                 showMenu = false
                                 onNearbySyncClick()
+                            }
+                        )
+
+                        Divider()
+                        
+                        DropdownMenuItem(
+                            text = { Text("Vollständiges Backup exportieren") },
+                            leadingIcon = { 
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_backup),
+                                    contentDescription = null
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                                    .format(java.util.Date())
+                                backupExportLauncher.launch("applicatus_backup_$timestamp.json")
+                            }
+                        )
+                        
+                        DropdownMenuItem(
+                            text = { Text("Vollständiges Backup importieren") },
+                            leadingIcon = { 
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_restore),
+                                    contentDescription = null
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                backupImportLauncher.launch("application/json")
                             }
                         )
 
@@ -587,6 +636,181 @@ fun CharacterListScreen(
                     }
                 },
                 confirmButton = {}
+            )
+        }
+        else -> {}
+    }
+    
+    // Backup Export Status Dialog
+    when (backupExportState) {
+        is CharacterListViewModel.BackupExportState.Exporting -> {
+            AlertDialog(
+                onDismissRequest = { /* Nicht schließbar während Export */ },
+                title = { Text("Backup wird exportiert...") },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        LinearProgressIndicator(
+                            progress = backupExportState.percentage / 100f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(backupExportState.progress)
+                        Text(
+                            "${backupExportState.percentage}%",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        is CharacterListViewModel.BackupExportState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupExportState() },
+                icon = { Icon(Icons.Default.Check, contentDescription = null) },
+                title = { Text("Backup erfolgreich") },
+                text = { Text(backupExportState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetBackupExportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.BackupExportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupExportState() },
+                icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+                title = { Text("Export fehlgeschlagen") },
+                text = { Text(backupExportState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetBackupExportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        else -> {}
+    }
+    
+    // Backup Import Status Dialog
+    when (backupImportState) {
+        is CharacterListViewModel.BackupImportState.Validating -> {
+            AlertDialog(
+                onDismissRequest = { /* Nicht schließbar während Validierung */ },
+                title = { Text("Backup wird überprüft...") },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Bitte warten...")
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        is CharacterListViewModel.BackupImportState.ConfirmationRequired -> {
+            val validation = backupImportState.validation
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupImportState() },
+                icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+                title = { Text("Backup importieren?") },
+                text = {
+                    Column {
+                        Text("Folgende Daten werden importiert:", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("• ${validation.characterCount} Charaktere")
+                        Text("• ${validation.groupCount} Gruppen")
+                        Text("• ${validation.spellCount} Zauber")
+                        Text("• ${validation.recipeCount} Rezepte")
+                        
+                        if (validation.warnings.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("⚠️ Warnungen:", style = MaterialTheme.typography.bodyMedium)
+                            validation.warnings.forEach { warning ->
+                                Text("• $warning", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.importFullBackup(
+                                backupImportState.context,
+                                backupImportState.uri
+                            )
+                        }
+                    ) {
+                        Text("Importieren")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.resetBackupImportState() }) {
+                        Text("Abbrechen")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.BackupImportState.Importing -> {
+            AlertDialog(
+                onDismissRequest = { /* Nicht schließbar während Import */ },
+                title = { Text("Backup wird importiert...") },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        LinearProgressIndicator(
+                            progress = backupImportState.percentage / 100f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(backupImportState.progress)
+                        Text(
+                            "${backupImportState.percentage}%",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+        is CharacterListViewModel.BackupImportState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupImportState() },
+                icon = { Icon(Icons.Default.Check, contentDescription = null) },
+                title = { Text("Backup erfolgreich importiert") },
+                text = { 
+                    Text(
+                        backupImportState.summary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetBackupImportState() }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+        is CharacterListViewModel.BackupImportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupImportState() },
+                icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+                title = { Text("Import fehlgeschlagen") },
+                text = { Text(backupImportState.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetBackupImportState() }) {
+                        Text("OK")
+                    }
+                }
             )
         }
         else -> {}

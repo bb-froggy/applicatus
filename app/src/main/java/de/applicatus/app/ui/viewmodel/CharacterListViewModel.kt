@@ -8,8 +8,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import de.applicatus.app.data.export.BackupValidation
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
+import de.applicatus.app.data.export.DatabaseBackupManager
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.repository.ApplicatusRepository
@@ -25,6 +27,7 @@ class CharacterListViewModel(
 ) : ViewModel() {
     
     private val exportManager = CharacterExportManager(repository)
+    private val backupManager = DatabaseBackupManager(repository)
     
     // Import State
     var importState by mutableStateOf<ImportState>(ImportState.Idle)
@@ -32,6 +35,14 @@ class CharacterListViewModel(
     
     // Export State
     var exportState by mutableStateOf<ExportState>(ExportState.Idle)
+        private set
+    
+    // Backup Import State
+    var backupImportState by mutableStateOf<BackupImportState>(BackupImportState.Idle)
+        private set
+    
+    // Backup Export State
+    var backupExportState by mutableStateOf<BackupExportState>(BackupExportState.Idle)
         private set
     
     // Spell Sync State
@@ -70,6 +81,26 @@ class CharacterListViewModel(
         object Syncing : RecipeSyncState()
         data class Success(val count: Int) : RecipeSyncState()
         data class Error(val message: String) : RecipeSyncState()
+    }
+    
+    sealed class BackupImportState {
+        object Idle : BackupImportState()
+        data class Validating(val context: Context, val uri: Uri) : BackupImportState()
+        data class ConfirmationRequired(
+            val validation: BackupValidation,
+            val context: Context,
+            val uri: Uri
+        ) : BackupImportState()
+        data class Importing(val progress: String, val percentage: Int) : BackupImportState()
+        data class Success(val summary: String) : BackupImportState()
+        data class Error(val message: String) : BackupImportState()
+    }
+    
+    sealed class BackupExportState {
+        object Idle : BackupExportState()
+        data class Exporting(val progress: String, val percentage: Int) : BackupExportState()
+        data class Success(val message: String) : BackupExportState()
+        data class Error(val message: String) : BackupExportState()
     }
     
     sealed class ImportState {
@@ -527,6 +558,115 @@ class CharacterListViewModel(
             }
             expiryWarningMessage = message
         }
+    }
+    
+    // ========== Vollständiges Datenbank-Backup ==========
+    
+    /**
+     * Validiert ein Backup und zeigt Bestätigungs-Dialog bei Warnungen.
+     */
+    fun validateAndPrepareBackupImport(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            backupImportState = BackupImportState.Validating(context, uri)
+            
+            val validationResult = backupManager.validateBackup(context, uri)
+            
+            validationResult.fold(
+                onSuccess = { validation ->
+                    if (validation.warnings.isEmpty()) {
+                        // Keine Warnungen, direkt importieren
+                        importFullBackup(context, uri)
+                    } else {
+                        // Warnungen vorhanden, Bestätigung erforderlich
+                        backupImportState = BackupImportState.ConfirmationRequired(
+                            validation = validation,
+                            context = context,
+                            uri = uri
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    backupImportState = BackupImportState.Error(
+                        error.message ?: "Fehler beim Validieren des Backups"
+                    )
+                }
+            )
+        }
+    }
+    
+    /**
+     * Importiert ein vollständiges Datenbank-Backup.
+     */
+    fun importFullBackup(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            backupImportState = BackupImportState.Importing("Starte Import...", 0)
+            
+            backupManager.importFullBackup(context, uri).collect { result ->
+                result.fold(
+                    onSuccess = { progress ->
+                        if (progress.percentage == 100) {
+                            // Import erfolgreich abgeschlossen
+                            backupImportState = BackupImportState.Success(progress.stage)
+                        } else {
+                            // Import läuft
+                            backupImportState = BackupImportState.Importing(
+                                progress = progress.stage,
+                                percentage = progress.percentage
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        backupImportState = BackupImportState.Error(
+                            error.message ?: "Fehler beim Import"
+                        )
+                    }
+                )
+            }
+        }
+    }
+    
+    /**
+     * Exportiert die komplette Datenbank als Backup.
+     */
+    fun exportFullBackup(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            backupExportState = BackupExportState.Exporting("Starte Export...", 0)
+            
+            try {
+                backupManager.exportFullBackup(context, uri).collect { progress ->
+                    if (progress.percentage == 100) {
+                        // Export erfolgreich abgeschlossen
+                        backupExportState = BackupExportState.Success(
+                            "Vollständiges Backup erfolgreich exportiert!"
+                        )
+                    } else {
+                        // Export läuft
+                        backupExportState = BackupExportState.Exporting(
+                            progress = progress.stage,
+                            percentage = progress.percentage
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                backupExportState = BackupExportState.Error(
+                    e.message ?: "Fehler beim Export"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Setzt den Backup-Import-State zurück.
+     */
+    fun resetBackupImportState() {
+        backupImportState = BackupImportState.Idle
+    }
+    
+    /**
+     * Setzt den Backup-Export-State zurück.
+     */
+    fun resetBackupExportState() {
+        backupExportState = BackupExportState.Idle
     }
 }
 

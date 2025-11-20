@@ -1,6 +1,114 @@
 # Export & Import Anleitung
 
-## JSON-Export
+## Vollständiges Datenbank-Backup
+
+### Was ist ein vollständiges Backup?
+
+Ein vollständiges Backup exportiert **alle Daten** der App in einer einzigen JSON-Datei:
+- Alle Zauber und Rezepte (Libraries)
+- Alle Spielgruppen mit ihren Daten
+- Alle Charaktere mit sämtlichen Daten (Zauber, Tränke, Inventar, etc.)
+- Globale Einstellungen
+
+**Verwendungszwecke:**
+- 🔄 **Gerätewechsel**: Übertragen Sie alle Daten auf ein neues Gerät
+- 💾 **Backup**: Sichern Sie alle Kampagnendaten gegen Datenverlust
+- 👥 **Kampagnen-Austausch**: Teilen Sie eine komplette Kampagne mit anderen Spielern
+- 🔧 **Migration**: Aktualisieren Sie auf eine neue App-Version mit Datensicherung
+
+### Backup exportieren
+
+1. Öffnen Sie die Charakterliste
+2. Tippen Sie auf das Drei-Punkte-Menü (⋮) oben rechts
+3. Wählen Sie "Vollständiges Backup exportieren"
+4. Wählen Sie einen Speicherort und Dateinamen (Vorschlag: `applicatus_backup_YYYY-MM-DD.json`)
+5. Warten Sie, bis der Export abgeschlossen ist (mit Fortschrittsanzeige)
+
+**Die Datei enthält:**
+- Alle ${validation.spellCount}+ Zauber aus der Datenbank
+- Alle ${validation.recipeCount}+ Rezepte
+- Alle Spielgruppen mit derischem Datum
+- Alle Charaktere mit:
+  - Eigenschaften, Talenten und Fähigkeiten
+  - Zauberslots (gefüllt und leer) mit ZfP*-Werten
+  - Tränke mit vollständigen Analyse-Daten
+  - Rezeptwissen
+  - Komplettes Inventar (Locations und Items)
+  - Zeitstempel der letzten Änderung
+
+### Backup importieren
+
+1. Öffnen Sie die Charakterliste
+2. Tippen Sie auf das Drei-Punkte-Menü (⋮) oben rechts
+3. Wählen Sie "Vollständiges Backup importieren"
+4. Wählen Sie die Backup-Datei
+5. **Bestätigungs-Dialog lesen**: Die App zeigt eine Übersicht der zu importierenden Daten und mögliche Warnungen
+6. Tippen Sie auf "Importieren" zum Fortfahren oder "Abbrechen" zum Verwerfen
+7. Warten Sie, bis der Import abgeschlossen ist (mit Fortschrittsanzeige)
+
+### Merge-Strategie (Wie werden Daten zusammengeführt?)
+
+Die App führt vorhandene und importierte Daten intelligent zusammen:
+
+**Zauber & Rezepte:**
+- Werden anhand des **Namens** abgeglichen
+- Bei Duplikaten: Vorhandene bleiben erhalten (kein Überschreiben)
+- Neue Zauber/Rezepte werden hinzugefügt
+
+**Spielgruppen:**
+- Werden anhand des **Namens** abgeglichen
+- Bei Duplikaten: Vorhandene Gruppe wird verwendet
+- Neue Gruppen werden erstellt
+
+**Charaktere:**
+- Werden anhand der **GUID** (eindeutige ID) abgeglichen
+- Bei Duplikaten: Charakter wird **aktualisiert** mit importierten Daten
+- Neue Charaktere werden hinzugefügt
+- Zauberslots und Inventar werden **komplett ersetzt** (keine Duplikate)
+
+**Tränke:**
+- Werden anhand der **GUID** abgeglichen
+- Bei Duplikaten: Intelligentes Merge (bessere Analyse-Ergebnisse bleiben erhalten)
+
+**Ergebnis:** Nach dem Import haben Sie alle Daten aus beiden Quellen, ohne Duplikate!
+
+### Wichtige Hinweise zum Backup-Import
+
+**Warnungen beachten:**
+Die App warnt Sie vor möglichen Konflikten:
+- ⚠️ "Die Datenbank enthält bereits Daten" → Merge-Strategie wird angewendet
+- ⚠️ "X Gruppe(n) existieren bereits" → Vorhandene Gruppen werden nicht überschrieben
+- ⚠️ "X Charakter(e) existieren bereits" → Diese werden mit importierten Daten aktualisiert
+- ⚠️ "Backup ist von einer älteren App-Version" → Import möglich, aber einige Features könnten fehlen
+
+**Versionskompatibilität:**
+- Backup-Version wird automatisch geprüft
+- Ältere Backups: Import mit Warnung möglich
+- Neuere Backups: Import blockiert → Bitte App aktualisieren!
+
+**Datensicherheit:**
+- Backup-Dateien sind **nicht verschlüsselt** → Sicher aufbewahren!
+- Keine Daten werden ins Internet übertragen
+- Alle Daten bleiben auf Ihren Geräten
+
+### Unterschied: Charakter-Export vs. Vollständiges Backup
+
+| Feature | Charakter-Export | Vollständiges Backup |
+|---------|------------------|----------------------|
+| **Umfang** | Ein einzelner Charakter | Alle Charaktere + Gruppen + Libraries |
+| **Verwendung** | Charakter teilen/übertragen | Gerätewechsel, Backup, Kampagnen-Migration |
+| **Datei-Größe** | Klein (~50-200 KB) | Größer (~500 KB - 5 MB je nach Daten) |
+| **Import-Verhalten** | Einzelner Charakter wird hinzugefügt/aktualisiert | Alle Daten werden gemerged |
+| **Gruppen** | Nur Gruppenname | Alle Gruppen mit vollständigen Daten |
+| **Zauber/Rezepte** | Nur Referenzen | Komplette Libraries |
+
+**Faustregel:**
+- **Charakter-Export**: Zum Teilen eines einzelnen Charakters am Spieltisch
+- **Vollständiges Backup**: Für Gerätewechsel oder komplette Datensicherung
+
+---
+
+## JSON-Export (Einzelner Charakter)
 
 1. Öffnen Sie einen Charakter in der Detailansicht
 2. Tippen Sie auf das Drei-Punkte-Menü (⋮) oben rechts
@@ -84,7 +192,18 @@ Beim Überschreiben eines existierenden Charakters mit einer älteren Version we
 
 ## Fehlerbehebung
 
-### JSON-Import schlägt fehl
+### Vollständiges Backup schlägt fehl
+- Prüfen Sie, ob genügend Speicherplatz vorhanden ist
+- Bei sehr großen Datenbanken kann der Export einige Sekunden dauern
+- Versuchen Sie, die App neu zu starten und erneut zu exportieren
+
+### Backup-Import schlägt fehl
+- Prüfen Sie, ob die Datei eine gültige JSON-Datei ist
+- Stellen Sie sicher, dass die Datei nicht beschädigt ist
+- Überprüfen Sie die App-Version (neuere Backups benötigen neuere App-Version)
+- Bei Fehlermeldungen: Notieren Sie die Fehlermeldung und erstellen Sie ein neues Backup
+
+### JSON-Import schlägt fehl (einzelner Charakter)
 - Prüfen Sie, ob die Datei eine gültige JSON-Datei ist
 - Stellen Sie sicher, dass die Datei nicht beschädigt ist
 - Versuchen Sie, die Datei erneut zu exportieren
