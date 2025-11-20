@@ -80,7 +80,7 @@ class CharacterExportDtoGameMasterTest {
         assertEquals("Neue Charaktere sollten korrekten Namen haben", "New Character", character.name)
         assertEquals("MU sollte korrekt sein", 10, character.mu)
         assertEquals("KL sollte korrekt sein", 11, character.kl)
-        assertEquals("IN sollte korrekt sein", 12, character.`in`)
+        assertEquals("IN sollte korrekt sein", 12, character.inValue)
     }
 
     @Test

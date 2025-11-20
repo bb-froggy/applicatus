@@ -1,6 +1,7 @@
 package de.applicatus.app.data.repository
 
 import de.applicatus.app.data.InitialSpells
+import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.dao.CharacterDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
@@ -11,12 +12,15 @@ import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
+import de.applicatus.app.data.export.CharacterExportDto
+import de.applicatus.app.data.export.mergePotion
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Location
+import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
@@ -600,5 +604,151 @@ class ApplicatusRepository(
         
         // Lösche die Original-Location
         deleteLocation(location)
+    }
+    
+    /**
+     * Wendet einen Charakter-Snapshot aus einer Sync-Session an.
+     * Diese Funktion ist speziell für Live-Sync gedacht und überschreibt ohne UI-Warnungen.
+     * 
+     * Verhaltensweisen:
+     * - Sucht Charakter per GUID
+     * - Wenn vorhanden: Überschreibt komplett (Charakter, Slots, Tränke, Items, Locations)
+     * - Wenn nicht vorhanden: Optional anlegen (nur wenn allowCreateNew = true)
+     * - lastModifiedDate wird auf exportTimestamp gesetzt
+     * - Gruppe bleibt beim Überschreiben erhalten
+     * 
+     * @param snapshot Der importierte Snapshot (CharacterExportDto)
+     * @param allowCreateNew Ob neue Charaktere angelegt werden dürfen (default: false)
+     * @return Result mit Character-ID oder Fehler
+     */
+    suspend fun applySnapshotFromSync(
+        snapshot: CharacterExportDto,
+        allowCreateNew: Boolean = false
+    ): Result<Long> = kotlin.runCatching {
+        // Versionscheck
+        val compatibilityResult = DataModelVersion.checkCompatibility(snapshot.version)
+        if (!compatibilityResult.first) {
+            throw IllegalStateException(compatibilityResult.second ?: "Inkompatible Version")
+        }
+        
+        val existingCharacter = getCharacterByGuid(snapshot.character.guid)
+        
+        val characterId = if (existingCharacter != null) {
+            // Bestehenden Charakter überschreiben
+            val updatedCharacter = snapshot.character.toCharacter().copy(
+                id = existingCharacter.id,
+                guid = existingCharacter.guid,
+                groupId = existingCharacter.groupId,  // Gruppe wird NICHT überschrieben
+                lastModifiedDate = snapshot.exportTimestamp
+            )
+            updateCharacter(updatedCharacter)
+            
+            // Alte Slots, Items und nicht-Standard-Locations löschen
+            val oldSlots = getSlotsByCharacter(existingCharacter.id).first()
+            oldSlots.forEach { deleteSlot(it) }
+            
+            val oldItems = getItemsForCharacter(existingCharacter.id).first()
+            oldItems.forEach { deleteItem(it) }
+            
+            val oldLocations = getLocationsForCharacter(existingCharacter.id).first()
+            oldLocations.filter { !it.isDefault }.forEach { deleteLocation(it) }
+            
+            existingCharacter.id
+        } else if (allowCreateNew) {
+            // Neuen Charakter erstellen
+            // GroupId über Gruppennamen auflösen, Fallback auf "Unbekannte Gruppe"
+            val allGroups = this.allGroups.first()
+            val resolvedGroupId = snapshot.character.groupName?.let { groupName ->
+                allGroups.find { it.name == groupName }?.id
+                    ?: allGroups.find { it.name == "Unbekannte Gruppe" }?.id
+            }
+            
+            val newCharacter = snapshot.character.toCharacter().copy(
+                groupId = resolvedGroupId,
+                lastModifiedDate = snapshot.exportTimestamp
+            )
+            val newCharacterId = insertCharacter(newCharacter)
+            createDefaultLocationsForCharacter(newCharacterId)
+            newCharacterId
+        } else {
+            throw IllegalStateException("Charakter mit GUID ${snapshot.character.guid} existiert nicht und allowCreateNew=false")
+        }
+        
+        // Slots einfügen
+        val allSpells = allSpells.first()
+        val newSlots = snapshot.spellSlots.map { slotDto ->
+            val resolvedSpellId = slotDto.spellName?.let { spellName ->
+                allSpells.find { it.name == spellName }?.id
+            }
+            slotDto.toSpellSlot(characterId, resolvedSpellId)
+        }
+        insertSlots(newSlots)
+        
+        // Tränke importieren
+        val allRecipes = allRecipes.first()
+        val recipesById = allRecipes.associateBy { it.id }
+        val recipesByName = allRecipes.associateBy { it.name }
+        
+        val existingPotions = getPotionsForCharacter(characterId).first()
+        val existingPotionsByGuid = existingPotions.associate { it.potion.guid to it.potion }
+        
+        // Rezeptwissen zurücksetzen
+        deleteRecipeKnowledgeForCharacter(characterId)
+        
+        snapshot.potions.forEach { potionDto ->
+            val resolvedRecipeId = potionDto.recipeId?.let { recipesById[it]?.id }
+                ?: potionDto.recipeName?.let { recipesByName[it]?.id }
+            if (resolvedRecipeId != null) {
+                val importedPotion = potionDto.toPotion(characterId, resolvedRecipeId)
+                val existingPotion = existingPotionsByGuid[potionDto.guid]
+                
+                if (existingPotion != null) {
+                    // Merge mit besserem Analyse-Ergebnis
+                    val mergedPotion = mergePotion(existingPotion, importedPotion)
+                    updatePotion(mergedPotion)
+                } else {
+                    insertPotion(importedPotion)
+                }
+            }
+        }
+        
+        // Rezeptwissen importieren
+        snapshot.recipeKnowledge.forEach { knowledgeDto ->
+            val resolvedRecipeId = knowledgeDto.recipeId?.let { recipesById[it]?.id }
+                ?: knowledgeDto.recipeName?.let { recipesByName[it]?.id }
+            if (resolvedRecipeId != null) {
+                val recipeKnowledge = knowledgeDto.toModel(characterId, resolvedRecipeId)
+                insertRecipeKnowledge(recipeKnowledge)
+            }
+        }
+        
+        // Locations importieren
+        snapshot.locations.forEach { locationDto ->
+            val location = locationDto.toLocation(characterId)
+            insertLocation(location)
+        }
+        
+        // Items importieren - auflöse locationName zu locationId
+        val locationsByName = getLocationsForCharacter(characterId).first().associateBy { it.name }
+        snapshot.items.forEach { itemDto ->
+            val resolvedLocationId = itemDto.locationName?.let { locationsByName[it]?.id }
+            if (resolvedLocationId != null) {
+                val item = Item(
+                    id = 0,
+                    characterId = characterId,
+                    name = itemDto.name,
+                    weight = Weight(itemDto.weightStone, itemDto.weightOunces),
+                    locationId = resolvedLocationId,
+                    sortOrder = itemDto.sortOrder,
+                    isPurse = itemDto.isPurse,
+                    kreuzerAmount = itemDto.kreuzerAmount,
+                    isCountable = itemDto.isCountable,
+                    quantity = itemDto.quantity
+                )
+                insertItem(item)
+            }
+        }
+        
+        characterId
     }
 }

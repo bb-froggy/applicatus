@@ -22,7 +22,7 @@ class CharacterImportGameMasterTest {
             name = "Test Character",
             mu = 12,
             kl = 13,
-            `in` = 14
+            inValue = 14
         )
         
         val character = dto.toCharacter()
@@ -31,7 +31,7 @@ class CharacterImportGameMasterTest {
         assertEquals("Test Character", character.name)
         assertEquals(12, character.mu)
         assertEquals(13, character.kl)
-        assertEquals(14, character.`in`)
+        assertEquals(14, character.inValue)
     }
     
     @Test
@@ -44,7 +44,7 @@ class CharacterImportGameMasterTest {
             guid = "test-guid",
             name = "Old Name",
             mu = 10,
-            groupId = 5  // Important: groupId should be preserved
+            groupId = 5L  // Important: groupId should be preserved - must be Long
         )
         
         // Import creates new character from DTO with updated values
@@ -64,7 +64,7 @@ class CharacterImportGameMasterTest {
         
         assertEquals(1, updated.id)
         assertEquals("test-guid", updated.guid)
-        assertEquals(5, updated.groupId)
+        assertEquals(5L, updated.groupId)
         assertEquals("New Name", updated.name)
         assertEquals(12, updated.mu)
     }

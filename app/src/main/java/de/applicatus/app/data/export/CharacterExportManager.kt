@@ -17,7 +17,31 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Manager für Export und Import von Charakterdaten als JSON.
+ * Mergt zwei Tränke mit derselben GUID und übernimmt das bessere Analyse-Ergebnis.
+ */
+internal fun mergePotion(existing: Potion, imported: Potion): Potion {
+    // Vergleiche Analyse-Qualitätslevel (höher ist besser)
+    val existingLevel = existing.knownQualityLevel.ordinal
+    val importedLevel = imported.knownQualityLevel.ordinal
+    
+    return if (importedLevel > existingLevel) {
+        // Importierter Trank hat besseres Analyse-Ergebnis
+        imported.copy(id = existing.id, characterId = existing.characterId)
+    } else if (importedLevel == existingLevel) {
+        // Gleicher Level -> Nehme höhere Erleichterung
+        if (imported.bestStructureAnalysisFacilitation > existing.bestStructureAnalysisFacilitation) {
+            imported.copy(id = existing.id, characterId = existing.characterId)
+        } else {
+            existing
+        }
+    } else {
+        // Existierender Trank ist besser
+        existing
+    }
+}
+
+/**
+ * Manager für Export und Import von Charakteren als JSON.
  */
 class CharacterExportManager(
     private val repository: ApplicatusRepository
@@ -25,30 +49,6 @@ class CharacterExportManager(
     private val json = Json {
         prettyPrint = true
         ignoreUnknownKeys = true // Wichtig für Abwärtskompatibilität
-    }
-    
-    /**
-     * Mergt zwei Tränke mit derselben GUID und übernimmt das bessere Analyse-Ergebnis.
-     */
-    private fun mergePotion(existing: Potion, imported: Potion): Potion {
-        // Vergleiche Analyse-Qualitätslevel (höher ist besser)
-        val existingLevel = existing.knownQualityLevel.ordinal
-        val importedLevel = imported.knownQualityLevel.ordinal
-        
-        return if (importedLevel > existingLevel) {
-            // Importierter Trank hat besseres Analyse-Ergebnis
-            imported.copy(id = existing.id, characterId = existing.characterId)
-        } else if (importedLevel == existingLevel) {
-            // Gleicher Level -> Nehme höhere Erleichterung
-            if (imported.bestStructureAnalysisFacilitation > existing.bestStructureAnalysisFacilitation) {
-                imported.copy(id = existing.id, characterId = existing.characterId)
-            } else {
-                existing
-            }
-        } else {
-            // Existierender Trank ist besser
-            existing
-        }
     }
     
     /**

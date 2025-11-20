@@ -336,7 +336,7 @@ object ElixirAnalyzer {
             append("Strukturanalyse-Probe erfolgreich mit ${probeResult.qualityPoints} TaP*")
             if (method == StructureAnalysisMethod.BY_SIGHT_ALCHEMY || 
                 method == StructureAnalysisMethod.BY_SIGHT_COOKING ||
-                @Suppress("DEPRECATION") method == StructureAnalysisMethod.BY_SIGHT) {
+                @Suppress("DEPRECATION") (method == StructureAnalysisMethod.BY_SIGHT)) {
                 append(" (effektiv $effectiveTap TaP* aufgerundet)")
             }
             append(".")
@@ -410,7 +410,7 @@ object ElixirAnalyzer {
         // Wurde der Trank verbraucht?
         val potionConsumed = (method == StructureAnalysisMethod.LABORATORY_ALCHEMY || 
                              method == StructureAnalysisMethod.LABORATORY_COOKING ||
-                             @Suppress("DEPRECATION") method == StructureAnalysisMethod.LABORATORY) && 
+                             @Suppress("DEPRECATION") (method == StructureAnalysisMethod.LABORATORY)) && 
                              !acceptHarderProbe
         
         val message = buildString {
