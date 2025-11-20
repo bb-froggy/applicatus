@@ -45,6 +45,8 @@ fun CharacterHomeScreen(
     val lastRegenerationResult by viewModel.lastRegenerationResult.collectAsState()
     val lastAstralMeditationResult by viewModel.lastAstralMeditationResult.collectAsState()
     val energyChanges by viewModel.energyChanges.collectAsState()
+    val syncStatus by viewModel.syncStatus.collectAsState()
+    val discoveredEndpoints by viewModel.discoveredEndpoints.collectAsState()
     val context = LocalContext.current
     val importState = viewModel.importState
     val exportState = viewModel.exportState
@@ -57,6 +59,7 @@ fun CharacterHomeScreen(
     var showRegenerationDialog by remember { mutableStateOf(false) }
     var showAstralMeditationDialog by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
+    var showRealtimeSyncDialog by remember { mutableStateOf(false) }
     
     // File pickers
     val exportLauncher = rememberLauncherForActivityResult(
@@ -170,6 +173,12 @@ fun CharacterHomeScreen(
                     }
                 },
                 actions = {
+                    // Sync Status Indicator
+                    SyncStatusIndicator(
+                        syncStatus = syncStatus,
+                        onClick = { showRealtimeSyncDialog = true }
+                    )
+                    
                     IconButton(onClick = { isEditMode = !isEditMode }) {
                         Icon(
                             Icons.Default.Edit, 
@@ -213,7 +222,18 @@ fun CharacterHomeScreen(
                             Divider()
                             
                             DropdownMenuItem(
-                                text = { Text("Nearby Sync") },
+                                text = { Text("Echtzeit-Sync") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Share, null)
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showRealtimeSyncDialog = true
+                                }
+                            )
+                            
+                            DropdownMenuItem(
+                                text = { Text("Nearby Sync (Alt)") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Share, null)
                                 },
@@ -406,6 +426,32 @@ fun CharacterHomeScreen(
             onConfirm = { updatedChar ->
                 viewModel.updateCharacter(updatedChar)
                 showEditSpellsDialog = false
+            }
+        )
+    }
+    
+    // Real-Time Sync Discovery Dialog
+    if (showRealtimeSyncDialog) {
+        RealtimeSyncDiscoveryDialog(
+            characterName = character?.name ?: "Charakter",
+            syncStatus = syncStatus,
+            discoveredEndpoints = discoveredEndpoints,
+            onHost = {
+                val deviceName = android.os.Build.MODEL ?: "Unbekanntes Gerät"
+                viewModel.startHostSession(deviceName)
+            },
+            onStartDiscovery = {
+                viewModel.startDiscovery()
+            },
+            onJoin = { endpointId, endpointName ->
+                viewModel.startClientSession(endpointId, endpointName)
+            },
+            onStopSync = {
+                viewModel.stopSyncSession()
+            },
+            onDismiss = {
+                showRealtimeSyncDialog = false
+                viewModel.stopDiscovery()
             }
         )
     }

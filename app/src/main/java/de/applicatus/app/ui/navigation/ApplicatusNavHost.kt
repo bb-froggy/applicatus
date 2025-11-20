@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.applicatus.app.data.repository.ApplicatusRepository
+import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import de.applicatus.app.ui.screen.spell.SpellStorageScreen
 import de.applicatus.app.ui.screen.character.CharacterHomeScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
@@ -35,6 +36,7 @@ import java.net.URLDecoder
 fun ApplicatusNavHost(
     navController: NavHostController,
     repository: ApplicatusRepository,
+    nearbyService: NearbyConnectionsInterface,
     pendingImportUri: Uri? = null,
     onImportHandled: () -> Unit = {}
 ) {
@@ -70,7 +72,7 @@ fun ApplicatusNavHost(
             val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
             CharacterHomeScreen(
                 characterId = characterId,
-                viewModelFactory = CharacterHomeViewModelFactory(repository, characterId),
+                viewModelFactory = CharacterHomeViewModelFactory(repository, characterId, nearbyService),
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToSpellStorage = { charId ->
                     navController.navigate(Screen.SpellStorage.createRoute(charId))

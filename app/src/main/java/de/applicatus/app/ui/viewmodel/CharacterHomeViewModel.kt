@@ -15,6 +15,8 @@ import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.RegenerationCalculator
 import de.applicatus.app.logic.RegenerationResult
 import de.applicatus.app.logic.ProbeChecker
+import de.applicatus.app.data.sync.CharacterRealtimeSyncManager
+import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,10 +24,26 @@ import kotlinx.coroutines.launch
 
 class CharacterHomeViewModel(
     private val repository: ApplicatusRepository,
-    private val characterId: Long
+    private val characterId: Long,
+    private val nearbyService: NearbyConnectionsInterface
 ) : ViewModel() {
     
     private val exportManager = CharacterExportManager(repository)
+    
+    // Real-Time Sync Manager
+    private val realtimeSyncManager = CharacterRealtimeSyncManager(
+        repository = repository,
+        nearbyService = nearbyService,
+        exportManager = exportManager,
+        scope = viewModelScope
+    )
+    
+    // Expose Sync Status
+    val syncStatus: StateFlow<CharacterRealtimeSyncManager.SyncStatus> = realtimeSyncManager.syncStatus
+    
+    // Discovered Endpoints (for client mode)
+    private val _discoveredEndpoints = MutableStateFlow<Map<String, String>>(emptyMap())
+    val discoveredEndpoints: StateFlow<Map<String, String>> = _discoveredEndpoints.asStateFlow()
     
     // Export State
     var exportState by mutableStateOf<ExportState>(ExportState.Idle)
@@ -373,16 +391,88 @@ class CharacterHomeViewModel(
     fun resetExportState() {
         exportState = ExportState.Idle
     }
+    
+    // ===== Real-Time Sync Methods =====
+    
+    /**
+     * Starts a host session for real-time character synchronization.
+     * The character will be advertised and synced bidirectionally with connected clients.
+     */
+    fun startHostSession(deviceName: String) {
+        viewModelScope.launch {
+            realtimeSyncManager.startHostSession(characterId, deviceName)
+        }
+    }
+    
+    /**
+     * Starts discovery to find available hosts.
+     * Discovered devices will be added to discoveredEndpoints.
+     */
+    fun startDiscovery() {
+        viewModelScope.launch {
+            nearbyService.startDiscovery { endpointId, endpointName ->
+                _discoveredEndpoints.value = _discoveredEndpoints.value + (endpointId to endpointName)
+            }.collect { connectionState ->
+                when (connectionState) {
+                    is NearbyConnectionsInterface.ConnectionState.Error -> {
+                        // Handle discovery errors if needed
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+    
+    /**
+     * Stops discovery and clears discovered endpoints.
+     */
+    fun stopDiscovery() {
+        nearbyService.stopAllConnections()
+        _discoveredEndpoints.value = emptyMap()
+    }
+    
+    /**
+     * Starts a client session to connect to a host.
+     * Connects to the specified endpoint.
+     */
+    fun startClientSession(endpointId: String, endpointName: String) {
+        viewModelScope.launch {
+            // Stop discovery first
+            stopDiscovery()
+            
+            // Start client session with the selected host
+            realtimeSyncManager.startClientSession(characterId, endpointId, endpointName)
+        }
+    }
+    
+    /**
+     * Stops the current sync session (host or client).
+     */
+    fun stopSyncSession() {
+        viewModelScope.launch {
+            realtimeSyncManager.stopSession()
+            _discoveredEndpoints.value = emptyMap()
+        }
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        // Clean up sync session when ViewModel is destroyed
+        viewModelScope.launch {
+            realtimeSyncManager.stopSession()
+        }
+    }
 }
 
 class CharacterHomeViewModelFactory(
     private val repository: ApplicatusRepository,
-    private val characterId: Long
+    private val characterId: Long,
+    private val nearbyService: NearbyConnectionsInterface
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CharacterHomeViewModel::class.java)) {
-            return CharacterHomeViewModel(repository, characterId) as T
+            return CharacterHomeViewModel(repository, characterId, nearbyService) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
