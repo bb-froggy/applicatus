@@ -92,6 +92,9 @@ fun SpellStorageScreen(
                         },
                         onAspSavingPercentChange = { percent ->
                             viewModel.updateCharacter(char.copy(applicatusAspSavingPercent = percent.coerceIn(0, 50)))
+                        },
+                        onExtendedDurationChange = { extendedDuration ->
+                            viewModel.updateCharacter( updatedCharacter = char.copy( applicatusExtendedDuration = extendedDuration))
                         }
                     )
                     Spacer(modifier = Modifier.height(16.dp))

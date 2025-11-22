@@ -36,6 +36,7 @@ data class Character(
     val applicatusZfw: Int = 0,          // Applicatus-Zauberfertigkeit
     val applicatusModifier: Int = 0,     // Applicatus-Modifikator
     val applicatusDuration: de.applicatus.app.data.model.spell.ApplicatusDuration = de.applicatus.app.data.model.spell.ApplicatusDuration.DAY,  // Applicatus-Wirkungsdauer
+    val applicatusExtendedDuration: Boolean = false,  // Verlängerte Zauberdauer (+4 Erleichterung)
     val applicatusAspSavingPercent: Int = 0,  // AsP-Kostenersparnis beim Applicatus in Prozent (0-50%)
     // Kraftkontrolle und Kraftfokus
     val kraftkontrolle: Boolean = false,     // Hat der Charakter Kraftkontrolle? (-1 AsP pro Zauber)
