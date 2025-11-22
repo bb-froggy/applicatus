@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.ui.screen.spell.components.*
-import de.applicatus.app.ui.screen.character.ApplicatusInfoCard
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
