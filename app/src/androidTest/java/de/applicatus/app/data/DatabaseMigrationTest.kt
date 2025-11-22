@@ -77,7 +77,19 @@ class DatabaseMigrationTest {
             ApplicatusDatabase.MIGRATION_18_19,
             ApplicatusDatabase.MIGRATION_19_20,
             ApplicatusDatabase.MIGRATION_20_21,
-            ApplicatusDatabase.MIGRATION_21_22
+            ApplicatusDatabase.MIGRATION_21_22,
+            ApplicatusDatabase.MIGRATION_22_23,
+            ApplicatusDatabase.MIGRATION_23_24,
+            ApplicatusDatabase.MIGRATION_24_25,
+            ApplicatusDatabase.MIGRATION_25_26,
+            ApplicatusDatabase.MIGRATION_26_27,
+            ApplicatusDatabase.MIGRATION_27_28,
+            ApplicatusDatabase.MIGRATION_28_29,
+            ApplicatusDatabase.MIGRATION_29_30,
+            ApplicatusDatabase.MIGRATION_30_31,
+            ApplicatusDatabase.MIGRATION_31_32,
+            ApplicatusDatabase.MIGRATION_32_33,
+            ApplicatusDatabase.MIGRATION_33_34
         )
         .allowMainThreadQueries()
         .build()
@@ -157,6 +169,25 @@ class DatabaseMigrationTest {
         val groups = database.groupDao().getAllGroups().first()
         // Kann leer sein, da keine Gruppe automatisch erstellt wird
         
+        // Teste CharacterJournalEntry-Tabelle (Migration 33->34)
+        val testJournalEntry = de.applicatus.app.data.model.character.CharacterJournalEntry(
+            characterId = characterId,
+            timestamp = System.currentTimeMillis(),
+            derianDate = "1. Praios 1040 BF",
+            category = "Test.Category",
+            playerMessage = "Test message",
+            gmMessage = "GM message"
+        )
+        database.characterJournalDao().insertEntry(testJournalEntry)
+        val journalEntries = database.characterJournalDao().getEntriesForCharacter(characterId).first()
+        assertEquals("Es sollte 1 Journal-Eintrag geben", 1, journalEntries.size)
+        
+        val retrievedEntry = journalEntries[0]
+        assertEquals("Category sollte übereinstimmen", "Test.Category", retrievedEntry.category)
+        assertEquals("PlayerMessage sollte übereinstimmen", "Test message", retrievedEntry.playerMessage)
+        assertEquals("GMMessage sollte übereinstimmen", "GM message", retrievedEntry.gmMessage)
+        assertEquals("DerianDate sollte übereinstimmen", "1. Praios 1040 BF", retrievedEntry.derianDate)
+        
         println("✅ Alle Datenbank-Operationen erfolgreich")
         println("✅ Alle Migrationen sind verfügbar und kompatibel")
     }
@@ -187,18 +218,30 @@ class DatabaseMigrationTest {
             ApplicatusDatabase.MIGRATION_18_19,
             ApplicatusDatabase.MIGRATION_19_20,
             ApplicatusDatabase.MIGRATION_20_21,
-            ApplicatusDatabase.MIGRATION_21_22
+            ApplicatusDatabase.MIGRATION_21_22,
+            ApplicatusDatabase.MIGRATION_22_23,
+            ApplicatusDatabase.MIGRATION_23_24,
+            ApplicatusDatabase.MIGRATION_24_25,
+            ApplicatusDatabase.MIGRATION_25_26,
+            ApplicatusDatabase.MIGRATION_26_27,
+            ApplicatusDatabase.MIGRATION_27_28,
+            ApplicatusDatabase.MIGRATION_28_29,
+            ApplicatusDatabase.MIGRATION_29_30,
+            ApplicatusDatabase.MIGRATION_30_31,
+            ApplicatusDatabase.MIGRATION_31_32,
+            ApplicatusDatabase.MIGRATION_32_33,
+            ApplicatusDatabase.MIGRATION_33_34
         )
         
-        assertEquals("Es sollten 21 Migrationen existieren", 21, migrations.size)
+        assertEquals("Es sollten 33 Migrationen existieren", 33, migrations.size)
         
         // Prüfe, dass alle Migrationen die richtigen Versionen haben
         assertEquals("Migration 1->2 sollte von 1 nach 2 gehen", 1, migrations[0].startVersion)
         assertEquals("Migration 1->2 sollte von 1 nach 2 gehen", 2, migrations[0].endVersion)
         
-        assertEquals("Migration 21->22 sollte von 21 nach 22 gehen", 21, migrations[20].startVersion)
-        assertEquals("Migration 21->22 sollte von 21 nach 22 gehen", 22, migrations[20].endVersion)
+        assertEquals("Migration 33->34 sollte von 33 nach 34 gehen", 33, migrations[32].startVersion)
+        assertEquals("Migration 33->34 sollte von 33 nach 34 gehen", 34, migrations[32].endVersion)
         
-        println("✅ Alle 21 Migrationen sind korrekt registriert")
+        println("✅ Alle 33 Migrationen sind korrekt registriert")
     }
 }

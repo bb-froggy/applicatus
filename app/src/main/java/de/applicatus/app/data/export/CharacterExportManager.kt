@@ -104,6 +104,11 @@ class CharacterExportManager(
                 )
             }
             
+            // Sammle Journal-Einträge
+            val journalEntries = repository.getJournalEntriesOnce(characterId).map { entry ->
+                JournalEntryDto.fromJournalEntry(entry)
+            }
+            
             val exportDto = CharacterExportDto(
                 version = DataModelVersion.CURRENT_VERSION,
                 character = CharacterDto.fromCharacter(character, groupName),
@@ -112,6 +117,7 @@ class CharacterExportManager(
                 recipeKnowledge = recipeKnowledge,
                 locations = locations,
                 items = items,
+                journalEntries = journalEntries,
                 exportTimestamp = System.currentTimeMillis()  // Explizit setzen
             )
             
@@ -496,6 +502,15 @@ class CharacterExportManager(
                 } catch (e: Exception) {
                     val locationInfo = itemDto.locationName?.let { " in Location '$it'" } ?: " ohne Location"
                     throw Exception("Fehler beim Einfügen des Items '${itemDto.name}'$locationInfo (Foreign Key: Character oder Location): ${e.message}", e)
+                }
+            }
+            
+            // Journal-Einträge importieren
+            exportDto.journalEntries.forEach { journalDto ->
+                try {
+                    repository.insertJournalEntry(journalDto.toJournalEntry(characterId))
+                } catch (e: Exception) {
+                    throw Exception("Fehler beim Einfügen des Journal-Eintrags (Category: ${journalDto.category}): ${e.message}", e)
                 }
             }
             

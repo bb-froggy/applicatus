@@ -20,6 +20,7 @@ data class CharacterExportDto(
     val recipeKnowledge: List<RecipeKnowledgeDto> = emptyList(),
     val locations: List<LocationDto> = emptyList(),
     val items: List<ItemDto> = emptyList(),
+    val journalEntries: List<JournalEntryDto> = emptyList(),
     val exportTimestamp: Long
 )
 
@@ -401,5 +402,37 @@ data class ItemDto(
         kreuzerAmount = kreuzerAmount,
         isCountable = isCountable,
         quantity = quantity
+    )
+}
+
+/**
+ * DTO für CharacterJournalEntry-Daten (ohne Room-Annotationen).
+ */
+@Serializable
+data class JournalEntryDto(
+    val timestamp: Long,
+    val derianDate: String,
+    val category: String,
+    val playerMessage: String,
+    val gmMessage: String? = null
+) {
+    companion object {
+        fun fromJournalEntry(entry: de.applicatus.app.data.model.character.CharacterJournalEntry) = JournalEntryDto(
+            timestamp = entry.timestamp,
+            derianDate = entry.derianDate,
+            category = entry.category,
+            playerMessage = entry.playerMessage,
+            gmMessage = entry.gmMessage
+        )
+    }
+
+    fun toJournalEntry(characterId: Long) = de.applicatus.app.data.model.character.CharacterJournalEntry(
+        id = 0, // Neue ID wird bei Insert generiert
+        characterId = characterId,
+        timestamp = timestamp,
+        derianDate = derianDate,
+        category = category,
+        playerMessage = playerMessage,
+        gmMessage = gmMessage
     )
 }
