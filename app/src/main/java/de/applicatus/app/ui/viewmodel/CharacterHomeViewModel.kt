@@ -22,6 +22,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+
 
 class CharacterHomeViewModel(
     private val repository: ApplicatusRepository,
@@ -86,6 +89,8 @@ class CharacterHomeViewModel(
     
     private var changeWindowStartTime = 0L
     private val windowDurationMs = 5000L // 5 seconds
+    private var journalDebounceJob: Job? = null
+    private var initialEnergyValues = mutableMapOf<String, Int>() // Track initial values for journal
     
     init {
         loadCharacter()
@@ -101,14 +106,72 @@ class CharacterHomeViewModel(
     
     fun updateCharacter(character: Character) {
         viewModelScope.launch {
+            val oldCharacter = _character.value
             repository.updateCharacter(character)
+            
+            // Journal-Einträge für Eigenschaften- und Talent-Änderungen
+            if (oldCharacter != null) {
+                val changes = mutableListOf<String>()
+                
+                // Eigenschaften
+                if (oldCharacter.mu != character.mu) changes.add("MU: ${oldCharacter.mu} → ${character.mu}")
+                if (oldCharacter.kl != character.kl) changes.add("KL: ${oldCharacter.kl} → ${character.kl}")
+                if (oldCharacter.inValue != character.inValue) changes.add("IN: ${oldCharacter.inValue} → ${character.inValue}")
+                if (oldCharacter.ch != character.ch) changes.add("CH: ${oldCharacter.ch} → ${character.ch}")
+                if (oldCharacter.ff != character.ff) changes.add("FF: ${oldCharacter.ff} → ${character.ff}")
+                if (oldCharacter.ge != character.ge) changes.add("GE: ${oldCharacter.ge} → ${character.ge}")
+                if (oldCharacter.ko != character.ko) changes.add("KO: ${oldCharacter.ko} → ${character.ko}")
+                if (oldCharacter.kk != character.kk) changes.add("KK: ${oldCharacter.kk} → ${character.kk}")
+                
+                // Max LE
+                if (oldCharacter.maxLe != character.maxLe) {
+                    changes.add("Max LE: ${oldCharacter.maxLe} → ${character.maxLe}")
+                }
+                
+                // Talente
+                if (oldCharacter.alchemySkill != character.alchemySkill) {
+                    changes.add("Alchimie: ${oldCharacter.alchemySkill} → ${character.alchemySkill}")
+                }
+                if (oldCharacter.cookingPotionsSkill != character.cookingPotionsSkill) {
+                    changes.add("Trankkochen: ${oldCharacter.cookingPotionsSkill} → ${character.cookingPotionsSkill}")
+                }
+                if (oldCharacter.selfControlSkill != character.selfControlSkill) {
+                    changes.add("Selbstbeherrschung: ${oldCharacter.selfControlSkill} → ${character.selfControlSkill}")
+                }
+                if (oldCharacter.sensoryAcuitySkill != character.sensoryAcuitySkill) {
+                    changes.add("Sinnenschärfe: ${oldCharacter.sensoryAcuitySkill} → ${character.sensoryAcuitySkill}")
+                }
+                if (oldCharacter.magicalLoreSkill != character.magicalLoreSkill) {
+                    changes.add("Magiekunde: ${oldCharacter.magicalLoreSkill} → ${character.magicalLoreSkill}")
+                }
+                if (oldCharacter.herbalLoreSkill != character.herbalLoreSkill) {
+                    changes.add("Pflanzenkunde: ${oldCharacter.herbalLoreSkill} → ${character.herbalLoreSkill}")
+                }
+                if (oldCharacter.ritualKnowledgeValue != character.ritualKnowledgeValue) {
+                    changes.add("Ritualkenntnis: ${oldCharacter.ritualKnowledgeValue} → ${character.ritualKnowledgeValue}")
+                }
+                
+                // Journal-Eintrag wenn es Änderungen gibt
+                if (changes.isNotEmpty()) {
+                    repository.logCharacterEvent(
+                        characterId = character.id,
+                        category = JournalCategory.CHARACTER_MODIFIED,
+                        playerMessage = changes.joinToString(", "),
+                        gmMessage = ""
+                    )
+                }
+            }
         }
     }
     
     fun updateCurrentLe(value: Int) {
         _character.value?.let { char ->
+            val oldValue = char.currentLe
             val newValue = value.coerceIn(0, char.maxLe)
-            updateCharacter(char.copy(currentLe = newValue))
+            if (oldValue != newValue) {
+                updateCharacter(char.copy(currentLe = newValue))
+                trackManualEnergyChange("LE", oldValue, newValue)
+            }
         }
     }
     
@@ -121,8 +184,12 @@ class CharacterHomeViewModel(
     
     fun updateCurrentAe(value: Int) {
         _character.value?.let { char ->
+            val oldValue = char.currentAe
             val newValue = value.coerceIn(0, char.maxAe)
-            updateCharacter(char.copy(currentAe = newValue))
+            if (oldValue != newValue) {
+                updateCharacter(char.copy(currentAe = newValue))
+                trackManualEnergyChange("AE", oldValue, newValue)
+            }
         }
     }
     
@@ -135,8 +202,12 @@ class CharacterHomeViewModel(
     
     fun updateCurrentKe(value: Int) {
         _character.value?.let { char ->
+            val oldValue = char.currentKe
             val newValue = value.coerceIn(0, char.maxKe)
-            updateCharacter(char.copy(currentKe = newValue))
+            if (oldValue != newValue) {
+                updateCharacter(char.copy(currentKe = newValue))
+                trackManualEnergyChange("KE", oldValue, newValue)
+            }
         }
     }
     
@@ -167,9 +238,63 @@ class CharacterHomeViewModel(
         changeWindowStartTime = currentTime
     }
     
+    /**
+     * Tracks manual energy changes for journal entries with 5-second debouncing.
+     * All changes within 5 seconds are combined into a single journal entry.
+     */
+    private fun trackManualEnergyChange(energyType: String, oldValue: Int, newValue: Int) {
+        // Cancel existing debounce job
+        journalDebounceJob?.cancel()
+        
+        // Store initial value if this is the first change in the window
+        if (!initialEnergyValues.containsKey(energyType)) {
+            initialEnergyValues[energyType] = oldValue
+        }
+        
+        // Start new debounce job that writes journal entry after 5 seconds of inactivity
+        journalDebounceJob = viewModelScope.launch {
+            delay(windowDurationMs)
+            
+            // Write journal entry with accumulated changes
+            val changes = mutableMapOf<String, Pair<Int, Int>>()
+            _character.value?.let { char ->
+                if (initialEnergyValues.containsKey("LE")) {
+                    changes["LE"] = initialEnergyValues["LE"]!! to char.currentLe
+                }
+                if (initialEnergyValues.containsKey("AE")) {
+                    changes["AE"] = initialEnergyValues["AE"]!! to char.currentAe
+                }
+                if (initialEnergyValues.containsKey("KE")) {
+                    changes["KE"] = initialEnergyValues["KE"]!! to char.currentKe
+                }
+                
+                if (changes.isNotEmpty()) {
+                    val playerMessage = changes.entries.joinToString(", ") { (type, values) ->
+                        val (old, new) = values
+                        val delta = new - old
+                        val sign = if (delta >= 0) "+" else ""
+                        "$type: $old → $new ($sign$delta)"
+                    }
+                    
+                    repository.logCharacterEvent(
+                        characterId = characterId,
+                        category = JournalCategory.MANUAL_POINTS_CHANGE,
+                        playerMessage = "Manuelle Änderung: $playerMessage",
+                        gmMessage = ""
+                    )
+                }
+            }
+            
+            // Clear initial values
+            initialEnergyValues.clear()
+        }
+    }
+    
     fun clearEnergyChanges() {
         _energyChanges.value = emptyMap()
         changeWindowStartTime = 0L
+        journalDebounceJob?.cancel()
+        initialEnergyValues.clear()
     }
     
     fun performRegeneration(modifier: Int) {
@@ -188,9 +313,9 @@ class CharacterHomeViewModel(
             // Journal-Eintrag für Regeneration
             viewModelScope.launch {
                 val parts = mutableListOf<String>()
-                if (result.leGain > 0) parts.add("+${result.leGain} LE")
-                if (result.aeGain > 0) parts.add("+${result.aeGain} AE")
-                if (result.keGain > 0) parts.add("+${result.keGain} KE")
+                if (result.leGain > 0) parts.add("LE: ${char.currentLe} → ${newChar.currentLe} (+${result.leGain})")
+                if (result.aeGain > 0) parts.add("AE: ${char.currentAe} → ${newChar.currentAe} (+${result.aeGain})")
+                if (result.keGain > 0) parts.add("KE: ${char.currentKe} → ${newChar.currentKe} (+${result.keGain})")
                 
                 if (parts.isNotEmpty()) {
                     val details = mutableListOf<String>()
@@ -265,6 +390,16 @@ class CharacterHomeViewModel(
                 )
                 updateCharacter(newChar)
                 
+                // Journal-Eintrag
+                viewModelScope.launch {
+                    repository.logCharacterEvent(
+                        characterId = char.id,
+                        category = JournalCategory.ASTRAL_MEDITATION,
+                        playerMessage = "Astrale Meditation: ${leToConvert} LE → ${leToConvert} AE (LE: ${char.currentLe} → ${newChar.currentLe}, AE: ${char.currentAe} → ${newChar.currentAe})",
+                        gmMessage = "Probe: ${probeResult.rolls.joinToString(", ")}, TaP*: ${probeResult.qualityPoints}, Zusatz-LE-Kosten: ${additionalLeCost}"
+                    )
+                }
+                
                 // Erfolgsmeldung
                 _lastAstralMeditationResult.value = buildString {
                     append("✅ Astrale Meditation erfolgreich!\n\n")
@@ -278,6 +413,16 @@ class CharacterHomeViewModel(
                     append("AE: ${char.currentAe} → ${newChar.currentAe}")
                 }
             } else {
+                // Fehlschlag - auch ins Journal
+                viewModelScope.launch {
+                    repository.logCharacterEvent(
+                        characterId = char.id,
+                        category = JournalCategory.ASTRAL_MEDITATION,
+                        playerMessage = "Astrale Meditation fehlgeschlagen",
+                        gmMessage = "Probe: ${probeResult.rolls.joinToString(", ")}, TaP*: ${probeResult.qualityPoints}"
+                    )
+                }
+                
                 // Fehlschlag
                 _lastAstralMeditationResult.value = buildString {
                     append("❌ Astrale Meditation fehlgeschlagen!\n\n")

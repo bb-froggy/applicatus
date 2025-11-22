@@ -356,7 +356,20 @@ class InventoryViewModel(
      */
     fun deleteItem(item: Item) {
         viewModelScope.launch {
+            // Hole Location-Name für Journal
+            val locationName = item.locationId?.let { locId ->
+                repository.getLocationById(locId)?.name
+            } ?: "Kein Ort"
+            
             repository.deleteItem(item)
+            
+            // Journal-Eintrag
+            repository.logCharacterEvent(
+                characterId = characterId,
+                category = de.applicatus.app.data.model.character.JournalCategory.INVENTORY_ITEM_REMOVED,
+                playerMessage = "Gegenstand gelöscht: ${item.name}",
+                gmMessage = "Ort: $locationName, Gewicht: ${item.weight.toDisplayString()}"
+            )
         }
     }
     
@@ -413,6 +426,29 @@ class InventoryViewModel(
      */
     fun transferLocationToCharacter(locationId: Long, targetCharacterId: Long) {
         viewModelScope.launch {
+            // Hole Location und Charakter-Namen für Journal
+            val location = repository.getLocationById(locationId)
+            val sourceChar = repository.getCharacterById(characterId)
+            val targetChar = repository.getCharacterById(targetCharacterId)
+            
+            if (location != null && sourceChar != null && targetChar != null) {
+                // Journal-Eintrag beim Geber
+                repository.logCharacterEvent(
+                    characterId = characterId,
+                    category = de.applicatus.app.data.model.character.JournalCategory.INVENTORY_LOCATION_CREATED,
+                    playerMessage = "Ort übergeben: ${location.name} → ${targetChar.name}",
+                    gmMessage = ""
+                )
+                
+                // Journal-Eintrag beim Empfänger
+                repository.logCharacterEvent(
+                    characterId = targetCharacterId,
+                    category = de.applicatus.app.data.model.character.JournalCategory.INVENTORY_LOCATION_CREATED,
+                    playerMessage = "Ort erhalten: ${location.name} von ${sourceChar.name}",
+                    gmMessage = ""
+                )
+            }
+            
             repository.transferLocationToCharacter(locationId, targetCharacterId)
         }
     }

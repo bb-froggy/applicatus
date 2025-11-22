@@ -91,6 +91,7 @@ object JournalCategory {
     const val ENERGY_LE_CHANGED = "Energy.LE.Changed"
     const val ENERGY_AE_CHANGED = "Energy.AE.Changed"
     const val ENERGY_KE_CHANGED = "Energy.KE.Changed"
+    const val MANUAL_POINTS_CHANGE = "Energy.Manual.Change"
     
     // Spell events
     const val SPELL_SLOT_ADDED = "Spell.Slot.Added"
@@ -99,6 +100,10 @@ object JournalCategory {
     const val SPELL_CAST = "Spell.Cast"
     const val SPELL_CLEARED = "Spell.Cleared"
     const val SPELL_EXPIRED = "Spell.Expired"
+    const val SPELL_MEMORY_SLOT_CHANGED = "Spell.Memory.Slot.Changed"
+    const val APPLICATUS_SLOT_CHANGED = "Spell.Applicatus.Slot.Changed"
+    const val LONG_DURATION_SPELL_CHANGED = "Spell.LongDuration.Changed"
+    const val ASTRAL_MEDITATION = "Spell.Astral.Meditation"
     
     // Potion events
     const val POTION_BREWED = "Potion.Brewed"

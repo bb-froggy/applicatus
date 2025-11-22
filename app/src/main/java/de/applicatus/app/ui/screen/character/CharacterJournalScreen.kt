@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.res.painterResource
+import de.applicatus.app.R
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,6 +19,7 @@ import de.applicatus.app.data.model.character.CharacterJournalEntry
 import de.applicatus.app.data.model.character.JournalCategory
 import de.applicatus.app.ui.viewmodel.CharacterJournalViewModel
 import de.applicatus.app.ui.viewmodel.CharacterJournalViewModelFactory
+import de.applicatus.app.logic.DerianDateCalculator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -92,11 +95,70 @@ fun CharacterJournalScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(journalEntries, key = { it.id }) { entry ->
-                    JournalEntryCard(
-                        entry = entry,
-                        isGameMaster = isGameMaster
-                    )
+                journalEntries.forEachIndexed { index, entry ->
+                    // Prüfe auf Zeitreise (Datenrücksprung im derischen Datum)
+                    if (index > 0) {
+                        val previousEntry = journalEntries[index - 1]
+                        val currentDerian = entry.derianDate
+                        val previousDerian = previousEntry.derianDate
+                        
+                        // Vergleiche derische Daten über parseDateToDays
+                        val currentDays = DerianDateCalculator.parseDateToDays(currentDerian)
+                        val previousDays = DerianDateCalculator.parseDateToDays(previousDerian)
+                        
+                        if (currentDays != null && previousDays != null && currentDays > previousDays) {
+                            // Zeitreise-Warnung
+                            item(key = "time_travel_warning_$index") {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                "⏳ Satinavs Blick ruht auf dir:",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                            Text(
+                                                "Zeitreise erkannt!",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                            Text(
+                                                "Von $currentDerian zurück zu $previousDerian",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Normaler Journal-Eintrag
+                    item(key = entry.id) {
+                        JournalEntryCard(
+                            entry = entry,
+                            isGameMaster = isGameMaster
+                        )
+                    }
                 }
             }
         }
@@ -125,12 +187,22 @@ fun JournalEntryCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Category icon
-            Icon(
-                imageVector = icon,
-                contentDescription = entry.category,
-                tint = iconColor,
-                modifier = Modifier.size(32.dp)
-            )
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = entry.category,
+                    tint = iconColor,
+                    modifier = Modifier.size(32.dp)
+                )
+            } else {
+                // Custom drawable icon (meditation)
+                Icon(
+                    painter = painterResource(R.drawable.self_improvement_24px),
+                    contentDescription = entry.category,
+                    tint = iconColor,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
             
             Column(
                 modifier = Modifier.weight(1f),
@@ -208,9 +280,11 @@ fun JournalEntryCard(
 
 /**
  * Get icon for a journal entry category.
+ * Returns null for custom drawable icons (meditation).
  */
-fun getCategoryIcon(category: String): ImageVector {
+fun getCategoryIcon(category: String): ImageVector? {
     return when {
+        category == "Spell.Astral.Meditation" -> null // Use custom drawable
         category.startsWith("Potion.Brew") -> Icons.Default.Science
         category.startsWith("Potion.Analysis") -> Icons.Default.Biotech
         category.startsWith("Potion.Consumed") -> Icons.Default.LocalDrink
@@ -218,7 +292,7 @@ fun getCategoryIcon(category: String): ImageVector {
         category.startsWith("Spell.Cast") -> Icons.Default.AutoFixHigh
         category.startsWith("Spell.Stored") -> Icons.Default.AddCircleOutline
         category.startsWith("Spell.") -> Icons.Default.AutoAwesome
-        category.startsWith("Energy.Regeneration") -> Icons.Default.BedtimeOff
+        category.startsWith("Energy.Regeneration") -> Icons.Filled.NightsStay
         category.startsWith("Energy.") -> Icons.Default.Favorite
         category.startsWith("Recipe.") -> Icons.Default.MenuBook
         category.startsWith("Inventory.") -> Icons.Default.Backpack
@@ -264,6 +338,7 @@ fun getCategoryDisplayName(category: String): String {
         JournalCategory.SPELL_STORED -> "Zauber gespeichert"
         JournalCategory.SPELL_CLEARED -> "Zauber entfernt"
         JournalCategory.SPELL_SLOT_ADDED -> "Slot hinzugefügt"
+        JournalCategory.ASTRAL_MEDITATION -> "Astrale Meditation"
         JournalCategory.ENERGY_REGENERATION -> "Regeneriert"
         JournalCategory.ENERGY_LE_CHANGED -> "LE verändert"
         JournalCategory.ENERGY_AE_CHANGED -> "AE verändert"

@@ -67,17 +67,38 @@ class RecipeKnowledgeViewModel(
     fun setRecipeKnowledge(recipeId: Long, level: RecipeKnowledgeLevel) {
         viewModelScope.launch {
             val existing = repository.getRecipeKnowledge(characterId, recipeId)
+            val recipe = recipesWithKnowledge.value.firstOrNull { it.recipe.id == recipeId }?.recipe
+            val recipeName = recipe?.name ?: "Unbekanntes Rezept"
+            
             if (existing != null) {
-                // Update
-                repository.updateRecipeKnowledge(existing.copy(knowledgeLevel = level))
+                // Update nur wenn sich Level ändert
+                if (existing.knowledgeLevel != level) {
+                    repository.updateRecipeKnowledge(existing.copy(knowledgeLevel = level))
+                    
+                    // Journal-Eintrag
+                    repository.logCharacterEvent(
+                        characterId = characterId,
+                        category = de.applicatus.app.data.model.character.JournalCategory.RECIPE_LEARNED,
+                        playerMessage = "Rezeptwissen geändert: $recipeName",
+                        gmMessage = "${existing.knowledgeLevel.name} → ${level.name}"
+                    )
+                }
             } else {
                 // Insert
                 repository.insertRecipeKnowledge(
-                    RecipeKnowledge(
+                    de.applicatus.app.data.model.potion.RecipeKnowledge(
                         characterId = characterId,
                         recipeId = recipeId,
                         knowledgeLevel = level
                     )
+                )
+                
+                // Journal-Eintrag
+                repository.logCharacterEvent(
+                    characterId = characterId,
+                    category = de.applicatus.app.data.model.character.JournalCategory.RECIPE_LEARNED,
+                    playerMessage = "Rezeptwissen erworben: $recipeName",
+                    gmMessage = level.name
                 )
             }
         }

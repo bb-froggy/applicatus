@@ -147,6 +147,14 @@ class PotionViewModel(
             val alreadyExists = targetPotions.any { it.potion.guid == potion.guid }
             
             if (!alreadyExists) {
+                // Hole Rezept-Namen für Journal
+                val recipe = _recipes.value.firstOrNull { it.id == potion.recipeId }
+                val potionName = if (potion.nameKnown && recipe != null) {
+                    recipe.name
+                } else {
+                    "Unbekannter Trank"
+                }
+                
                 // Trank zum Ziel hinzufügen (neue ID, aber gleiche GUID)
                 val transferredPotion = potion.copy(
                     id = 0, // Neue ID wird generiert
@@ -156,6 +164,22 @@ class PotionViewModel(
                 
                 // Original vom aktuellen Charakter entfernen
                 repository.deletePotion(potion)
+                
+                // Journal-Eintrag beim Geber
+                repository.logCharacterEvent(
+                    characterId = characterId,
+                    category = JournalCategory.POTION_GIVEN,
+                    playerMessage = "Trank übergeben: $potionName → ${targetChar.name}",
+                    gmMessage = if (!potion.nameKnown && recipe != null) "Tatsächlich: ${recipe.name}" else ""
+                )
+                
+                // Journal-Eintrag beim Empfänger
+                repository.logCharacterEvent(
+                    characterId = targetCharacterId,
+                    category = JournalCategory.POTION_ACQUIRED,
+                    playerMessage = "Trank erhalten: $potionName von ${currentChar.name}",
+                    gmMessage = if (!potion.nameKnown && recipe != null) "Tatsächlich: ${recipe.name}" else ""
+                )
             }
         }
     }
@@ -227,7 +251,12 @@ class PotionViewModel(
                 gmMessage = gmMessage
             )
             
-            repository.deletePotion(potion)
+            // Menge um 1 reduzieren oder Trank löschen wenn nur noch 1 übrig
+            if (potion.quantity > 1) {
+                repository.updatePotion(potion.copy(quantity = potion.quantity - 1))
+            } else {
+                repository.deletePotion(potion)
+            }
         }
     }
     

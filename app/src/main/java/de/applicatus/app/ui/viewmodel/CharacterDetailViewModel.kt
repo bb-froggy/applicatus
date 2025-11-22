@@ -121,7 +121,61 @@ class CharacterDetailViewModel(
     
     fun updateCharacter(updatedCharacter: Character) {
         viewModelScope.launch {
+            val oldCharacter = character.value
             repository.updateCharacter(updatedCharacter)
+            
+            // Journal-Einträge für Eigenschaften- und Talent-Änderungen
+            if (oldCharacter != null) {
+                val changes = mutableListOf<String>()
+                
+                // Eigenschaften
+                if (oldCharacter.mu != updatedCharacter.mu) changes.add("MU: ${oldCharacter.mu} → ${updatedCharacter.mu}")
+                if (oldCharacter.kl != updatedCharacter.kl) changes.add("KL: ${oldCharacter.kl} → ${updatedCharacter.kl}")
+                if (oldCharacter.inValue != updatedCharacter.inValue) changes.add("IN: ${oldCharacter.inValue} → ${updatedCharacter.inValue}")
+                if (oldCharacter.ch != updatedCharacter.ch) changes.add("CH: ${oldCharacter.ch} → ${updatedCharacter.ch}")
+                if (oldCharacter.ff != updatedCharacter.ff) changes.add("FF: ${oldCharacter.ff} → ${updatedCharacter.ff}")
+                if (oldCharacter.ge != updatedCharacter.ge) changes.add("GE: ${oldCharacter.ge} → ${updatedCharacter.ge}")
+                if (oldCharacter.ko != updatedCharacter.ko) changes.add("KO: ${oldCharacter.ko} → ${updatedCharacter.ko}")
+                if (oldCharacter.kk != updatedCharacter.kk) changes.add("KK: ${oldCharacter.kk} → ${updatedCharacter.kk}")
+                
+                // Max LE
+                if (oldCharacter.maxLe != updatedCharacter.maxLe) {
+                    changes.add("Max LE: ${oldCharacter.maxLe} → ${updatedCharacter.maxLe}")
+                }
+                
+                // Talente
+                if (oldCharacter.alchemySkill != updatedCharacter.alchemySkill) {
+                    changes.add("Alchimie: ${oldCharacter.alchemySkill} → ${updatedCharacter.alchemySkill}")
+                }
+                if (oldCharacter.cookingPotionsSkill != updatedCharacter.cookingPotionsSkill) {
+                    changes.add("Trankkochen: ${oldCharacter.cookingPotionsSkill} → ${updatedCharacter.cookingPotionsSkill}")
+                }
+                if (oldCharacter.selfControlSkill != updatedCharacter.selfControlSkill) {
+                    changes.add("Selbstbeherrschung: ${oldCharacter.selfControlSkill} → ${updatedCharacter.selfControlSkill}")
+                }
+                if (oldCharacter.sensoryAcuitySkill != updatedCharacter.sensoryAcuitySkill) {
+                    changes.add("Sinnenschärfe: ${oldCharacter.sensoryAcuitySkill} → ${updatedCharacter.sensoryAcuitySkill}")
+                }
+                if (oldCharacter.magicalLoreSkill != updatedCharacter.magicalLoreSkill) {
+                    changes.add("Magiekunde: ${oldCharacter.magicalLoreSkill} → ${updatedCharacter.magicalLoreSkill}")
+                }
+                if (oldCharacter.herbalLoreSkill != updatedCharacter.herbalLoreSkill) {
+                    changes.add("Pflanzenkunde: ${oldCharacter.herbalLoreSkill} → ${updatedCharacter.herbalLoreSkill}")
+                }
+                if (oldCharacter.ritualKnowledgeValue != updatedCharacter.ritualKnowledgeValue) {
+                    changes.add("Ritualkenntnis: ${oldCharacter.ritualKnowledgeValue} → ${updatedCharacter.ritualKnowledgeValue}")
+                }
+                
+                // Journal-Eintrag wenn es Änderungen gibt
+                if (changes.isNotEmpty()) {
+                    repository.logCharacterEvent(
+                        characterId = updatedCharacter.id,
+                        category = JournalCategory.CHARACTER_MODIFIED,
+                        playerMessage = changes.joinToString(", "),
+                        gmMessage = ""
+                    )
+                }
+            }
         }
     }
     
@@ -150,12 +204,58 @@ class CharacterDetailViewModel(
             )
             
             repository.insertSlot(newSlot)
+            
+            // Journal-Eintrag
+            val slotTypeName = when (slotType) {
+                SlotType.SPELL_STORAGE -> "Zauberspeicher"
+                SlotType.APPLICATUS -> "Applicatus"
+                SlotType.LONG_DURATION -> "Langwirkender Zauber"
+            }
+            val journalCategory = when (slotType) {
+                SlotType.SPELL_STORAGE -> JournalCategory.SPELL_MEMORY_SLOT_CHANGED
+                SlotType.APPLICATUS -> JournalCategory.APPLICATUS_SLOT_CHANGED
+                SlotType.LONG_DURATION -> JournalCategory.LONG_DURATION_SPELL_CHANGED
+            }
+            val volumeInfo = if (slotType == SlotType.SPELL_STORAGE && volumePoints > 0) {
+                " ($volumePoints VP)"
+            } else ""
+            
+            repository.logCharacterEvent(
+                characterId = characterId,
+                category = journalCategory,
+                playerMessage = "$slotTypeName-Slot hinzugefügt$volumeInfo",
+                gmMessage = "Slot #$nextSlotNumber"
+            )
         }
     }
     
     fun removeSlot(slot: SpellSlot) {
         viewModelScope.launch {
+            // Hole Spell-Info falls vorhanden
+            val slotWithSpell = spellSlots.value.firstOrNull { it.slot.id == slot.id }
+            val spellName = slotWithSpell?.spell?.name
+            
             repository.deleteSlot(slot)
+            
+            // Journal-Eintrag
+            val slotTypeName = when (slot.slotType) {
+                SlotType.SPELL_STORAGE -> "Zauberspeicher"
+                SlotType.APPLICATUS -> "Applicatus"
+                SlotType.LONG_DURATION -> "Langwirkender Zauber"
+            }
+            val journalCategory = when (slot.slotType) {
+                SlotType.SPELL_STORAGE -> JournalCategory.SPELL_MEMORY_SLOT_CHANGED
+                SlotType.APPLICATUS -> JournalCategory.APPLICATUS_SLOT_CHANGED
+                SlotType.LONG_DURATION -> JournalCategory.LONG_DURATION_SPELL_CHANGED
+            }
+            val spellInfo = if (spellName != null) " ($spellName)" else ""
+            
+            repository.logCharacterEvent(
+                characterId = characterId,
+                category = journalCategory,
+                playerMessage = "$slotTypeName-Slot gelöscht$spellInfo",
+                gmMessage = "Slot #${slot.slotNumber}"
+            )
         }
     }
     
@@ -172,6 +272,13 @@ class CharacterDetailViewModel(
     
     fun updateSlotSpell(slot: SpellSlot, spellId: Long?) {
         viewModelScope.launch {
+            // Hole alte und neue Spell-Info
+            val oldSlotWithSpell = spellSlots.value.firstOrNull { it.slot.id == slot.id }
+            val oldSpellName = oldSlotWithSpell?.spell?.name
+            val newSpellName = if (spellId != null) {
+                repository.allSpells.first().firstOrNull { it.id == spellId }?.name
+            } else null
+            
             repository.updateSlot(
                 slot.copy(
                     spellId = spellId,
@@ -181,6 +288,33 @@ class CharacterDetailViewModel(
                     applicatusRollResult = null
                 )
             )
+            
+            // Journal-Eintrag nur wenn sich Zauber ändert
+            if (oldSpellName != newSpellName) {
+                val slotTypeName = when (slot.slotType) {
+                    SlotType.SPELL_STORAGE -> "Zauberspeicher"
+                    SlotType.APPLICATUS -> "Applicatus"
+                    SlotType.LONG_DURATION -> "Langwirkender Zauber"
+                }
+                val journalCategory = when (slot.slotType) {
+                    SlotType.SPELL_STORAGE -> JournalCategory.SPELL_MEMORY_SLOT_CHANGED
+                    SlotType.APPLICATUS -> JournalCategory.APPLICATUS_SLOT_CHANGED
+                    SlotType.LONG_DURATION -> JournalCategory.LONG_DURATION_SPELL_CHANGED
+                }
+                
+                val message = when {
+                    newSpellName != null && oldSpellName != null -> "$slotTypeName: $oldSpellName → $newSpellName"
+                    newSpellName != null -> "$slotTypeName: $newSpellName zugewiesen"
+                    else -> "$slotTypeName: Zauber entfernt"
+                }
+                
+                repository.logCharacterEvent(
+                    characterId = characterId,
+                    category = journalCategory,
+                    playerMessage = message,
+                    gmMessage = "Slot #${slot.slotNumber}"
+                )
+            }
         }
     }
     
