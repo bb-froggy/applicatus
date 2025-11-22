@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.JournalCategory
 import de.applicatus.app.data.model.spell.Spell
 import de.applicatus.app.data.model.spell.SpellSlot
 import de.applicatus.app.data.model.spell.SpellSlotWithSpell
@@ -333,6 +334,31 @@ class CharacterDetailViewModel(
                     char.copy(currentAe = char.currentAe - result.totalAspCost)
                 )
                 
+                // Journal-Eintrag für Zauberwirken
+                val playerMsg = "${spell.name} gewirkt"
+                val gmMsg = buildString {
+                    if (result.overallSuccess) {
+                        append("Erfolg")
+                        append(", ZfP*: ${result.spellResult.zfpStar}")
+                        if (result.applicatusResult != null) {
+                            append(", Applicatus ZfP*: ${result.applicatusResult.zfpStar}")
+                        }
+                    } else {
+                        append("Fehlgeschlagen")
+                        if (isPatzer) append(" (Patzer!)")
+                    }
+                    append(", AsP verbraucht: ${result.totalAspCost}")
+                    if (result.applicatusResult != null) {
+                        append(" (Applicatus: ${result.applicatusResult.aspCost}, Zauber: ${result.spellResult.aspCost})")
+                    }
+                }
+                repository.logCharacterEvent(
+                    characterId = characterId,
+                    category = JournalCategory.SPELL_CAST,
+                    playerMessage = playerMsg,
+                    gmMessage = gmMsg
+                )
+                
                 spellCastMessage = summaryText
             } else {
                 // Normale Zauberprobe (Zauberspeicher oder langwirkend)
@@ -432,6 +458,24 @@ class CharacterDetailViewModel(
                 // Ziehe AsP ab
                 repository.updateCharacter(
                     char.copy(currentAe = char.currentAe - result.aspCost)
+                )
+                
+                // Journal-Eintrag für Zauberwirken
+                val playerMsg = "${spell.name} gewirkt"
+                val gmMsg = buildString {
+                    if (result.success) {
+                        append("Erfolg, ZfP*: ${result.zfpStar}")
+                    } else {
+                        append("Fehlgeschlagen")
+                        if (isPatzer) append(" (Patzer!)")
+                    }
+                    append(", AsP verbraucht: ${result.aspCost}")
+                }
+                repository.logCharacterEvent(
+                    characterId = characterId,
+                    category = JournalCategory.SPELL_CAST,
+                    playerMessage = playerMsg,
+                    gmMessage = gmMsg
                 )
                 
                 spellCastMessage = summaryText

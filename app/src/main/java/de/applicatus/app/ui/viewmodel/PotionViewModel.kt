@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.JournalCategory
 import de.applicatus.app.data.model.potion.Laboratory
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.PotionQuality
@@ -181,6 +182,21 @@ class PotionViewModel(
     
     fun consumePotion(potion: Potion) {
         viewModelScope.launch {
+            // Journal-Eintrag für Konsum
+            val recipe = _recipes.value.firstOrNull { it.id == potion.recipeId }
+            val potionName = if (potion.nameKnown && recipe != null) {
+                recipe.name
+            } else {
+                "Unbekannter Trank"
+            }
+            
+            repository.logCharacterEvent(
+                characterId = characterId,
+                category = JournalCategory.POTION_CONSUMED,
+                playerMessage = "$potionName getrunken",
+                gmMessage = "Tatsächliche Qualität: ${potion.actualQuality.name}"
+            )
+            
             repository.deletePotion(potion)
         }
     }
@@ -406,6 +422,26 @@ class PotionViewModel(
             quantity = recipe.quantityProduced
         )
         repository.insertPotion(potion)
+        
+        // Journal-Eintrag für Brauen
+        val playerMsg = "${recipe.name} gebraut"
+        val gmMsg = buildString {
+            append("Qualität: ${result.quality.name}")
+            append(" (${result.qualityPoints} QP)")
+            if (totalAspCost > 0) {
+                append(", ${totalAspCost} AsP verbraucht")
+                if (magicalMasteryAsp > 0) append(" (${magicalMasteryAsp} Mag. Meisterhandwerk)")
+                if (astralCharging > 0) append(" (${astralChargingCost} Astrale Aufladung)")
+            }
+            append(", haltbar bis ${calculatedExpiryDate}")
+            if (recipe.quantityProduced > 1) append(", ${recipe.quantityProduced}x hergestellt")
+        }
+        repository.logCharacterEvent(
+            characterId = characterId,
+            category = JournalCategory.POTION_BREWED,
+            playerMessage = playerMsg,
+            gmMessage = gmMsg
+        )
         
         return result
     }

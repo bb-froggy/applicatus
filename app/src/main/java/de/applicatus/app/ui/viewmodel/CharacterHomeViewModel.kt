@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.JournalCategory
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.RegenerationCalculator
 import de.applicatus.app.logic.RegenerationResult
@@ -183,6 +184,28 @@ class CharacterHomeViewModel(
                 currentKe = (char.currentKe + result.keGain).coerceAtMost(char.maxKe)
             )
             updateCharacter(newChar)
+            
+            // Journal-Eintrag für Regeneration
+            viewModelScope.launch {
+                val parts = mutableListOf<String>()
+                if (result.leGain > 0) parts.add("+${result.leGain} LE")
+                if (result.aeGain > 0) parts.add("+${result.aeGain} AE")
+                if (result.keGain > 0) parts.add("+${result.keGain} KE")
+                
+                if (parts.isNotEmpty()) {
+                    val details = mutableListOf<String>()
+                    if (result.leDetails.isNotEmpty()) details.add("LE: ${result.leDetails}")
+                    if (result.aeDetails.isNotEmpty()) details.add("AE: ${result.aeDetails}")
+                    if (result.keDetails.isNotEmpty()) details.add("KE: ${result.keDetails}")
+                    
+                    repository.logCharacterEvent(
+                        characterId = char.id,
+                        category = JournalCategory.ENERGY_REGENERATION,
+                        playerMessage = "Regeneriert: ${parts.joinToString(", ")}",
+                        gmMessage = details.joinToString(", ")
+                    )
+                }
+            }
         }
     }
     

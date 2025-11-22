@@ -13,6 +13,7 @@ import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import de.applicatus.app.ui.screen.spell.SpellStorageScreen
 import de.applicatus.app.ui.screen.character.CharacterHomeScreen
+import de.applicatus.app.ui.screen.character.CharacterJournalScreen
 import de.applicatus.app.ui.screen.CharacterListScreen
 import de.applicatus.app.ui.screen.NearbySyncScreen
 import de.applicatus.app.ui.screen.inventory.InventoryScreen
@@ -22,6 +23,8 @@ import de.applicatus.app.ui.viewmodel.CharacterDetailViewModel
 import de.applicatus.app.ui.viewmodel.CharacterDetailViewModelFactory
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModelFactory
+import de.applicatus.app.ui.viewmodel.CharacterJournalViewModel
+import de.applicatus.app.ui.viewmodel.CharacterJournalViewModelFactory
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 import de.applicatus.app.ui.viewmodel.CharacterListViewModelFactory
 import de.applicatus.app.ui.viewmodel.NearbySyncViewModel
@@ -82,6 +85,9 @@ fun ApplicatusNavHost(
                 },
                 onNavigateToInventory = { charId ->
                     navController.navigate(Screen.InventoryScreen.createRoute(charId))
+                },
+                onNavigateToJournal = { charId ->
+                    navController.navigate(Screen.CharacterJournal.createRoute(charId))
                 },
                 onNavigateToNearbySync = { charId, charName ->
                     navController.navigate(Screen.NearbySync.createRoute(charId, charName))
@@ -147,6 +153,20 @@ fun ApplicatusNavHost(
                 characterId = characterId,
                 onNavigateBack = { navController.popBackStack() },
                 application = context.applicationContext as de.applicatus.app.ApplicatusApplication
+            )
+        }
+        
+        composable(
+            route = Screen.CharacterJournal.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            CharacterJournalScreen(
+                characterId = characterId,
+                viewModelFactory = CharacterJournalViewModelFactory(repository, characterId),
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

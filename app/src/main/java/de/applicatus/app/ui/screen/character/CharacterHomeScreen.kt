@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -38,6 +39,7 @@ fun CharacterHomeScreen(
     onNavigateToSpellStorage: (Long) -> Unit,
     onNavigateToPotions: (Long) -> Unit,
     onNavigateToInventory: (Long) -> Unit,
+    onNavigateToJournal: (Long) -> Unit = {},
     onNavigateToNearbySync: (Long, String) -> Unit = { _, _ -> }
 ) {
     val viewModel: CharacterHomeViewModel = viewModel(factory = viewModelFactory)
@@ -178,6 +180,14 @@ fun CharacterHomeScreen(
                         syncStatus = syncStatus,
                         onClick = { showRealtimeSyncDialog = true }
                     )
+                    
+                    // Journal Button
+                    IconButton(onClick = { onNavigateToJournal(characterId) }) {
+                        Icon(
+                            Icons.Default.MenuBook, 
+                            contentDescription = "Journal"
+                        )
+                    }
                     
                     IconButton(onClick = { isEditMode = !isEditMode }) {
                         Icon(
