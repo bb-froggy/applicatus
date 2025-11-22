@@ -18,6 +18,11 @@ Eine Android-App zur Verwaltung von Zauberspeichern (Zauberstab und Applicatus),
   - Austausch von Tränken und anderem Inventar in der Gruppe
   - Datum auf Dere in der Gruppe mit Anzeige des Wochentags und der Mondphase
 - **Spielleiter-Modus**: Optionaler Modus, der alle versteckten Informationen anzeigt (Trank-Rezepte, Analyseergebnisse, etc.)
+- **Charakterjournal**: Automatisches Protokollieren aller Ereignisse
+  - Irdische Zeitstempel und derisches Datum
+  - Kategorisierte Einträge (Tränke, Zauber, Energie, etc.)
+  - Spieler-sichtbare und Spielleiter-exklusive Informationen
+  - Export zusammen mit dem Charakter
 
 ### Zauberspeicher
 - **Zwei Slot-Typen**: 
@@ -111,7 +116,7 @@ Eine Android-App zur Verwaltung von Zauberspeichern (Zauberstab und Applicatus),
 app/
 ├── data/
 │   ├── model/           # Datenmodelle
-│   │   ├── character/   # Character, Group, GlobalSettings
+│   │   ├── character/   # Character, Group, GlobalSettings, CharacterJournalEntry
 │   │   ├── spell/       # Spell, SystemSpell (ODEM, ANALYS)
 │   │   ├── talent/      # Talent-Enum mit Eigenschaftsproben
 │   │   ├── potion/      # Potion, Recipe, RecipeKnowledge, PotionQuality, Laboratory, etc.
@@ -132,11 +137,10 @@ app/
 │   └── RegenerationCalculator.kt # LE/AE/KE-Regeneration
 ├── ui/
 │   ├── screen/          # Composable Screens
+│   │   ├── character/   # Charakter-Screens (Home, List, Journal)
 │   │   ├── spell/       # Zauberspeicher-Screens
 │   │   ├── potion/      # Hexenküche-Screens (Tränke, Rezepte, Analyse, Brauen)
 │   │   ├── inventory/   # Inventar-Screens (Packesel)
-│   │   ├── CharacterHomeScreen.kt
-│   │   ├── CharacterListScreen.kt
 │   │   └── NearbySyncScreen.kt
 │   ├── viewmodel/       # ViewModels
 │   ├── component/       # UI-Komponenten (SpellAnimation, PotionBrewAnimation)

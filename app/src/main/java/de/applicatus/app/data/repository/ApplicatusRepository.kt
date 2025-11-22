@@ -3,6 +3,7 @@ package de.applicatus.app.data.repository
 import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.dao.CharacterDao
+import de.applicatus.app.data.dao.CharacterJournalDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
 import de.applicatus.app.data.dao.ItemDao
@@ -15,6 +16,7 @@ import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.mergePotion
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.CharacterJournalEntry
 import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.inventory.Item
@@ -44,7 +46,8 @@ class ApplicatusRepository(
     private val recipeKnowledgeDao: RecipeKnowledgeDao,
     private val groupDao: GroupDao,
     private val itemDao: ItemDao,
-    private val locationDao: LocationDao
+    private val locationDao: LocationDao,
+    private val characterJournalDao: CharacterJournalDao
 ) {
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
@@ -751,4 +754,99 @@ class ApplicatusRepository(
         
         characterId
     }
+    
+    // ==================== Character Journal ====================
+    
+    /**
+     * Get all journal entries for a character (newest first).
+     */
+    fun getJournalEntries(characterId: Long): Flow<List<CharacterJournalEntry>> =
+        characterJournalDao.getEntriesForCharacter(characterId)
+    
+    /**
+     * Get journal entries for a character (oldest first) - useful for exports.
+     */
+    fun getJournalEntriesAscending(characterId: Long): Flow<List<CharacterJournalEntry>> =
+        characterJournalDao.getEntriesForCharacterAscending(characterId)
+    
+    /**
+     * Get journal entries filtered by category.
+     */
+    fun getJournalEntriesByCategory(characterId: Long, category: String): Flow<List<CharacterJournalEntry>> =
+        characterJournalDao.getEntriesByCategory(characterId, category)
+    
+    /**
+     * Get journal entries filtered by category pattern (e.g., "Potion.%" for all potion events).
+     */
+    fun getJournalEntriesByCategoryPattern(characterId: Long, categoryPattern: String): Flow<List<CharacterJournalEntry>> =
+        characterJournalDao.getEntriesByCategoryPattern(characterId, categoryPattern)
+    
+    /**
+     * Get all journal entries for a character (synchronous, for export).
+     */
+    suspend fun getJournalEntriesOnce(characterId: Long): List<CharacterJournalEntry> =
+        characterJournalDao.getEntriesForCharacterOnce(characterId)
+    
+    /**
+     * Insert a journal entry.
+     */
+    suspend fun insertJournalEntry(entry: CharacterJournalEntry): Long =
+        characterJournalDao.insertEntry(entry)
+    
+    /**
+     * Insert multiple journal entries (useful for imports).
+     */
+    suspend fun insertJournalEntries(entries: List<CharacterJournalEntry>) =
+        characterJournalDao.insertEntries(entries)
+    
+    /**
+     * Delete all journal entries for a character.
+     */
+    suspend fun deleteJournalEntriesForCharacter(characterId: Long) =
+        characterJournalDao.deleteEntriesForCharacter(characterId)
+    
+    /**
+     * Helper method to log a character event with automatic Derian date lookup.
+     * 
+     * This is the main method to use when logging events throughout the app.
+     * It automatically fetches the current Derian date from the character's group.
+     * 
+     * @param characterId ID of the character
+     * @param category Event category (use JournalCategory constants)
+     * @param playerMessage Message visible to all players
+     * @param gmMessage Optional message visible only to game master
+     * @return ID of the inserted journal entry
+     */
+    suspend fun logCharacterEvent(
+        characterId: Long,
+        category: String,
+        playerMessage: String,
+        gmMessage: String? = null
+    ): Long {
+        val character = getCharacterById(characterId) ?: return -1
+        val group = character.groupId?.let { getGroupByIdOnce(it) }
+        val derianDate = group?.currentDerianDate ?: "1 Praios 1040 BF"
+        
+        val entry = CharacterJournalEntry(
+            characterId = characterId,
+            derianDate = derianDate,
+            category = category,
+            playerMessage = playerMessage,
+            gmMessage = gmMessage
+        )
+        
+        return insertJournalEntry(entry)
+    }
+    
+    /**
+     * Count total journal entries for a character.
+     */
+    suspend fun getJournalEntryCount(characterId: Long): Int =
+        characterJournalDao.getEntryCount(characterId)
+    
+    /**
+     * Get the most recent journal entry for a character.
+     */
+    suspend fun getLatestJournalEntry(characterId: Long): CharacterJournalEntry? =
+        characterJournalDao.getLatestEntry(characterId)
 }

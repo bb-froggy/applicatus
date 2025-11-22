@@ -20,7 +20,8 @@ class ApplicatusApplication : Application() {
             database.recipeKnowledgeDao(),
             database.groupDao(),
             database.itemDao(),
-            database.locationDao()
+            database.locationDao(),
+            database.characterJournalDao()
         )
     }
     

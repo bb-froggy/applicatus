@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import de.applicatus.app.data.dao.CharacterDao
+import de.applicatus.app.data.dao.CharacterJournalDao
 import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
 import de.applicatus.app.data.dao.ItemDao
@@ -18,6 +19,7 @@ import de.applicatus.app.data.dao.RecipeKnowledgeDao
 import de.applicatus.app.data.dao.SpellDao
 import de.applicatus.app.data.dao.SpellSlotDao
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.CharacterJournalEntry
 import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.inventory.Item
@@ -32,8 +34,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class],
-    version = 33,
+    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class, CharacterJournalEntry::class],
+    version = 34,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -48,6 +50,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
     abstract fun groupDao(): GroupDao
     abstract fun itemDao(): ItemDao
     abstract fun locationDao(): LocationDao
+    abstract fun characterJournalDao(): CharacterJournalDao
     
     companion object {
         @Volatile
@@ -1116,6 +1119,28 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Erstelle character_journal_entries Tabelle
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS character_journal_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        derianDate TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        playerMessage TEXT NOT NULL,
+                        gmMessage TEXT,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // Erstelle Indices für bessere Query-Performance
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_character_journal_entries_characterId ON character_journal_entries(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_character_journal_entries_timestamp ON character_journal_entries(timestamp)")
+            }
+        }
+        
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -1123,7 +1148,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
