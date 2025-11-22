@@ -302,6 +302,25 @@ class InventoryViewModel(
                     quantity = quantity
                 )
             )
+            
+            // Journal-Eintrag für hinzugefügtes Item
+            val location = locationId?.let { id ->
+                repository.getLocationById(id)
+            }
+            val locationText = location?.name ?: "Ohne Ort"
+            
+            val itemText = if (isCountable && quantity > 1) {
+                "$quantity× $name"
+            } else {
+                name
+            }
+            
+            repository.logCharacterEvent(
+                characterId = characterId,
+                category = de.applicatus.app.data.model.character.JournalCategory.INVENTORY_ITEM_ACQUIRED,
+                playerMessage = "Gegenstand hinzugefügt: $itemText",
+                gmMessage = "Ort: $locationText, Gewicht: ${weight.stone} Stein ${weight.ounces} Unzen"
+            )
         }
     }
     

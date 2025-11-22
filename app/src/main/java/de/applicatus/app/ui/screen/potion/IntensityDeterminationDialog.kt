@@ -11,6 +11,7 @@ import androidx.compose.ui.window.Dialog
 import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.logic.*
 import de.applicatus.app.ui.viewmodel.PotionViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +27,7 @@ fun IntensityDeterminationDialog(
 ) {
     var result by remember { mutableStateOf<IntensityDeterminationResult?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     
     val recipeKnowledge by viewModel.getRecipeKnowledge(recipe.id).collectAsState(null)
     val isRecipeKnown = recipeKnowledge?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
@@ -204,6 +206,24 @@ fun IntensityDeterminationDialog(
                             }
                             
                             viewModel.updatePotion(updatedPotion)
+                            
+                            // Journal-Eintrag für Intensitätsbestimmung
+                            val recipeName = if (showRecipeName) recipe.name else "Unbekannter Trank"
+                            val intensityText = when (intensityQuality) {
+                                de.applicatus.app.data.model.potion.IntensityQuality.WEAK -> "schwach"
+                                de.applicatus.app.data.model.potion.IntensityQuality.STRONG -> "stark"
+                                else -> "unbekannt"
+                            }
+                            
+                            scope.launch {
+                                viewModel.repository.logCharacterEvent(
+                                    characterId = character.id,
+                                    category = de.applicatus.app.data.model.character.JournalCategory.POTION_ANALYSIS_INTENSITY,
+                                    playerMessage = "Intensitätsbestimmung: $recipeName ($intensityText)",
+                                    gmMessage = "ZfP*: $intensityZfp"
+                                )
+                            }
+                            
                             onComplete()
                         },
                         modifier = Modifier.fillMaxWidth()

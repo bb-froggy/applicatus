@@ -72,6 +72,43 @@ fun PreservePotionDialog(
         return
     }
     
+    // Prüfe ob Trank unbegrenzt haltbar ist (1. Praios 1500) und dies bekannt ist
+    val isUnlimitedShelfLife = potion.expiryDate == "1. Praios 1500"
+    val playerKnowsUnlimitedShelfLife = isUnlimitedShelfLife && potion.shelfLifeKnown
+    
+    if (playerKnowsUnlimitedShelfLife) {
+        Dialog(onDismissRequest = onDismiss) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Unbegrenzt haltbar",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Text(
+                        text = "Dieser Trank ist bereits unbegrenzt haltbar und muss nicht konserviert werden.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("OK")
+                    }
+                }
+            }
+        }
+        return
+    }
+    
     // Verfügbare Talente
     val availableTalents = buildList {
         if (character.alchemySkill > 0) add(Talent.ALCHEMY)
@@ -255,21 +292,50 @@ fun PreservePotionDialog(
                                     
                                     // Trank aktualisieren: neues Verfallsdatum, Haltbarmachen markiert, Analysestatus zurücksetzen
                                     // Falls Qualität sich geändert hat, auch diese aktualisieren
+                                    // WICHTIG: Wenn Trank unbegrenzt haltbar ist (1. Praios 1500), Datum NICHT ändern
+                                    val isUnlimitedShelfLife = potion.expiryDate == "1. Praios 1500"
+                                    val finalExpiryDate = if (isUnlimitedShelfLife) {
+                                        "1. Praios 1500"  // Datum bleibt unbegrenzt
+                                    } else {
+                                        result.newExpiryDate
+                                    }
+                                    
                                     val updatedPotion = if (result.newQuality != null) {
                                         potion.copy(
-                                            expiryDate = result.newExpiryDate,
+                                            expiryDate = finalExpiryDate,
                                             actualQuality = result.newQuality,
                                             preservationAttempted = true,
                                             shelfLifeKnown = false  // Spieler erfährt nicht, ob es funktioniert hat
                                         )
                                     } else {
                                         potion.copy(
-                                            expiryDate = result.newExpiryDate,
+                                            expiryDate = finalExpiryDate,
                                             preservationAttempted = true,
                                             shelfLifeKnown = false  // Spieler erfährt nicht, ob es funktioniert hat
                                         )
                                     }
                                     viewModel.updatePotion(updatedPotion)
+                                    
+                                    // Journal-Eintrag für Haltbarmachung
+                                    val recipeName = recipe.name
+                                    val talentName = when (talent) {
+                                        Talent.ALCHEMY -> "Alchimie"
+                                        Talent.COOKING_POTIONS -> "Trankkochen"
+                                        else -> talent.name
+                                    }
+                                    
+                                    scope.launch {
+                                        viewModel.repository.logCharacterEvent(
+                                            characterId = character.id,
+                                            category = de.applicatus.app.data.model.character.JournalCategory.POTION_ANALYSIS_LABOR,
+                                            playerMessage = "$recipeName haltbar gemacht ($talentName)",
+                                            gmMessage = if (isUnlimitedShelfLife) {
+                                                "Bereits unbegrenzt haltbar, Datum unverändert"
+                                            } else {
+                                                "Neues Datum: $finalExpiryDate"
+                                            }
+                                        )
+                                    }
                                     
                                     // AE reduzieren (Magisches Meisterhandwerk)
                                     if (magicalMasteryAsp > 0) {

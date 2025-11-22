@@ -13,6 +13,7 @@ import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.logic.*
 import de.applicatus.app.ui.component.MagicalMasteryControl
 import de.applicatus.app.ui.viewmodel.PotionViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Dialog für Strukturanalyse mit Proben-Serie
@@ -46,6 +47,7 @@ fun StructureAnalysisDialog(
     var probeResult by remember { mutableStateOf<StructureAnalysisProbeResult?>(null) }
     var finalResult by remember { mutableStateOf<StructureAnalysisFinalResult?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     
     val recipeKnowledge by viewModel.getRecipeKnowledge(recipe.id).collectAsState(null)
     val isRecipeKnown = recipeKnowledge?.knowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD
@@ -479,6 +481,36 @@ fun StructureAnalysisDialog(
                                 viewModel.upgradeRecipeKnowledgeToUnderstood(
                                     characterId = characterId,
                                     recipeId = recipe.id
+                                )
+                            }
+                            
+                            // Journal-Eintrag für Strukturanalyse
+                            val recipeName = if (isRecipeKnown || isGameMasterGroup) recipe.name else "Unbekannter Trank"
+                            val analysisMethod = when (selectedMethod) {
+                                StructureAnalysisMethod.ANALYS_SPELL -> "Analys-Zauber"
+                                StructureAnalysisMethod.BY_SIGHT_ALCHEMY -> "Augenschein (Alchimie)"
+                                StructureAnalysisMethod.BY_SIGHT_COOKING -> "Augenschein (Trankkochen)"
+                                StructureAnalysisMethod.LABORATORY_ALCHEMY -> "Labor (Alchimie)"
+                                StructureAnalysisMethod.LABORATORY_COOKING -> "Labor (Trankkochen)"
+                                StructureAnalysisMethod.BY_SIGHT -> "Augenschein"
+                                StructureAnalysisMethod.LABORATORY -> "Labor"
+                            }
+                            
+                            val detailsText = buildString {
+                                if (final.categoryKnown) append("Kategorie bekannt. ")
+                                if (final.knownExactQuality != null) {
+                                    append("Qualität: ${final.knownExactQuality.name}. ")
+                                }
+                                if (final.shelfLifeKnown) append("Haltbarkeit bekannt. ")
+                                if (final.recipeKnown) append("Rezept verstanden. ")
+                            }
+                            
+                            scope.launch {
+                                viewModel.repository.logCharacterEvent(
+                                    characterId = character.id,
+                                    category = de.applicatus.app.data.model.character.JournalCategory.POTION_ANALYSIS_STRUCTURE,
+                                    playerMessage = "Strukturanalyse ($analysisMethod): $recipeName",
+                                    gmMessage = "TaP*: ${final.totalTap}. $detailsText"
                                 )
                             }
                             

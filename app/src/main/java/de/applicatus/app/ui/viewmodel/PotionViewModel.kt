@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 class PotionViewModel(
-    private val repository: ApplicatusRepository,
+    val repository: ApplicatusRepository,
     private val characterId: Long
 ) : ViewModel() {
     
@@ -171,6 +171,17 @@ class PotionViewModel(
                 expiryDate = expiryDate
             )
             repository.insertPotion(potion)
+            
+            // Journal-Eintrag für manuell hinzugefügten Trank
+            val recipe = _recipes.value.firstOrNull { it.id == recipeId }
+            val recipeName = recipe?.name ?: "Unbekanntes Rezept"
+            
+            repository.logCharacterEvent(
+                characterId = characterId,
+                category = JournalCategory.POTION_ACQUIRED,
+                playerMessage = "Trank hinzugefügt: $recipeName",
+                gmMessage = "Qualität: ${actualQuality.name}, Haltbarkeit: $expiryDate"
+            )
         }
     }
     
@@ -190,11 +201,30 @@ class PotionViewModel(
                 "Unbekannter Trank"
             }
             
+            // Prüfe ob Trank abgelaufen ist
+            val currentGroup = _currentGroup.value
+            val currentDate = currentGroup?.currentDerianDate ?: "Unbekanntes Datum"
+            val isExpired = de.applicatus.app.logic.DerianDateCalculator.isExpired(potion.expiryDate, currentDate)
+            
+            // Erstelle Spieler-Nachricht
+            val playerMessage = if (isExpired) {
+                "$potionName getrunken (ABGELAUFEN am ${potion.expiryDate})"
+            } else {
+                "$potionName getrunken"
+            }
+            
+            // Erstelle GM-Nachricht mit tatsächlichem Rezeptnamen bei unbekannten Tränken
+            val gmMessage = if (!potion.nameKnown && recipe != null) {
+                "Trank: ${recipe.name}, Qualität: ${potion.actualQuality.name}"
+            } else {
+                "Tatsächliche Qualität: ${potion.actualQuality.name}"
+            }
+            
             repository.logCharacterEvent(
                 characterId = characterId,
                 category = JournalCategory.POTION_CONSUMED,
-                playerMessage = "$potionName getrunken",
-                gmMessage = "Tatsächliche Qualität: ${potion.actualQuality.name}"
+                playerMessage = playerMessage,
+                gmMessage = gmMessage
             )
             
             repository.deletePotion(potion)
@@ -507,6 +537,22 @@ class PotionViewModel(
             // Aussehen, Haltbarkeit und Analyse-Status bleiben erhalten
         )
         repository.updatePotion(updatedPotion)
+        
+        // Journal-Eintrag für Verdünnung
+        val recipeForJournal = repository.getRecipeById(potion.recipeId)
+        val recipeName = recipeForJournal?.name ?: "Unbekannter Trank"
+        val talentName = when (talent) {
+            Talent.ALCHEMY -> "Alchimie"
+            Talent.COOKING_POTIONS -> "Trankkochen"
+            else -> talent.name
+        }
+        
+        repository.logCharacterEvent(
+            characterId = characterId,
+            category = JournalCategory.POTION_DILUTED,
+            playerMessage = "$recipeName verdünnt ($dilutionSteps Stufen, $talentName)",
+            gmMessage = "Neue Qualität: ${result.newQuality.name}, Anzahl: $newQuantity"
+        )
         
         return result
     }
