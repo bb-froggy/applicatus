@@ -127,6 +127,13 @@ object JournalCategory {
     const val INVENTORY_ITEM_MOVED = "Inventory.Item.Moved"
     const val INVENTORY_LOCATION_CREATED = "Inventory.Location.Created"
     
+    // Magic Sign (Zauberzeichen) events
+    const val MAGIC_SIGN_CREATED = "MagicSign.Created"
+    const val MAGIC_SIGN_ACTIVATED = "MagicSign.Activated"
+    const val MAGIC_SIGN_ACTIVATION_FAILED = "MagicSign.Activation.Failed"
+    const val MAGIC_SIGN_REMOVED = "MagicSign.Removed"
+    const val MAGIC_SIGN_EXPIRED = "MagicSign.Expired"
+    
     // Talent events
     const val TALENT_IMPROVED = "Talent.Improved"
     const val TALENT_USED = "Talent.Used"

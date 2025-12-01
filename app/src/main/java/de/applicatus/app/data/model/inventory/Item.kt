@@ -60,5 +60,11 @@ data class Item(
     val isCountable: Boolean = false,
     
     /** Anzahl der Gegenstände (nur für zählbare Gegenstände, sonst 1) */
-    val quantity: Int = 1
+    val quantity: Int = 1,
+    
+    /** Ist dies ein Eigenobjekt eines Ortes (repräsentiert das Eigengewicht)? Kann nicht verschoben werden. */
+    val isSelfItem: Boolean = false,
+    
+    /** Für Eigenobjekte: ID des Ortes, zu dem dieses Eigenobjekt gehört (redundant zu locationId, aber explizit) */
+    val selfItemForLocationId: Long? = null
 )

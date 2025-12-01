@@ -28,4 +28,8 @@ sealed class Screen(val route: String) {
         // Ohne Parameter für Empfangen (von CharacterListScreen)
         fun createRouteForReceive() = "nearby_sync"
     }
+    
+    object MagicSignScreen : Screen("magic_signs/{characterId}") {
+        fun createRoute(characterId: Long) = "magic_signs/$characterId"
+    }
 }

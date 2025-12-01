@@ -8,6 +8,7 @@ import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
 import de.applicatus.app.data.dao.ItemDao
 import de.applicatus.app.data.dao.LocationDao
+import de.applicatus.app.data.dao.MagicSignDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
@@ -23,6 +24,8 @@ import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
+import de.applicatus.app.data.model.magicsign.MagicSign
+import de.applicatus.app.data.model.magicsign.MagicSignWithItem
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.Recipe
@@ -47,7 +50,8 @@ class ApplicatusRepository(
     private val groupDao: GroupDao,
     private val itemDao: ItemDao,
     private val locationDao: LocationDao,
-    private val characterJournalDao: CharacterJournalDao
+    private val characterJournalDao: CharacterJournalDao,
+    private val magicSignDao: MagicSignDao
 ) {
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
@@ -849,4 +853,151 @@ class ApplicatusRepository(
      */
     suspend fun getLatestJournalEntry(characterId: Long): CharacterJournalEntry? =
         characterJournalDao.getLatestEntry(characterId)
+    
+    // ==================== Magic Signs (Zauberzeichen) ====================
+    
+    /**
+     * Get all magic signs for a character.
+     */
+    fun getMagicSignsForCharacter(characterId: Long): Flow<List<MagicSign>> =
+        magicSignDao.getMagicSignsForCharacter(characterId)
+    
+    /**
+     * Get all magic signs for a character (synchronous, for export).
+     */
+    suspend fun getMagicSignsListForCharacter(characterId: Long): List<MagicSign> =
+        magicSignDao.getMagicSignsListForCharacter(characterId)
+    
+    /**
+     * Get active magic signs for a character (activated and not botched).
+     */
+    fun getActiveMagicSignsForCharacter(characterId: Long): Flow<List<MagicSign>> =
+        magicSignDao.getActiveMagicSignsForCharacter(characterId)
+    
+    /**
+     * Get active magic signs for a character (synchronous).
+     */
+    suspend fun getActiveMagicSignsListForCharacter(characterId: Long): List<MagicSign> =
+        magicSignDao.getActiveMagicSignsListForCharacter(characterId)
+    
+    /**
+     * Get magic signs for a specific item.
+     */
+    fun getMagicSignsForItem(itemId: Long): Flow<List<MagicSign>> =
+        magicSignDao.getMagicSignsForItem(itemId)
+    
+    /**
+     * Get active magic signs for a specific location (via items in that location).
+     */
+    suspend fun getActiveMagicSignsForLocation(locationId: Long): List<MagicSign> =
+        magicSignDao.getActiveMagicSignsForLocation(locationId)
+    
+    /**
+     * Get magic signs with their item names for a character.
+     */
+    fun getMagicSignsWithItemsForCharacter(characterId: Long): Flow<List<MagicSignWithItem>> {
+        return combine(
+            magicSignDao.getMagicSignsForCharacter(characterId),
+            itemDao.getItemsForCharacter(characterId),
+            locationDao.getLocationsForCharacter(characterId)
+        ) { signs, items, locations ->
+            signs.map { sign ->
+                val item = items.find { it.id == sign.itemId }
+                val location = item?.locationId?.let { locId -> locations.find { it.id == locId } }
+                MagicSignWithItem(
+                    magicSign = sign,
+                    itemName = item?.name,
+                    locationName = location?.name
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get a magic sign by ID.
+     */
+    suspend fun getMagicSignById(signId: Long): MagicSign? =
+        magicSignDao.getMagicSignById(signId)
+    
+    /**
+     * Get a magic sign by GUID.
+     */
+    suspend fun getMagicSignByGuid(guid: String): MagicSign? =
+        magicSignDao.getMagicSignByGuid(guid)
+    
+    /**
+     * Insert a magic sign.
+     */
+    suspend fun insertMagicSign(magicSign: MagicSign): Long {
+        val id = magicSignDao.insert(magicSign)
+        touchCharacter(magicSign.characterId)
+        return id
+    }
+    
+    /**
+     * Update a magic sign.
+     */
+    suspend fun updateMagicSign(magicSign: MagicSign) {
+        magicSignDao.update(magicSign)
+        touchCharacter(magicSign.characterId)
+    }
+    
+    /**
+     * Delete a magic sign.
+     */
+    suspend fun deleteMagicSign(magicSign: MagicSign) {
+        magicSignDao.delete(magicSign)
+        touchCharacter(magicSign.characterId)
+    }
+    
+    /**
+     * Delete all magic signs for a character.
+     */
+    suspend fun deleteAllMagicSignsForCharacter(characterId: Long) {
+        magicSignDao.deleteAllForCharacter(characterId)
+        touchCharacter(characterId)
+    }
+    
+    /**
+     * Create a self-item for a location (represents the location's own weight).
+     * Self-items cannot be moved and are the anchor for magic signs on locations.
+     * 
+     * @param location The location to create a self-item for
+     * @param weight The weight of the location itself (e.g., backpack weight)
+     * @return The ID of the created item
+     */
+    suspend fun createSelfItemForLocation(location: Location, weight: Weight = Weight.ZERO): Long {
+        val selfItem = Item(
+            characterId = location.characterId,
+            locationId = location.id,
+            name = "${location.name} (Eigengewicht)",
+            weight = weight,
+            sortOrder = -1000, // Sort before all other items
+            isSelfItem = true,
+            selfItemForLocationId = location.id
+        )
+        val itemId = insertItem(selfItem)
+        
+        // Mark the location as having a self-item
+        updateLocation(location.copy(hasSelfItem = true))
+        
+        return itemId
+    }
+    
+    /**
+     * Get or create a self-item for a location.
+     */
+    suspend fun getOrCreateSelfItemForLocation(location: Location): Item {
+        // First, try to find existing self-item
+        val items = itemDao.getItemsListForCharacter(location.characterId)
+        val existingSelfItem = items.find { it.selfItemForLocationId == location.id && it.isSelfItem }
+        
+        if (existingSelfItem != null) {
+            return existingSelfItem
+        }
+        
+        // Create new self-item
+        val itemId = createSelfItemForLocation(location)
+        return itemDao.getItemById(itemId) ?: throw IllegalStateException("Failed to create self-item")
+    }
 }

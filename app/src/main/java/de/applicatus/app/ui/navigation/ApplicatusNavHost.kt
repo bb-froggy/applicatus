@@ -33,6 +33,8 @@ import de.applicatus.app.ui.viewmodel.PotionViewModel
 import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModel
 import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModelFactory
+import de.applicatus.app.ui.viewmodel.MagicSignViewModel
+import de.applicatus.app.ui.screen.magicsign.MagicSignScreen
 import java.net.URLDecoder
 
 @Composable
@@ -91,6 +93,9 @@ fun ApplicatusNavHost(
                 },
                 onNavigateToNearbySync = { charId, charName ->
                     navController.navigate(Screen.NearbySync.createRoute(charId, charName))
+                },
+                onNavigateToMagicSigns = { charId ->
+                    navController.navigate(Screen.MagicSignScreen.createRoute(charId))
                 }
             )
         }
@@ -198,6 +203,22 @@ fun ApplicatusNavHost(
                 viewModel = viewModel,
                 characterId = if (characterId != -1L) characterId else null,  // null = Empfangsmodus
                 characterName = characterName,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.MagicSignScreen.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            val viewModel: MagicSignViewModel = viewModel(
+                factory = MagicSignViewModel.Factory(repository, characterId)
+            )
+            MagicSignScreen(
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

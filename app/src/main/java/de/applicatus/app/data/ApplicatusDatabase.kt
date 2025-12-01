@@ -13,6 +13,7 @@ import de.applicatus.app.data.dao.GlobalSettingsDao
 import de.applicatus.app.data.dao.GroupDao
 import de.applicatus.app.data.dao.ItemDao
 import de.applicatus.app.data.dao.LocationDao
+import de.applicatus.app.data.dao.MagicSignDao
 import de.applicatus.app.data.dao.PotionDao
 import de.applicatus.app.data.dao.RecipeDao
 import de.applicatus.app.data.dao.RecipeKnowledgeDao
@@ -24,6 +25,7 @@ import de.applicatus.app.data.model.character.GlobalSettings
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.Location
+import de.applicatus.app.data.model.magicsign.MagicSign
 import de.applicatus.app.data.model.potion.Potion
 import de.applicatus.app.data.model.potion.Recipe
 import de.applicatus.app.data.model.potion.RecipeKnowledge
@@ -34,8 +36,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class, CharacterJournalEntry::class],
-    version = 35,
+    entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class, CharacterJournalEntry::class, MagicSign::class],
+    version = 36,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -51,6 +53,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
     abstract fun locationDao(): LocationDao
     abstract fun characterJournalDao(): CharacterJournalDao
+    abstract fun magicSignDao(): MagicSignDao
     
     companion object {
         @Volatile
@@ -1148,6 +1151,46 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
         
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Füge hasZauberzeichen zu characters hinzu
+                database.execSQL("ALTER TABLE characters ADD COLUMN hasZauberzeichen INTEGER NOT NULL DEFAULT 0")
+                
+                // 2. Füge isSelfItem und selfItemForLocationId zu items hinzu
+                database.execSQL("ALTER TABLE items ADD COLUMN isSelfItem INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE items ADD COLUMN selfItemForLocationId INTEGER")
+                
+                // 3. Füge hasSelfItem zu locations hinzu
+                database.execSQL("ALTER TABLE locations ADD COLUMN hasSelfItem INTEGER NOT NULL DEFAULT 0")
+                
+                // 4. Erstelle magic_signs Tabelle
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS magic_signs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        guid TEXT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        itemId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        effectDescription TEXT NOT NULL DEFAULT '',
+                        effect TEXT NOT NULL DEFAULT 'NONE',
+                        activationModifier INTEGER NOT NULL DEFAULT 0,
+                        duration TEXT NOT NULL DEFAULT 'HALF_RKW_DAYS',
+                        isActivated INTEGER NOT NULL DEFAULT 0,
+                        isBotched INTEGER NOT NULL DEFAULT 0,
+                        expiryDate TEXT,
+                        activationRkpStar INTEGER,
+                        lastRollResult TEXT,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
+                        FOREIGN KEY(itemId) REFERENCES items(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // 5. Erstelle Indices für magic_signs
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_characterId ON magic_signs(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_itemId ON magic_signs(itemId)")
+            }
+        }
+
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -1155,7 +1198,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

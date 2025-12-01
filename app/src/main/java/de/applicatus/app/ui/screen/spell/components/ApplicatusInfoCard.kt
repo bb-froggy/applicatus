@@ -134,7 +134,8 @@ fun ApplicatusInfoCard(
 
             // AsP-Kosten-Ersparnis mit kompakterem Layout
             val extendedBonus = if (character.applicatusExtendedDuration) 4 else 0
-            val requiredZfw = (character.applicatusAspSavingPercent / 10) * 3 + character.applicatusDuration.difficultyModifier - extendedBonus
+            val requiredZfw = (character.applicatusAspSavingPercent / 10) * 3 + character.applicatusDuration.difficultyModifier
+            val requiredZfWmitHausregel = requiredZfw - extendedBonus
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,11 +147,17 @@ fun ApplicatusInfoCard(
                     style = MaterialTheme.typography.titleSmall
                 )
                 
-                if (requiredZfw > character.applicatusZfw) {
+                if (requiredZfWmitHausregel > character.applicatusZfw) {
                     Text(
-                        text = "⚠ ZfW $requiredZfw nötig",
+                        text = "⚠ ZfW $requiredZfw ($requiredZfWmitHausregel mit Hausregel) nötig",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
+                    )
+                } else if (requiredZfw > character.applicatusZfw) {
+                    Text(
+                        text = "✓ ZfW ${character.applicatusZfw} nur mit Hausregel ok",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 } else if (character.applicatusAspSavingPercent > 0) {
                     Text(

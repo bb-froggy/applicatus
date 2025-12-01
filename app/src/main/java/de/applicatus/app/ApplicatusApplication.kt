@@ -21,7 +21,8 @@ class ApplicatusApplication : Application() {
             database.groupDao(),
             database.itemDao(),
             database.locationDao(),
-            database.characterJournalDao()
+            database.characterJournalDao(),
+            database.magicSignDao()
         )
     }
     

@@ -2,6 +2,8 @@ package de.applicatus.app.data
 
 import androidx.room.TypeConverter
 import de.applicatus.app.data.model.inventory.Weight
+import de.applicatus.app.data.model.magicsign.MagicSignDuration
+import de.applicatus.app.data.model.magicsign.MagicSignEffect
 import de.applicatus.app.data.model.potion.*
 import de.applicatus.app.data.model.spell.ApplicatusDuration
 import de.applicatus.app.data.model.spell.SlotType
@@ -106,5 +108,26 @@ class Converters {
     @TypeConverter
     fun toWeight(value: Int): Weight {
         return Weight.fromOunces(value)
+    }
+    
+    // MagicSign Converters
+    @TypeConverter
+    fun fromMagicSignEffect(value: MagicSignEffect): String {
+        return value.name
+    }
+    
+    @TypeConverter
+    fun toMagicSignEffect(value: String): MagicSignEffect {
+        return MagicSignEffect.valueOf(value)
+    }
+    
+    @TypeConverter
+    fun fromMagicSignDuration(value: MagicSignDuration): String {
+        return value.name
+    }
+    
+    @TypeConverter
+    fun toMagicSignDuration(value: String): MagicSignDuration {
+        return MagicSignDuration.valueOf(value)
     }
 }

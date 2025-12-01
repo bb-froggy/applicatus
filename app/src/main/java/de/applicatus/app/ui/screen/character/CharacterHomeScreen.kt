@@ -40,7 +40,8 @@ fun CharacterHomeScreen(
     onNavigateToPotions: (Long) -> Unit,
     onNavigateToInventory: (Long) -> Unit,
     onNavigateToJournal: (Long) -> Unit = {},
-    onNavigateToNearbySync: (Long, String) -> Unit = { _, _ -> }
+    onNavigateToNearbySync: (Long, String) -> Unit = { _, _ -> },
+    onNavigateToMagicSigns: (Long) -> Unit = {}
 ) {
     val viewModel: CharacterHomeViewModel = viewModel(factory = viewModelFactory)
     val character by viewModel.character.collectAsState()
@@ -339,6 +340,16 @@ fun CharacterHomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Packesel")
+                }
+                
+                // Zauberzeichen nur anzeigen, wenn Charakter die SF hat und RkW > 0
+                if (char.hasZauberzeichen && char.ritualKnowledgeValue > 0) {
+                    Button(
+                        onClick = { onNavigateToMagicSigns(characterId) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Zauberzeichen")
+                    }
                 }
             }
         }

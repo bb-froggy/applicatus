@@ -28,6 +28,7 @@ fun EditCharacterSpellsDialog(
     
     var kraftkontrolle by remember { mutableStateOf(character.kraftkontrolle) }
     var hasStaffWithKraftfokus by remember { mutableStateOf(character.hasStaffWithKraftfokus) }
+    var hasZauberzeichen by remember { mutableStateOf(character.hasZauberzeichen) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -160,6 +161,20 @@ fun EditCharacterSpellsDialog(
                             )
                         }
                     }
+                    
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Text("Zauberzeichen")
+                            Switch(
+                                checked = hasZauberzeichen,
+                                onCheckedChange = { hasZauberzeichen = it }
+                            )
+                        }
+                    }
                 }
             }
         },
@@ -176,7 +191,8 @@ fun EditCharacterSpellsDialog(
                             hasAnalys = hasAnalys,
                             analysZfw = if (hasAnalys) analysZfw.toIntOrNull() ?: 0 else 0,
                             kraftkontrolle = if (character.hasAe) kraftkontrolle else false,
-                            hasStaffWithKraftfokus = if (character.hasAe) hasStaffWithKraftfokus else false
+                            hasStaffWithKraftfokus = if (character.hasAe) hasStaffWithKraftfokus else false,
+                            hasZauberzeichen = hasZauberzeichen
                         )
                     )
                 }

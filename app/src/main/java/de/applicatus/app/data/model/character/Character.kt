@@ -52,9 +52,10 @@ data class Character(
     val sensoryAcuitySkill: Int = 0,     // Sinnenschärfe-Talentwert (0-18, für Analyse nach Augenschein)
     val magicalLoreSkill: Int = 0,       // Magiekunde-Talentwert (0-18, für Analys und Laboranalyse)
     val herbalLoreSkill: Int = 0,        // Pflanzenkunde-Talentwert (0-18, alternativ zu Magiekunde bei Laboranalyse)
-    // Astrale Meditation
-    val ritualKnowledgeValue: Int = 0,   // Ritualkenntniswert (RkW, 0-18, für Astrale Meditation)
+    // Astrale Meditation und Zauberzeichen
+    val ritualKnowledgeValue: Int = 0,   // Ritualkenntniswert (RkW, 0-18, für Astrale Meditation und Zauberzeichen)
     val hasKonzentrationsstärke: Boolean = false, // Hat der Charakter die SF Konzentrationsstärke? (+2 auf Astrale Meditation)
+    val hasZauberzeichen: Boolean = false, // Hat der Charakter die SF Zauberzeichen? (Voraussetzung für Zauberzeichen)
     // Zauber für Alchimie (nur mit AE)
     val hasOdem: Boolean = false,        // Beherrscht der Charakter ODEM ARCANUM?
     val odemZfw: Int = 0,                // ODEM ARCANUM-Zauberfertigkeit (0-18)

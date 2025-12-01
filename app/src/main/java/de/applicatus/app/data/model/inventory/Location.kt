@@ -37,5 +37,8 @@ data class Location(
     val isCarried: Boolean = false,
     
     /** Sortierreihenfolge */
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    
+    /** Hat dieser Ort ein Eigenobjekt? (wird automatisch erstellt) */
+    val hasSelfItem: Boolean = false
 )

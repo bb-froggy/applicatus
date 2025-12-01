@@ -519,13 +519,14 @@ class CharacterListViewModel(
     }
     
     /**
-     * Prüft, ob beim Aktualisieren des Datums Zauber ablaufen
+     * Prüft, ob beim Aktualisieren des Datums Zauber oder Zauberzeichen ablaufen
      */
     private suspend fun checkExpiringSpells(groupId: Long, newDate: String) {
         // Hole alle Charaktere der Gruppe
         val characters = repository.getCharactersByGroupOnce(groupId)
         
         val expiredSpells = mutableListOf<Pair<String, String>>() // (Character name, Spell name)
+        val expiredMagicSigns = mutableListOf<Pair<String, String>>() // (Character name, Sign name)
         
         for (character in characters) {
             // Hole alle gefüllten Slots des Charakters
@@ -542,17 +543,41 @@ class CharacterListViewModel(
                     }
                 }
             }
+            
+            // Prüfe auf ablaufende Zauberzeichen
+            val magicSigns = repository.getActiveMagicSignsListForCharacter(character.id)
+            for (sign in magicSigns) {
+                if (sign.expiryDate != null && !sign.isBotched) {
+                    if (DerianDateCalculator.isSpellExpired(sign.expiryDate, newDate)) {
+                        expiredMagicSigns.add(character.name to sign.name)
+                    }
+                }
+            }
         }
         
-        // Zeige Warnung, wenn Zauber ablaufen
-        if (expiredSpells.isNotEmpty()) {
+        // Zeige Warnung, wenn Zauber oder Zauberzeichen ablaufen
+        if (expiredSpells.isNotEmpty() || expiredMagicSigns.isNotEmpty()) {
             val message = buildString {
-                appendLine("⚠️ Folgende Zauber laufen am $newDate ab:")
-                appendLine()
-                expiredSpells.groupBy { it.first }.forEach { (charName, spells) ->
-                    appendLine("$charName:")
-                    spells.forEach { (_, spellName) ->
-                        appendLine("  • $spellName")
+                if (expiredSpells.isNotEmpty()) {
+                    appendLine("⚠️ Folgende Zauber laufen am $newDate ab:")
+                    appendLine()
+                    expiredSpells.groupBy { it.first }.forEach { (charName, spells) ->
+                        appendLine("$charName:")
+                        spells.forEach { (_, spellName) ->
+                            appendLine("  • $spellName")
+                        }
+                    }
+                }
+                
+                if (expiredMagicSigns.isNotEmpty()) {
+                    if (expiredSpells.isNotEmpty()) appendLine()
+                    appendLine("⚠️ Folgende Zauberzeichen laufen am $newDate ab:")
+                    appendLine()
+                    expiredMagicSigns.groupBy { it.first }.forEach { (charName, signs) ->
+                        appendLine("$charName:")
+                        signs.forEach { (_, signName) ->
+                            appendLine("  • $signName")
+                        }
                     }
                 }
             }

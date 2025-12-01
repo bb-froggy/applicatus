@@ -16,10 +16,11 @@ fun CharacterSpellsCard(
     isEditMode: Boolean = false,
     onClick: () -> Unit = {}
 ) {
-    // Prüfe, ob der Charakter überhaupt Zauber beherrscht
+    // Prüfe, ob der Charakter überhaupt Zauber oder Zauberzeichen beherrscht
     val hasSpells = character.hasApplicatus || 
                     character.hasOdem || 
-                    character.hasAnalys
+                    character.hasAnalys ||
+                    character.hasZauberzeichen
     
     // Im Edit-Modus zeigen wir die Card immer an, damit Zauber hinzugefügt werden können
     if (!hasSpells && !isEditMode) return
@@ -60,6 +61,14 @@ fun CharacterSpellsCard(
                 SpellItem(
                     name = stringResource(R.string.analys_arkanstruktur),
                     zfw = character.analysZfw
+                )
+            }
+            
+            // Zauberzeichen (Sonderfertigkeit)
+            if (character.hasZauberzeichen) {
+                Text(
+                    text = "🔮 Zauberzeichen",
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         }

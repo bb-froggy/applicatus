@@ -8,9 +8,11 @@ import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
+import de.applicatus.app.data.model.magicsign.MagicSignEffect
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
 import de.applicatus.app.data.repository.ApplicatusRepository
+import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -52,6 +54,24 @@ class InventoryViewModel(
     // Tränke des Charakters
     val potions = repository.getPotionsForCharacter(characterId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // Zauberzeichen mit Item-Informationen (für Gewichtsreduktion)
+    private val magicSignsWithItems = repository.getMagicSignsWithItemsForCharacter(characterId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // Aktuelles derisches Datum der Gruppe
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val currentDerianDate: StateFlow<String> = character
+        .mapLatest { char ->
+            char?.groupId?.let { groupId ->
+                repository.getGroupByIdOnce(groupId)?.currentDerianDate
+            } ?: "1 Praios 1040 BF"
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "1 Praios 1040 BF"
+        )
     
     // Rezeptwissen des Charakters
     private val recipeKnowledge = repository.getRecipeKnowledgeForCharacter(characterId)
@@ -127,9 +147,10 @@ class InventoryViewModel(
     
     /**
      * Berechnet das Gesamtgewicht pro Location
+     * Berücksichtigt aktive Zauberzeichen mit WEIGHT_REDUCTION-Effekt
      */
     val weightByLocation: StateFlow<Map<Long?, Weight>> =
-        combine(itemsWithLocation, potions) { items, pots ->
+        combine(itemsWithLocation, potions, magicSignsWithItems, currentDerianDate) { items, pots, signs, currentDate ->
             val weights = mutableMapOf<Long?, Int>() // Location ID -> Gewicht in Unzen
             
             // Items
@@ -148,6 +169,38 @@ class InventoryViewModel(
                 val currentWeight = weights[potionWithRecipe.potion.locationId] ?: 0
                 val potionTotalWeight = Weight.POTION.toOunces() * potionWithRecipe.potion.quantity
                 weights[potionWithRecipe.potion.locationId] = currentWeight + potionTotalWeight
+            }
+            
+            // Gewichtsreduktion durch aktive Zauberzeichen anwenden
+            // "Sigille des Unsichtbaren Trägers" reduziert das Gewicht um RkP* × 2 Stein (min 1 Stein)
+            val currentDays = DerianDateCalculator.parseDateToDays(currentDate) ?: 0
+            signs.filter { signWithItem ->
+                val sign = signWithItem.magicSign
+                // Nur aktive, nicht verdorbene Zeichen mit WEIGHT_REDUCTION-Effekt
+                sign.isActivated && 
+                !sign.isBotched && 
+                sign.effect == MagicSignEffect.WEIGHT_REDUCTION &&
+                sign.expiryDate?.let { 
+                    DerianDateCalculator.parseDateToDays(it)?.let { expiryDays -> expiryDays >= currentDays } 
+                } ?: false
+            }.forEach { signWithItem ->
+                val sign = signWithItem.magicSign
+                val rkpStar = sign.activationRkpStar ?: 0
+                
+                // Reduktion: RkP* × 2 Stein, min 1 Stein = 40 × 2 Unzen = 80 Unzen pro RkP*
+                // Aber mindestens 1 Stein (40 Unzen) Gewicht bleibt
+                val reductionOunces = maxOf(rkpStar * 2 * 40, 40) // min 1 Stein = 40 Unzen
+                
+                // Finde die Location des Items mit dem Zauberzeichen
+                val itemWithSign = items.find { it.id == sign.itemId }
+                val locationId = itemWithSign?.locationId
+                
+                if (locationId != null && weights.containsKey(locationId)) {
+                    val currentWeight = weights[locationId] ?: 0
+                    // Reduziere das Gewicht der Location, aber mindestens 1 Stein bleibt
+                    val minWeight = 40 // 1 Stein
+                    weights[locationId] = maxOf(currentWeight - reductionOunces, minWeight)
+                }
             }
             
             // Konvertiere zu Weight-Objekten

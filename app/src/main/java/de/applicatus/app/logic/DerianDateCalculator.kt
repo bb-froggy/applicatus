@@ -516,9 +516,9 @@ object DerianDateCalculator {
     
     /**
      * Berechnet die nächste Wintersonnenwende (1. Firun)
-     * Wird für APPLICATUS mit WINTER_SOLSTICE Wirkungsdauer verwendet
+     * Wird für APPLICATUS mit WINTER_SOLSTICE Wirkungsdauer und Zauberzeichen verwendet
      */
-    private fun calculateNextWinterSolstice(currentDate: String): String {
+    fun getNextWinterSolstice(currentDate: String): String {
         val parsed = parseDateComponents(currentDate) ?: return currentDate
         val (day, month, year, era) = parsed
         
@@ -533,6 +533,15 @@ object DerianDateCalculator {
         }
         
         return "1 Firun $targetYear $era"
+    }
+    
+    /**
+     * Berechnet die nächste Wintersonnenwende (1. Firun)
+     * Wird für APPLICATUS mit WINTER_SOLSTICE Wirkungsdauer verwendet
+     * @deprecated Use getNextWinterSolstice instead
+     */
+    private fun calculateNextWinterSolstice(currentDate: String): String {
+        return getNextWinterSolstice(currentDate)
     }
     
     /**
