@@ -21,12 +21,16 @@ import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
+import de.applicatus.app.data.model.inventory.MagicIndicator
 
 @Composable
 fun LocationCard(
     location: Location?,
     items: List<ItemWithLocation>,
     totalWeight: Weight,
+    originalWeight: Weight? = null, // Originalgewicht vor magischen Reduktionen
+    magicIndicatorsByItem: Map<Long, List<MagicIndicator>> = emptyMap(), // Magische Indikatoren pro Item
+    onMagicIndicatorClick: (MagicIndicator) -> Unit = {},
     draggedItem: ItemWithLocation?,
     isEditMode: Boolean,
     isGameMaster: Boolean,
@@ -192,11 +196,17 @@ fun LocationCard(
                     if (location?.name == "Rüstung/Kleidung" && location.isDefault) {
                         val effectiveWeight = Weight.fromOunces(totalWeight.toOunces() / 2)
                         
-                        // Gewicht in eigener Zeile
+                        // Gewicht in eigener Zeile - mit magischer Reduktion wenn vorhanden
+                        val weightText = if (originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()) {
+                            "${originalWeight.toDisplayString()} → ${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})"
+                        } else {
+                            "${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})"
+                        }
                         Text(
-                            text = "${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})",
+                            text = weightText,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()) 
+                                MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                         
@@ -223,10 +233,17 @@ fun LocationCard(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
+                            // Gewicht mit magischer Reduktion wenn vorhanden
+                            val hasReduction = originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()
                             Text(
-                                text = totalWeight.toDisplayString(),
+                                text = if (hasReduction) {
+                                    "${originalWeight!!.toDisplayString()} → ${totalWeight.toDisplayString()}"
+                                } else {
+                                    totalWeight.toDisplayString()
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (hasReduction) MaterialTheme.colorScheme.tertiary 
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             
                             // Checkbox "Getragen" (nur für normale Locations)
@@ -284,6 +301,9 @@ fun LocationCard(
                         item = item,
                         isBeingDragged = draggedItem?.id == item.id,
                         isEditMode = isEditMode,
+                        isGameMaster = isGameMaster,
+                        magicIndicators = magicIndicatorsByItem[item.id] ?: emptyList(),
+                        onMagicIndicatorClick = onMagicIndicatorClick,
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },
                         onStartDrag = { onStartDrag(item) },

@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
+import de.applicatus.app.data.model.inventory.ItemWithMagic
 import de.applicatus.app.data.model.inventory.Location
+import de.applicatus.app.data.model.inventory.MagicIndicator
+import de.applicatus.app.data.model.inventory.MagicIndicatorType
 import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.magicsign.MagicSignEffect
 import de.applicatus.app.data.model.potion.PotionWithRecipe
@@ -146,6 +149,89 @@ class InventoryViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
     
     /**
+     * Items mit Magic-Indikatoren und Gewichtsreduktion, gruppiert nach Location.
+     * Enthält Zauberzeichen-Informationen für jedes Item.
+     */
+    val itemsWithMagicByLocation: StateFlow<Map<Location?, List<ItemWithMagic>>> =
+        combine(itemsByLocation, magicSignsWithItems, currentDerianDate) { itemsMap, signs, currentDate ->
+            val currentDays = DerianDateCalculator.parseDateToDays(currentDate) ?: 0
+            
+            itemsMap.mapValues { (_, items) ->
+                items.map { item ->
+                    // Finde Zauberzeichen für dieses Item
+                    val itemSigns = signs.filter { it.magicSign.itemId == item.id }
+                    
+                    // Erstelle Magic-Indikatoren
+                    val indicators = itemSigns.map { signWithItem ->
+                        val sign = signWithItem.magicSign
+                        val isExpired = sign.expiryDate?.let { expiryDate ->
+                            DerianDateCalculator.parseDateToDays(expiryDate)?.let { expiryDays ->
+                                expiryDays < currentDays
+                            }
+                        } ?: false
+                        
+                        MagicIndicator(
+                            type = MagicIndicatorType.MAGIC_SIGN,
+                            name = sign.name,
+                            description = sign.effectDescription,
+                            isActive = sign.isActivated && !isExpired,
+                            isBotched = sign.isBotched,
+                            expiryDate = sign.expiryDate,
+                            effectPoints = sign.activationRkpStar,
+                            sourceId = sign.id,
+                            magicSignEffect = sign.effect,
+                            activationModifier = sign.activationModifier
+                        )
+                    }
+                    
+                    // Berechne Gewichtsreduktion für dieses Item
+                    var originalWeight = item.weight
+                    var reducedWeight = item.weight
+                    
+                    val activeWeightReductionSigns = itemSigns.filter { signWithItem ->
+                        val sign = signWithItem.magicSign
+                        sign.isActivated &&
+                        !sign.isBotched &&
+                        sign.effect == MagicSignEffect.WEIGHT_REDUCTION &&
+                        sign.expiryDate?.let { expiryDate ->
+                            DerianDateCalculator.parseDateToDays(expiryDate)?.let { expiryDays ->
+                                expiryDays >= currentDays
+                            }
+                        } ?: false
+                    }
+                    
+                    if (activeWeightReductionSigns.isNotEmpty()) {
+                        // Summiere alle Gewichtsreduktionen
+                        var totalReductionOunces = 0
+                        activeWeightReductionSigns.forEach { signWithItem ->
+                            val rkpStar = signWithItem.magicSign.activationRkpStar ?: 0
+                            // RkP* × 2 Stein Reduktion
+                            totalReductionOunces += rkpStar * 2 * 40
+                        }
+                        
+                        // Reduziere Gewicht, aber mindestens 1 Stein bleibt
+                        val originalOunces = originalWeight.toOunces()
+                        val reducedOunces = maxOf(originalOunces - totalReductionOunces, 40) // min 1 Stein
+                        reducedWeight = Weight.fromOunces(reducedOunces)
+                    }
+                    
+                    // Prüfe, ob es ein Self-Item ist
+                    val isSelfItem = item.id > 0 && itemSigns.any { it.magicSign.itemId == item.id }
+                    // Hinweis: Tatsächlich müsste man das über item.isSelfItem prüfen, aber das ist in ItemWithLocation nicht verfügbar
+                    // Wir markieren erstmal keine Items speziell als Self-Items
+                    
+                    ItemWithMagic(
+                        item = item,
+                        magicIndicators = indicators,
+                        isSelfItem = false, // TODO: Aus Item-Entity laden
+                        originalWeight = if (reducedWeight != originalWeight) originalWeight else null,
+                        reducedWeight = if (reducedWeight != originalWeight) reducedWeight else null
+                    )
+                }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+    
+    /**
      * Berechnet das Gesamtgewicht pro Location
      * Berücksichtigt aktive Zauberzeichen mit WEIGHT_REDUCTION-Effekt
      */
@@ -204,6 +290,34 @@ class InventoryViewModel(
             }
             
             // Konvertiere zu Weight-Objekten
+            weights.mapValues { Weight.fromOunces(it.value) }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+    
+    /**
+     * Original-Gewicht pro Location (ohne Gewichtsreduktion durch Zauberzeichen)
+     */
+    val originalWeightByLocation: StateFlow<Map<Long?, Weight>> =
+        combine(itemsWithLocation, potions) { items, pots ->
+            val weights = mutableMapOf<Long?, Int>() // Location ID -> Gewicht in Unzen
+            
+            // Items
+            items.forEach { item ->
+                val currentWeight = weights[item.locationId] ?: 0
+                val itemWeight = if (item.isCountable) {
+                    item.totalWeight.toOunces()
+                } else {
+                    item.weight.toOunces()
+                }
+                weights[item.locationId] = currentWeight + itemWeight
+            }
+            
+            // Tränke (je 4 Unzen * Menge)
+            pots.forEach { potionWithRecipe ->
+                val currentWeight = weights[potionWithRecipe.potion.locationId] ?: 0
+                val potionTotalWeight = Weight.POTION.toOunces() * potionWithRecipe.potion.quantity
+                weights[potionWithRecipe.potion.locationId] = currentWeight + potionTotalWeight
+            }
+            
             weights.mapValues { Weight.fromOunces(it.value) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
     

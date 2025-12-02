@@ -21,6 +21,7 @@ import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.Weight
+import de.applicatus.app.data.model.inventory.MagicIndicator
 import de.applicatus.app.ui.viewmodel.InventoryViewModel
 import de.applicatus.app.ui.viewmodel.InventoryViewModelFactory
 
@@ -42,6 +43,8 @@ fun InventoryScreen(
     val locations by viewModel.locations.collectAsState()
     val itemsByLocation by viewModel.itemsByLocation.collectAsState()
     val weightByLocation by viewModel.weightByLocation.collectAsState()
+    val originalWeightByLocation by viewModel.originalWeightByLocation.collectAsState()
+    val itemsWithMagicByLocation by viewModel.itemsWithMagicByLocation.collectAsState()
     val carriedWeight by viewModel.carriedWeight.collectAsState()
     val carryingCapacity by viewModel.carryingCapacity.collectAsState()
     val encumbrancePenalty by viewModel.encumbrancePenalty.collectAsState()
@@ -55,6 +58,10 @@ fun InventoryScreen(
     var isEditMode by remember { mutableStateOf(false) }
     var showTransferLocationDialog by remember { mutableStateOf(false) }
     var locationToTransfer by remember { mutableStateOf<de.applicatus.app.data.model.inventory.Location?>(null) }
+    
+    // Magic Indicator Dialog State
+    var showMagicIndicatorDialog by remember { mutableStateOf(false) }
+    var selectedMagicIndicator by remember { mutableStateOf<MagicIndicator?>(null) }
     
     // Split Item Dialog State
     var showSplitItemDialog by remember { mutableStateOf(false) }
@@ -241,10 +248,22 @@ fun InventoryScreen(
                 // Für jeden Ort eine Karte
                 locations.forEach { location ->
                     item(key = "location_${location.id}") {
+                        // Sammle die magischen Indikatoren für diesen Ort
+                        val itemsWithMagic = itemsWithMagicByLocation[location] ?: emptyList()
+                        val magicIndicatorsByItem = itemsWithMagic
+                            .filter { it.magicIndicators.isNotEmpty() }
+                            .associate { it.item.id to it.magicIndicators }
+                        
                         LocationCard(
                             location = location,
                             items = itemsByLocation[location] ?: emptyList(),
                             totalWeight = weightByLocation[location.id] ?: Weight.ZERO,
+                            originalWeight = originalWeightByLocation[location.id],
+                            magicIndicatorsByItem = magicIndicatorsByItem,
+                            onMagicIndicatorClick = { indicator ->
+                                selectedMagicIndicator = indicator
+                                showMagicIndicatorDialog = true
+                            },
                             draggedItem = draggedItem,
                             isEditMode = isEditMode,
                             isGameMaster = isGameMasterGroup,
@@ -362,10 +381,22 @@ fun InventoryScreen(
                 val itemsWithoutLocation = itemsByLocation[null]
                 if (!itemsWithoutLocation.isNullOrEmpty()) {
                     item(key = "location_null") {
+                        // Sammle die magischen Indikatoren für Items ohne Ort
+                        val itemsWithMagicNull = itemsWithMagicByLocation[null] ?: emptyList()
+                        val magicIndicatorsByItemNull = itemsWithMagicNull
+                            .filter { it.magicIndicators.isNotEmpty() }
+                            .associate { it.item.id to it.magicIndicators }
+                        
                         LocationCard(
                             location = null,
                             items = itemsWithoutLocation,
                             totalWeight = weightByLocation[null] ?: Weight.ZERO,
+                            originalWeight = originalWeightByLocation[null],
+                            magicIndicatorsByItem = magicIndicatorsByItemNull,
+                            onMagicIndicatorClick = { indicator ->
+                                selectedMagicIndicator = indicator
+                                showMagicIndicatorDialog = true
+                            },
                             draggedItem = draggedItem,
                             isEditMode = isEditMode,
                             isGameMaster = isGameMasterGroup,
@@ -600,6 +631,18 @@ fun InventoryScreen(
                 viewModel.transferLocationToCharacter(locationToTransfer!!.id, targetCharacterId)
                 showTransferLocationDialog = false
                 locationToTransfer = null
+            }
+        )
+    }
+    
+    // Magic Indicator Detail Dialog
+    if (showMagicIndicatorDialog && selectedMagicIndicator != null) {
+        MagicIndicatorDetailDialog(
+            indicator = selectedMagicIndicator!!,
+            isGameMaster = isGameMasterGroup,
+            onDismiss = {
+                showMagicIndicatorDialog = false
+                selectedMagicIndicator = null
             }
         )
     }

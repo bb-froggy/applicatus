@@ -1,0 +1,300 @@
+package de.applicatus.app.ui.screen.inventory
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import de.applicatus.app.data.model.inventory.MagicIndicator
+import de.applicatus.app.data.model.inventory.MagicIndicatorType
+import de.applicatus.app.data.model.magicsign.MagicSignEffect
+
+/**
+ * Zeile mit Magic-Indikatoren (Symbole für Zauberzeichen, Applicatus, Langzauber).
+ * Jedes Symbol ist antippbar und zeigt einen Detail-Dialog.
+ */
+@Composable
+fun MagicIndicatorRow(
+    indicators: List<MagicIndicator>,
+    isGameMaster: Boolean,
+    modifier: Modifier = Modifier,
+    onIndicatorClick: (MagicIndicator) -> Unit = {}
+) {
+    if (indicators.isEmpty()) return
+    
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        indicators.forEach { indicator ->
+            MagicIndicatorChip(
+                indicator = indicator,
+                isGameMaster = isGameMaster,
+                onClick = { onIndicatorClick(indicator) }
+            )
+        }
+    }
+}
+
+/**
+ * Einzelner Magic-Indikator als antippbares Chip
+ */
+@Composable
+fun MagicIndicatorChip(
+    indicator: MagicIndicator,
+    isGameMaster: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = when {
+        // Verdorben: Rot (nur für GM sichtbar)
+        indicator.isBotched && isGameMaster -> MaterialTheme.colorScheme.errorContainer
+        // Inaktiv: Grau
+        !indicator.isActive -> MaterialTheme.colorScheme.surfaceVariant
+        // Aktiv nach Typ
+        else -> when (indicator.type) {
+            MagicIndicatorType.MAGIC_SIGN -> MaterialTheme.colorScheme.primaryContainer
+            MagicIndicatorType.APPLICATUS -> MaterialTheme.colorScheme.tertiaryContainer
+            MagicIndicatorType.LONG_DURATION_SPELL -> MaterialTheme.colorScheme.secondaryContainer
+        }
+    }
+    
+    val contentColor = when {
+        indicator.isBotched && isGameMaster -> MaterialTheme.colorScheme.onErrorContainer
+        !indicator.isActive -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> when (indicator.type) {
+            MagicIndicatorType.MAGIC_SIGN -> MaterialTheme.colorScheme.onPrimaryContainer
+            MagicIndicatorType.APPLICATUS -> MaterialTheme.colorScheme.onTertiaryContainer
+            MagicIndicatorType.LONG_DURATION_SPELL -> MaterialTheme.colorScheme.onSecondaryContainer
+        }
+    }
+    
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            // Symbol
+            Text(
+                text = indicator.symbol,
+                fontSize = 12.sp
+            )
+            
+            // Optional: Verdorben-Marker für GM
+            if (indicator.isBotched && isGameMaster) {
+                Text(
+                    text = "⚠",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Dialog zur Anzeige von Magic-Indikator Details
+ */
+@Composable
+fun MagicIndicatorDetailDialog(
+    indicator: MagicIndicator,
+    isGameMaster: Boolean,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = indicator.symbol,
+                    fontSize = 24.sp
+                )
+                Column {
+                    Text(
+                        text = indicator.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = indicator.shortDescription,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Status
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Status:",
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    val statusText = when {
+                        indicator.isBotched && isGameMaster -> "⚠️ Verdorben (nur GM sichtbar)"
+                        indicator.isBotched -> "Aktiv" // Spieler sehen nicht, dass es verdorben ist
+                        indicator.isActive -> "✓ Aktiv"
+                        else -> "○ Inaktiv"
+                    }
+                    
+                    val statusColor = when {
+                        indicator.isBotched && isGameMaster -> MaterialTheme.colorScheme.error
+                        indicator.isActive -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    
+                    Text(
+                        text = statusText,
+                        color = statusColor
+                    )
+                }
+                
+                // Beschreibung
+                if (indicator.description.isNotBlank()) {
+                    Text(
+                        text = indicator.description,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                // Typ-spezifische Informationen
+                when (indicator.type) {
+                    MagicIndicatorType.MAGIC_SIGN -> {
+                        // Zauberzeichen-spezifisch
+                        if (indicator.magicSignEffect != null && indicator.magicSignEffect != MagicSignEffect.NONE) {
+                            Row {
+                                Text("Effekt: ", fontWeight = FontWeight.Bold)
+                                Text(indicator.magicSignEffect.displayName)
+                            }
+                        }
+                        
+                        indicator.activationModifier?.let { mod ->
+                            Row {
+                                Text("Aktivierungsmodifikator: ", fontWeight = FontWeight.Bold)
+                                Text(if (mod >= 0) "+$mod" else "$mod")
+                            }
+                        }
+                        
+                        indicator.effectPoints?.let { rkpStar ->
+                            Row {
+                                Text("RkP*: ", fontWeight = FontWeight.Bold)
+                                Text("$rkpStar")
+                            }
+                        }
+                    }
+                    
+                    MagicIndicatorType.APPLICATUS, MagicIndicatorType.LONG_DURATION_SPELL -> {
+                        // Zauber-spezifisch
+                        indicator.variant?.takeIf { it.isNotBlank() }?.let { variant ->
+                            Row {
+                                Text("Variante: ", fontWeight = FontWeight.Bold)
+                                Text(variant)
+                            }
+                        }
+                        
+                        indicator.effectPoints?.let { zfpStar ->
+                            Row {
+                                Text("ZfP*: ", fontWeight = FontWeight.Bold)
+                                Text("$zfpStar")
+                            }
+                        }
+                        
+                        indicator.aspCost?.takeIf { it.isNotBlank() }?.let { cost ->
+                            Row {
+                                Text("ASP-Kosten: ", fontWeight = FontWeight.Bold)
+                                Text(cost)
+                            }
+                        }
+                    }
+                }
+                
+                // Ablaufdatum
+                indicator.expiryDate?.let { date ->
+                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    Row {
+                        Text("Wirkt bis: ", fontWeight = FontWeight.Bold)
+                        Text(date)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Schließen")
+            }
+        }
+    )
+}
+
+/**
+ * Kompakte Gewichtsanzeige mit Original- und reduziertem Gewicht
+ */
+@Composable
+fun WeightWithReduction(
+    originalWeight: de.applicatus.app.data.model.inventory.Weight,
+    reducedWeight: de.applicatus.app.data.model.inventory.Weight,
+    modifier: Modifier = Modifier
+) {
+    if (originalWeight == reducedWeight) {
+        // Keine Reduktion
+        Text(
+            text = originalWeight.toDisplayString(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier
+        )
+    } else {
+        // Mit Reduktion: Original → Reduziert
+        Row(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = originalWeight.toDisplayString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "→",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = reducedWeight.toDisplayString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}

@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.applicatus.app.data.model.inventory.ItemWithLocation
+import de.applicatus.app.data.model.inventory.ItemWithMagic
+import de.applicatus.app.data.model.inventory.MagicIndicator
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -38,7 +40,14 @@ fun ItemRow(
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (Offset) -> Unit,
     onPurseAmountChange: (Int) -> Unit,
-    onQuantityChange: (Int) -> Unit
+    onQuantityChange: (Int) -> Unit,
+    // Neue Parameter für Magic-Anzeige
+    magicIndicators: List<MagicIndicator> = emptyList(),
+    isGameMaster: Boolean = false,
+    isSelfItem: Boolean = false,
+    originalWeight: de.applicatus.app.data.model.inventory.Weight? = null,
+    reducedWeight: de.applicatus.app.data.model.inventory.Weight? = null,
+    onMagicIndicatorClick: (MagicIndicator) -> Unit = {}
 ) {
     val isPotion = item.id < 0 // Tränke haben negative IDs
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
@@ -175,6 +184,10 @@ fun ItemRow(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // Self-Item Marker
+                            if (isSelfItem) {
+                                Text(text = "📍", fontSize = 14.sp)
+                            }
                             Text(
                                 text = item.name,
                                 style = MaterialTheme.typography.bodyLarge
@@ -185,11 +198,28 @@ fun ItemRow(
                                 onAmountChange = onPurseAmountChange
                             )
                         }
-                        Text(
-                            text = item.weight.toDisplayString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // Magic-Indikatoren
+                        if (magicIndicators.isNotEmpty()) {
+                            MagicIndicatorRow(
+                                indicators = magicIndicators,
+                                isGameMaster = isGameMaster,
+                                onIndicatorClick = onMagicIndicatorClick,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                        // Gewicht mit Reduktion
+                        if (originalWeight != null && reducedWeight != null && originalWeight != reducedWeight) {
+                            WeightWithReduction(
+                                originalWeight = originalWeight,
+                                reducedWeight = reducedWeight
+                            )
+                        } else {
+                            Text(
+                                text = item.weight.toDisplayString(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 } else if (item.isCountable) {
                     // Zählbare Gegenstände: Name mit Menge
@@ -198,6 +228,10 @@ fun ItemRow(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // Self-Item Marker
+                            if (isSelfItem) {
+                                Text(text = "📍", fontSize = 14.sp)
+                            }
                             Text(
                                 text = item.name,
                                 style = MaterialTheme.typography.bodyLarge
@@ -218,16 +252,32 @@ fun ItemRow(
                                 )
                             }
                         }
+                        // Magic-Indikatoren
+                        if (magicIndicators.isNotEmpty()) {
+                            MagicIndicatorRow(
+                                indicators = magicIndicators,
+                                isGameMaster = isGameMaster,
+                                onIndicatorClick = onMagicIndicatorClick,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
                         // Gewicht (Gesamtgewicht bei Menge > 1)
-                        Text(
-                            text = if (item.quantity > 1) {
-                                "${item.totalWeight.toDisplayString()} (${item.quantity}x ${item.weight.toDisplayString()})"
-                            } else {
-                                item.totalWeight.toDisplayString()
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (originalWeight != null && reducedWeight != null && originalWeight != reducedWeight) {
+                            WeightWithReduction(
+                                originalWeight = if (item.quantity > 1) originalWeight * item.quantity else originalWeight,
+                                reducedWeight = if (item.quantity > 1) reducedWeight * item.quantity else reducedWeight
+                            )
+                        } else {
+                            Text(
+                                text = if (item.quantity > 1) {
+                                    "${item.totalWeight.toDisplayString()} (${item.quantity}x ${item.weight.toDisplayString()})"
+                                } else {
+                                    item.totalWeight.toDisplayString()
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         // Aussehen (nur für Tränke)
                         if (isPotion && !item.appearance.isNullOrBlank()) {
                             Text(
@@ -257,6 +307,14 @@ fun ItemRow(
                                 style = MaterialTheme.typography.bodySmall,
                                 fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                        // Magische Indikatoren
+                        if (magicIndicators.isNotEmpty()) {
+                            MagicIndicatorRow(
+                                indicators = magicIndicators,
+                                isGameMaster = isGameMaster,
+                                onIndicatorClick = onMagicIndicatorClick
                             )
                         }
                     }
