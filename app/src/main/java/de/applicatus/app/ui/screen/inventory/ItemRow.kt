@@ -211,18 +211,10 @@ fun ItemRow(
                             )
                         }
                         // Gewicht mit Reduktion
-                        if (originalWeight != null && reducedWeight != null && originalWeight != reducedWeight) {
-                            WeightWithReduction(
-                                originalWeight = originalWeight,
-                                reducedWeight = reducedWeight
-                            )
-                        } else {
-                            Text(
-                                text = item.weight.toDisplayString(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        WeightWithReduction(
+                            weight = reducedWeight ?: item.weight,
+                            originalWeight = originalWeight
+                        )
                     }
                 } else if (item.isCountable) {
                     // Zählbare Gegenstände: Name mit Menge
@@ -265,20 +257,23 @@ fun ItemRow(
                             )
                         }
                         // Gewicht (Gesamtgewicht bei Menge > 1)
-                        if (originalWeight != null && reducedWeight != null && originalWeight != reducedWeight) {
-                            WeightWithReduction(
-                                originalWeight = if (item.quantity > 1) originalWeight * item.quantity else originalWeight,
-                                reducedWeight = if (item.quantity > 1) reducedWeight * item.quantity else reducedWeight
-                            )
+                        if (item.quantity > 1) {
+                            Column {
+                                WeightWithReduction(
+                                    weight = reducedWeight?.let { it * item.quantity } ?: item.totalWeight,
+                                    originalWeight = originalWeight?.let { it * item.quantity }
+                                )
+                                Text(
+                                    text = "(${item.quantity}x ${(reducedWeight ?: item.weight).toDisplayString()})",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
                         } else {
-                            Text(
-                                text = if (item.quantity > 1) {
-                                    "${item.totalWeight.toDisplayString()} (${item.quantity}x ${item.weight.toDisplayString()})"
-                                } else {
-                                    item.totalWeight.toDisplayString()
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            WeightWithReduction(
+                                weight = reducedWeight ?: item.weight,
+                                originalWeight = originalWeight
                             )
                         }
                         // Aussehen (nur für Tränke)
@@ -307,11 +302,10 @@ fun ItemRow(
                                 color = if (item.isSelfItem) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        // Gewicht
-                        Text(
-                            text = item.weight.toDisplayString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        // Gewicht mit Reduktion
+                        WeightWithReduction(
+                            weight = reducedWeight ?: item.weight,
+                            originalWeight = originalWeight
                         )
                         // Aussehen (nur für Tränke)
                         if (isPotion && !item.appearance.isNullOrBlank()) {

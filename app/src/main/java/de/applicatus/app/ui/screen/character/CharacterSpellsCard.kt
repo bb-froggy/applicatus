@@ -9,6 +9,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.ui.screen.inventory.HeptagramIcon
 
 @Composable
 fun CharacterSpellsCard(
@@ -66,10 +67,20 @@ fun CharacterSpellsCard(
             
             // Zauberzeichen (Sonderfertigkeit)
             if (character.hasZauberzeichen) {
-                Text(
-                    text = "🔮 Zauberzeichen",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HeptagramIcon(
+                        size = 20.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.0f
+                    )
+                    Text(
+                        text = "Zauberzeichen",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }

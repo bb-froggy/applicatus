@@ -248,18 +248,14 @@ fun InventoryScreen(
                 // Für jeden Ort eine Karte
                 locations.forEach { location ->
                     item(key = "location_${location.id}") {
-                        // Sammle die magischen Indikatoren für diesen Ort
+                        // Items mit Magic-Indikatoren und Gewichtsreduktionen
                         val itemsWithMagic = itemsWithMagicByLocation[location] ?: emptyList()
-                        val magicIndicatorsByItem = itemsWithMagic
-                            .filter { it.magicIndicators.isNotEmpty() }
-                            .associate { it.item.id to it.magicIndicators }
                         
                         LocationCard(
                             location = location,
-                            items = itemsByLocation[location] ?: emptyList(),
+                            itemsWithMagic = itemsWithMagic,
                             totalWeight = weightByLocation[location.id] ?: Weight.ZERO,
                             originalWeight = originalWeightByLocation[location.id],
-                            magicIndicatorsByItem = magicIndicatorsByItem,
                             onMagicIndicatorClick = { indicator ->
                                 selectedMagicIndicator = indicator
                                 showMagicIndicatorDialog = true
@@ -381,18 +377,14 @@ fun InventoryScreen(
                 val itemsWithoutLocation = itemsByLocation[null]
                 if (!itemsWithoutLocation.isNullOrEmpty()) {
                     item(key = "location_null") {
-                        // Sammle die magischen Indikatoren für Items ohne Ort
+                        // Items mit Magic-Indikatoren und Gewichtsreduktionen für Items ohne Ort
                         val itemsWithMagicNull = itemsWithMagicByLocation[null] ?: emptyList()
-                        val magicIndicatorsByItemNull = itemsWithMagicNull
-                            .filter { it.magicIndicators.isNotEmpty() }
-                            .associate { it.item.id to it.magicIndicators }
                         
                         LocationCard(
                             location = null,
-                            items = itemsWithoutLocation,
+                            itemsWithMagic = itemsWithMagicNull,
                             totalWeight = weightByLocation[null] ?: Weight.ZERO,
                             originalWeight = originalWeightByLocation[null],
-                            magicIndicatorsByItem = magicIndicatorsByItemNull,
                             onMagicIndicatorClick = { indicator ->
                                 selectedMagicIndicator = indicator
                                 showMagicIndicatorDialog = true

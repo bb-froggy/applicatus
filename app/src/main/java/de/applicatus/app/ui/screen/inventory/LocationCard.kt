@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.data.model.inventory.ItemWithLocation
+import de.applicatus.app.data.model.inventory.ItemWithMagic
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.inventory.MagicIndicator
@@ -26,10 +27,9 @@ import de.applicatus.app.data.model.inventory.MagicIndicator
 @Composable
 fun LocationCard(
     location: Location?,
-    items: List<ItemWithLocation>,
+    itemsWithMagic: List<ItemWithMagic>, // Items mit Magic-Indikatoren und Gewichtsreduktionen
     totalWeight: Weight,
     originalWeight: Weight? = null, // Originalgewicht vor magischen Reduktionen
-    magicIndicatorsByItem: Map<Long, List<MagicIndicator>> = emptyMap(), // Magische Indikatoren pro Item
     onMagicIndicatorClick: (MagicIndicator) -> Unit = {},
     draggedItem: ItemWithLocation?,
     isEditMode: Boolean,
@@ -315,7 +315,7 @@ fun LocationCard(
             Divider(modifier = Modifier.padding(vertical = 8.dp))
             
             // Item-Liste
-            if (items.isEmpty()) {
+            if (itemsWithMagic.isEmpty()) {
                 Text(
                     text = "Keine Gegenstände",
                     style = MaterialTheme.typography.bodyMedium,
@@ -323,14 +323,17 @@ fun LocationCard(
                     modifier = Modifier.padding(8.dp)
                 )
             } else {
-                items.forEach { item ->
+                itemsWithMagic.forEach { itemWithMagic ->
+                    val item = itemWithMagic.item
                     ItemRow(
                         item = item,
                         isBeingDragged = draggedItem?.id == item.id,
                         isEditMode = isEditMode,
                         isGameMaster = isGameMaster,
                         isSelfItem = item.isSelfItem,
-                        magicIndicators = magicIndicatorsByItem[item.id] ?: emptyList(),
+                        magicIndicators = itemWithMagic.magicIndicators,
+                        originalWeight = itemWithMagic.originalWeight,
+                        reducedWeight = itemWithMagic.reducedWeight,
                         onMagicIndicatorClick = onMagicIndicatorClick,
                         onEdit = { onEditItem(item) },
                         onDelete = { onDeleteItem(item) },

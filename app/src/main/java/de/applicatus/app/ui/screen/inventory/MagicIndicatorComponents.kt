@@ -333,14 +333,14 @@ fun MagicIndicatorDetailDialog(
  */
 @Composable
 fun WeightWithReduction(
-    originalWeight: de.applicatus.app.data.model.inventory.Weight,
-    reducedWeight: de.applicatus.app.data.model.inventory.Weight,
+    weight: de.applicatus.app.data.model.inventory.Weight,
+    originalWeight: de.applicatus.app.data.model.inventory.Weight? = null,
     modifier: Modifier = Modifier
 ) {
-    if (originalWeight == reducedWeight) {
+    if (originalWeight == null || originalWeight == weight) {
         // Keine Reduktion
         Text(
-            text = originalWeight.toDisplayString(),
+            text = weight.toDisplayString(),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = modifier
@@ -365,7 +365,7 @@ fun WeightWithReduction(
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = reducedWeight.toDisplayString(),
+                text = weight.toDisplayString(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
