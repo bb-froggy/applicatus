@@ -212,9 +212,10 @@ class InventoryViewModel(
                                 totalReductionOunces += rkpStar * 2 * 40
                             }
                             
-                            // Reduziere Gewicht, aber mindestens 1 Unze bleibt
+                            // Reduziere Gewicht: Mindestens 1 Stein (40 Unzen) bleibt, aber nie schwerer als Original
                             val originalOunces = originalWeight.toOunces()
-                            val reducedOunces = maxOf(originalOunces - totalReductionOunces, 1)
+                            val minimumOunces = if (originalOunces >= 40) 40 else originalOunces
+                            val reducedOunces = maxOf(originalOunces - totalReductionOunces, minimumOunces)
                             reducedWeight = Weight.fromOunces(reducedOunces)
                         }
                     }
@@ -291,8 +292,9 @@ class InventoryViewModel(
                 // Wende individuelle Item-Reduktion an
                 val itemReduction = itemReductions[item.id] ?: 0
                 if (itemReduction > 0) {
-                    // Reduziere Item-Gewicht, aber mindestens 1 Unze bleibt
-                    itemWeight = maxOf(itemWeight - itemReduction, 1)
+                    // Reduziere Item-Gewicht: Mindestens 1 Stein (40 Unzen) bleibt, aber nie schwerer als Original
+                    val minimumOunces = if (itemWeight >= 40) 40 else itemWeight
+                    itemWeight = maxOf(itemWeight - itemReduction, minimumOunces)
                 }
                 
                 weights[item.locationId] = currentWeight + itemWeight
