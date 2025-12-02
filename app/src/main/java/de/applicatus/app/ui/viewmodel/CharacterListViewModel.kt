@@ -522,6 +522,10 @@ class CharacterListViewModel(
      * Prüft, ob beim Aktualisieren des Datums Zauber oder Zauberzeichen ablaufen
      */
     private suspend fun checkExpiringSpells(groupId: Long, newDate: String) {
+        // Hole das aktuelle (alte) Datum der Gruppe
+        val group = repository.getGroupByIdOnce(groupId)
+        val oldDate = group?.currentDerianDate ?: return
+        
         // Hole alle Charaktere der Gruppe
         val characters = repository.getCharactersByGroupOnce(groupId)
         
@@ -538,7 +542,10 @@ class CharacterListViewModel(
                 
                 // Prüfe, ob Slot gefüllt ist und ein Ablaufdatum hat
                 if (slot.isFilled && slot.expiryDate != null && spell != null) {
-                    if (DerianDateCalculator.isSpellExpired(slot.expiryDate, newDate)) {
+                    // Warnung nur, wenn vorher noch nicht abgelaufen, aber jetzt schon
+                    val wasExpired = DerianDateCalculator.isSpellExpired(slot.expiryDate, oldDate)
+                    val isNowExpired = DerianDateCalculator.isSpellExpired(slot.expiryDate, newDate)
+                    if (!wasExpired && isNowExpired) {
                         expiredSpells.add(character.name to spell.name)
                     }
                 }
@@ -548,7 +555,10 @@ class CharacterListViewModel(
             val magicSigns = repository.getActiveMagicSignsListForCharacter(character.id)
             for (sign in magicSigns) {
                 if (sign.expiryDate != null && !sign.isBotched) {
-                    if (DerianDateCalculator.isSpellExpired(sign.expiryDate, newDate)) {
+                    // Warnung nur, wenn vorher noch nicht abgelaufen, aber jetzt schon
+                    val wasExpired = DerianDateCalculator.isSpellExpired(sign.expiryDate, oldDate)
+                    val isNowExpired = DerianDateCalculator.isSpellExpired(sign.expiryDate, newDate)
+                    if (!wasExpired && isNowExpired) {
                         expiredMagicSigns.add(character.name to sign.name)
                     }
                 }

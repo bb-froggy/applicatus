@@ -403,12 +403,12 @@ private fun MagicSignCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                // Aktivieren (nur wenn nicht aktiviert und nicht verdorben)
-                if (!sign.isActivated && !sign.isBotched) {
+                // Aktivieren (wenn nicht aktiviert/verdorben ODER wenn abgelaufen)
+                if ((!sign.isActivated || isExpired) && !sign.isBotched) {
                     TextButton(onClick = onActivate) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Aktivieren")
+                        Text(if (isExpired) "Reaktivieren" else "Aktivieren")
                     }
                 }
                 
