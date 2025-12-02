@@ -302,6 +302,7 @@ fun LocationCard(
                         isBeingDragged = draggedItem?.id == item.id,
                         isEditMode = isEditMode,
                         isGameMaster = isGameMaster,
+                        isSelfItem = item.isSelfItem,
                         magicIndicators = magicIndicatorsByItem[item.id] ?: emptyList(),
                         onMagicIndicatorClick = onMagicIndicatorClick,
                         onEdit = { onEditItem(item) },

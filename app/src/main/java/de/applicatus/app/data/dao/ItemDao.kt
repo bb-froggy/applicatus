@@ -26,7 +26,8 @@ interface ItemDao {
                items.stone, items.ounces, items.sortOrder,
                locations.name as locationName,
                items.isPurse, items.kreuzerAmount,
-               items.isCountable, items.quantity
+               items.isCountable, items.quantity,
+               items.isSelfItem, items.selfItemForLocationId
         FROM items 
         LEFT JOIN locations ON items.locationId = locations.id 
         WHERE items.characterId = :characterId 

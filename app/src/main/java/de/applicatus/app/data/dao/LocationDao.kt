@@ -9,6 +9,9 @@ interface LocationDao {
     @Query("SELECT * FROM locations WHERE characterId = :characterId ORDER BY sortOrder, name")
     fun getLocationsForCharacter(characterId: Long): Flow<List<Location>>
     
+    @Query("SELECT * FROM locations WHERE characterId = :characterId ORDER BY sortOrder, name")
+    suspend fun getLocationsForCharacterOnce(characterId: Long): List<Location>
+    
     @Query("SELECT * FROM locations WHERE id = :locationId")
     suspend fun getLocationById(locationId: Long): Location?
     

@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class, CharacterJournalEntry::class, MagicSign::class],
-    version = 36,
+    version = 37,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -1190,6 +1190,41 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_itemId ON magic_signs(itemId)")
             }
         }
+        
+        /**
+         * Migration 36 -> 37: Erstelle Eigenobjekte für alle bestehenden Locations
+         * Jeder Ort bekommt ein Self-Item, das mit Zauberzeichen versehen werden kann.
+         */
+        val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Erstelle Self-Items für alle Locations, die noch keine haben
+                // Self-Items werden vor allen anderen Items sortiert (sortOrder = -1000)
+                database.execSQL("""
+                    INSERT INTO items (characterId, locationId, name, stone, ounces, sortOrder, isPurse, kreuzerAmount, isCountable, quantity, isSelfItem, selfItemForLocationId)
+                    SELECT 
+                        l.characterId,
+                        l.id,
+                        l.name || ' (Eigengewicht)',
+                        0,
+                        0,
+                        -1000,
+                        0,
+                        0,
+                        0,
+                        1,
+                        1,
+                        l.id
+                    FROM locations l
+                    WHERE l.hasSelfItem = 0
+                    AND NOT EXISTS (
+                        SELECT 1 FROM items i WHERE i.selfItemForLocationId = l.id AND i.isSelfItem = 1
+                    )
+                """.trimIndent())
+                
+                // Markiere alle Locations als hasSelfItem = true
+                database.execSQL("UPDATE locations SET hasSelfItem = 1")
+            }
+        }
 
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -1198,7 +1233,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

@@ -16,7 +16,9 @@ data class ItemWithLocation(
     val kreuzerAmount: Int = 0,
     val appearance: String? = null, // Aussehen (nur für Tränke, nicht aus DB)
     val isCountable: Boolean = false,
-    val quantity: Int = 1
+    val quantity: Int = 1,
+    val isSelfItem: Boolean = false, // Eigenobjekt des Ortes
+    val selfItemForLocationId: Long? = null // Für welchen Ort ist dies das Eigenobjekt
 ) {
     val weight: Weight
         get() = Weight(stone, ounces)

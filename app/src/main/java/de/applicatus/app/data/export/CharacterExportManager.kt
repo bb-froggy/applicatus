@@ -505,6 +505,18 @@ class CharacterExportManager(
                 }
             }
             
+            // Stelle sicher, dass alle Locations ein Eigenobjekt haben (auch bestehende)
+            val allLocationsAfterImport = repository.getLocationsForCharacter(characterId).first()
+            allLocationsAfterImport.forEach { location ->
+                if (!location.hasSelfItem) {
+                    try {
+                        repository.createSelfItemForLocation(location)
+                    } catch (e: Exception) {
+                        // Ignoriere Fehler beim Erstellen von Eigenobjekten (nicht kritisch)
+                    }
+                }
+            }
+            
             // Journal-Einträge importieren
             exportDto.journalEntries.forEach { journalDto ->
                 try {

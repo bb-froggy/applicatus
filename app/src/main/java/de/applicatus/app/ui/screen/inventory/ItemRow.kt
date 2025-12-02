@@ -54,9 +54,12 @@ fun ItemRow(
     var currentDragOffset by remember { mutableStateOf(Offset.Zero) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     
+    // Self-Items können nicht per Swipe gelöscht werden
+    val canSwipeToDelete = !item.isSelfItem
+    
     val dismissState = rememberDismissState(
         confirmStateChange = { dismissValue ->
-            if (dismissValue == DismissValue.DismissedToStart) {
+            if (dismissValue == DismissValue.DismissedToStart && canSwipeToDelete) {
                 showDeleteConfirmation = true
                 false // Warten auf Bestätigung
             } else {
@@ -67,9 +70,9 @@ fun ItemRow(
     
     SwipeToDismiss(
         state = dismissState,
-        directions = setOf(DismissDirection.EndToStart),
+        directions = if (canSwipeToDelete) setOf(DismissDirection.EndToStart) else emptySet(),
         background = {
-            val color = if (dismissState.dismissDirection == DismissDirection.EndToStart) {
+            val color = if (dismissState.dismissDirection == DismissDirection.EndToStart && canSwipeToDelete) {
                 Color.Red
             } else {
                 Color.Transparent
@@ -82,7 +85,7 @@ fun ItemRow(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                if (dismissState.dismissDirection == DismissDirection.EndToStart) {
+                if (dismissState.dismissDirection == DismissDirection.EndToStart && canSwipeToDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Löschen",
@@ -290,10 +293,20 @@ fun ItemRow(
                     }
                 } else {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = item.name,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            // Self-Item Marker
+                            if (item.isSelfItem) {
+                                Text(text = "📍", fontSize = 14.sp)
+                            }
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (item.isSelfItem) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         // Gewicht
                         Text(
                             text = item.weight.toDisplayString(),
@@ -320,10 +333,15 @@ fun ItemRow(
                     }
                 }
                 
-                // Edit-Icon nur im Edit-Modus und nur für normale Items (nicht Tränke oder Geldbeutel)
-                if (isEditMode && !isPotion && !item.isPurse) {
+                // Edit-Icon nur im Edit-Modus und nur für normale Items (nicht Tränke, Geldbeutel oder Eigenobjekte)
+                if (isEditMode && !isPotion && !item.isPurse && !item.isSelfItem) {
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, "Bearbeiten", tint = MaterialTheme.colorScheme.primary)
+                    }
+                } else if (item.isSelfItem && isEditMode) {
+                    // Eigenobjekte: Edit für Gewicht erlauben
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, "Eigengewicht bearbeiten", tint = MaterialTheme.colorScheme.secondary)
                     }
                 } else if (isPotion) {
                     // Tränke: Marker-Icon

@@ -184,46 +184,45 @@ class InventoryViewModel(
                         )
                     }
                     
-                    // Berechne Gewichtsreduktion für dieses Item
+                    // Berechne Gewichtsreduktion für dieses Item (nur für normale Items, nicht Eigenobjekte)
                     var originalWeight = item.weight
                     var reducedWeight = item.weight
                     
-                    val activeWeightReductionSigns = itemSigns.filter { signWithItem ->
-                        val sign = signWithItem.magicSign
-                        sign.isActivated &&
-                        !sign.isBotched &&
-                        sign.effect == MagicSignEffect.WEIGHT_REDUCTION &&
-                        sign.expiryDate?.let { expiryDate ->
-                            DerianDateCalculator.parseDateToDays(expiryDate)?.let { expiryDays ->
-                                expiryDays >= currentDays
-                            }
-                        } ?: false
-                    }
-                    
-                    if (activeWeightReductionSigns.isNotEmpty()) {
-                        // Summiere alle Gewichtsreduktionen
-                        var totalReductionOunces = 0
-                        activeWeightReductionSigns.forEach { signWithItem ->
-                            val rkpStar = signWithItem.magicSign.activationRkpStar ?: 0
-                            // RkP* × 2 Stein Reduktion
-                            totalReductionOunces += rkpStar * 2 * 40
+                    // Nur normale Items (nicht Eigenobjekte) bekommen individuelle Gewichtsreduktion
+                    // Eigenobjekte reduzieren das ganze Location-Gewicht stattdessen
+                    if (!item.isSelfItem) {
+                        val activeWeightReductionSigns = itemSigns.filter { signWithItem ->
+                            val sign = signWithItem.magicSign
+                            sign.isActivated &&
+                            !sign.isBotched &&
+                            sign.effect == MagicSignEffect.WEIGHT_REDUCTION &&
+                            sign.expiryDate?.let { expiryDate ->
+                                DerianDateCalculator.parseDateToDays(expiryDate)?.let { expiryDays ->
+                                    expiryDays >= currentDays
+                                }
+                            } ?: false
                         }
                         
-                        // Reduziere Gewicht, aber mindestens 1 Stein bleibt
-                        val originalOunces = originalWeight.toOunces()
-                        val reducedOunces = maxOf(originalOunces - totalReductionOunces, 40) // min 1 Stein
-                        reducedWeight = Weight.fromOunces(reducedOunces)
+                        if (activeWeightReductionSigns.isNotEmpty()) {
+                            // Summiere alle Gewichtsreduktionen
+                            var totalReductionOunces = 0
+                            activeWeightReductionSigns.forEach { signWithItem ->
+                                val rkpStar = signWithItem.magicSign.activationRkpStar ?: 0
+                                // RkP* × 2 Stein Reduktion
+                                totalReductionOunces += rkpStar * 2 * 40
+                            }
+                            
+                            // Reduziere Gewicht, aber mindestens 1 Unze bleibt
+                            val originalOunces = originalWeight.toOunces()
+                            val reducedOunces = maxOf(originalOunces - totalReductionOunces, 1)
+                            reducedWeight = Weight.fromOunces(reducedOunces)
+                        }
                     }
-                    
-                    // Prüfe, ob es ein Self-Item ist
-                    val isSelfItem = item.id > 0 && itemSigns.any { it.magicSign.itemId == item.id }
-                    // Hinweis: Tatsächlich müsste man das über item.isSelfItem prüfen, aber das ist in ItemWithLocation nicht verfügbar
-                    // Wir markieren erstmal keine Items speziell als Self-Items
                     
                     ItemWithMagic(
                         item = item,
                         magicIndicators = indicators,
-                        isSelfItem = false, // TODO: Aus Item-Entity laden
+                        isSelfItem = item.isSelfItem,
                         originalWeight = if (reducedWeight != originalWeight) originalWeight else null,
                         reducedWeight = if (reducedWeight != originalWeight) reducedWeight else null
                     )
@@ -233,20 +232,69 @@ class InventoryViewModel(
     
     /**
      * Berechnet das Gesamtgewicht pro Location
-     * Berücksichtigt aktive Zauberzeichen mit WEIGHT_REDUCTION-Effekt
+     * Berücksichtigt aktive Zauberzeichen mit WEIGHT_REDUCTION-Effekt:
+     * - Auf Eigenobjekt: Reduziert das gesamte Location-Gewicht
+     * - Auf normales Item: Reduziert nur das Item-Gewicht
      */
     val weightByLocation: StateFlow<Map<Long?, Weight>> =
         combine(itemsWithLocation, potions, magicSignsWithItems, currentDerianDate) { items, pots, signs, currentDate ->
+            val currentDays = DerianDateCalculator.parseDateToDays(currentDate) ?: 0
+            
+            // Finde aktive Gewichtsreduktions-Zauberzeichen
+            val activeWeightReductionSigns = signs.filter { signWithItem ->
+                val sign = signWithItem.magicSign
+                sign.isActivated && 
+                !sign.isBotched && 
+                sign.effect == MagicSignEffect.WEIGHT_REDUCTION &&
+                sign.expiryDate?.let { 
+                    DerianDateCalculator.parseDateToDays(it)?.let { expiryDays -> expiryDays >= currentDays } 
+                } ?: false
+            }
+            
+            // Map: ItemId -> Reduktion in Unzen (für normale Items)
+            val itemReductions = mutableMapOf<Long, Int>()
+            // Map: LocationId -> Reduktion in Unzen (für Eigenobjekte, wirkt auf ganze Location)
+            val locationReductions = mutableMapOf<Long, Int>()
+            
+            activeWeightReductionSigns.forEach { signWithItem ->
+                val sign = signWithItem.magicSign
+                val rkpStar = sign.activationRkpStar ?: 0
+                val reductionOunces = rkpStar * 2 * 40 // RkP* × 2 Stein
+                
+                // Finde das Item mit dem Zauberzeichen
+                val itemWithSign = items.find { it.id == sign.itemId }
+                
+                if (itemWithSign != null) {
+                    if (itemWithSign.isSelfItem && itemWithSign.selfItemForLocationId != null) {
+                        // Eigenobjekt: Reduziere ganze Location
+                        val currentReduction = locationReductions[itemWithSign.selfItemForLocationId] ?: 0
+                        locationReductions[itemWithSign.selfItemForLocationId] = currentReduction + reductionOunces
+                    } else {
+                        // Normales Item: Reduziere nur dieses Item
+                        val currentReduction = itemReductions[itemWithSign.id] ?: 0
+                        itemReductions[itemWithSign.id] = currentReduction + reductionOunces
+                    }
+                }
+            }
+            
             val weights = mutableMapOf<Long?, Int>() // Location ID -> Gewicht in Unzen
             
-            // Items
+            // Items (mit individueller Reduktion falls vorhanden)
             items.forEach { item ->
                 val currentWeight = weights[item.locationId] ?: 0
-                val itemWeight = if (item.isCountable) {
+                var itemWeight = if (item.isCountable) {
                     item.totalWeight.toOunces()
                 } else {
                     item.weight.toOunces()
                 }
+                
+                // Wende individuelle Item-Reduktion an
+                val itemReduction = itemReductions[item.id] ?: 0
+                if (itemReduction > 0) {
+                    // Reduziere Item-Gewicht, aber mindestens 1 Unze bleibt
+                    itemWeight = maxOf(itemWeight - itemReduction, 1)
+                }
+                
                 weights[item.locationId] = currentWeight + itemWeight
             }
             
@@ -257,35 +305,12 @@ class InventoryViewModel(
                 weights[potionWithRecipe.potion.locationId] = currentWeight + potionTotalWeight
             }
             
-            // Gewichtsreduktion durch aktive Zauberzeichen anwenden
-            // "Sigille des Unsichtbaren Trägers" reduziert das Gewicht um RkP* × 2 Stein (min 1 Stein)
-            val currentDays = DerianDateCalculator.parseDateToDays(currentDate) ?: 0
-            signs.filter { signWithItem ->
-                val sign = signWithItem.magicSign
-                // Nur aktive, nicht verdorbene Zeichen mit WEIGHT_REDUCTION-Effekt
-                sign.isActivated && 
-                !sign.isBotched && 
-                sign.effect == MagicSignEffect.WEIGHT_REDUCTION &&
-                sign.expiryDate?.let { 
-                    DerianDateCalculator.parseDateToDays(it)?.let { expiryDays -> expiryDays >= currentDays } 
-                } ?: false
-            }.forEach { signWithItem ->
-                val sign = signWithItem.magicSign
-                val rkpStar = sign.activationRkpStar ?: 0
-                
-                // Reduktion: RkP* × 2 Stein, min 1 Stein = 40 × 2 Unzen = 80 Unzen pro RkP*
-                // Aber mindestens 1 Stein (40 Unzen) Gewicht bleibt
-                val reductionOunces = maxOf(rkpStar * 2 * 40, 40) // min 1 Stein = 40 Unzen
-                
-                // Finde die Location des Items mit dem Zauberzeichen
-                val itemWithSign = items.find { it.id == sign.itemId }
-                val locationId = itemWithSign?.locationId
-                
-                if (locationId != null && weights.containsKey(locationId)) {
+            // Wende Location-weite Reduktionen an (von Eigenobjekten)
+            locationReductions.forEach { (locationId, reductionOunces) ->
+                if (weights.containsKey(locationId)) {
                     val currentWeight = weights[locationId] ?: 0
-                    // Reduziere das Gewicht der Location, aber mindestens 1 Stein bleibt
-                    val minWeight = 40 // 1 Stein
-                    weights[locationId] = maxOf(currentWeight - reductionOunces, minWeight)
+                    // Reduziere Location-Gewicht, aber mindestens 1 Stein (40 Unzen) bleibt
+                    weights[locationId] = maxOf(currentWeight - reductionOunces, 40)
                 }
             }
             

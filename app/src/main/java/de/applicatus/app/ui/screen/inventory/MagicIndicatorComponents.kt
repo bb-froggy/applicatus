@@ -1,5 +1,6 @@
 package de.applicatus.app.ui.screen.inventory
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,14 +10,67 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.applicatus.app.data.model.inventory.MagicIndicator
 import de.applicatus.app.data.model.inventory.MagicIndicatorType
 import de.applicatus.app.data.model.magicsign.MagicSignEffect
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
+/**
+ * Heptagramm (7-zackiger Stern) Symbol für Zauberzeichen.
+ * Das Heptagramm ist ein klassisches magisches Symbol und passt besser zu DSA als eine Kristallkugel.
+ */
+@Composable
+fun HeptagramIcon(
+    modifier: Modifier = Modifier,
+    size: Dp = 14.dp,
+    color: Color = MaterialTheme.colorScheme.primary,
+    strokeWidth: Float = 1.5f
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val centerX = size.toPx() / 2
+        val centerY = size.toPx() / 2
+        val radius = (size.toPx() / 2) * 0.9f
+        
+        // Berechne die 7 Punkte des Heptagramms
+        // Startwinkel: -90° (nach oben zeigend)
+        val startAngle = -PI / 2
+        val points = (0 until 7).map { i ->
+            val angle = startAngle + (2 * PI * i / 7)
+            Offset(
+                x = centerX + (radius * cos(angle)).toFloat(),
+                y = centerY + (radius * sin(angle)).toFloat()
+            )
+        }
+        
+        // Zeichne das Heptagramm mit Verbindungen (jeden 3. Punkt verbinden für {7/3} Stern)
+        val path = Path()
+        var currentIndex = 0
+        path.moveTo(points[0].x, points[0].y)
+        
+        repeat(7) {
+            currentIndex = (currentIndex + 3) % 7
+            path.lineTo(points[currentIndex].x, points[currentIndex].y)
+        }
+        path.close()
+        
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(width = strokeWidth)
+        )
+    }
+}
 
 /**
  * Zeile mit Magic-Indikatoren (Symbole für Zauberzeichen, Applicatus, Langzauber).
@@ -90,11 +144,22 @@ fun MagicIndicatorChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // Symbol
-            Text(
-                text = indicator.symbol,
-                fontSize = 12.sp
-            )
+            // Symbol - Heptagramm für Zauberzeichen, Emoji für andere
+            when (indicator.type) {
+                MagicIndicatorType.MAGIC_SIGN -> {
+                    HeptagramIcon(
+                        size = 14.dp,
+                        color = contentColor,
+                        strokeWidth = 1.5f
+                    )
+                }
+                else -> {
+                    Text(
+                        text = indicator.symbol,
+                        fontSize = 12.sp
+                    )
+                }
+            }
             
             // Optional: Verdorben-Marker für GM
             if (indicator.isBotched && isGameMaster) {
@@ -124,10 +189,22 @@ fun MagicIndicatorDetailDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = indicator.symbol,
-                    fontSize = 24.sp
-                )
+                // Symbol - Heptagramm für Zauberzeichen, Emoji für andere
+                when (indicator.type) {
+                    MagicIndicatorType.MAGIC_SIGN -> {
+                        HeptagramIcon(
+                            size = 24.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2f
+                        )
+                    }
+                    else -> {
+                        Text(
+                            text = indicator.symbol,
+                            fontSize = 24.sp
+                        )
+                    }
+                }
                 Column {
                     Text(
                         text = indicator.name,

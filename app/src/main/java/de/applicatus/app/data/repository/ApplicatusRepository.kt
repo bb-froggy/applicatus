@@ -321,7 +321,27 @@ class ApplicatusRepository(
     suspend fun getLocationById(locationId: Long): Location? =
         locationDao.getLocationById(locationId)
     
-    suspend fun insertLocation(location: Location): Long =
+    /**
+     * Fügt eine neue Location ein und erstellt automatisch ein Eigenobjekt dafür.
+     * Das Eigenobjekt kann mit Zauberzeichen versehen werden, um das gesamte Location-Gewicht zu reduzieren.
+     */
+    suspend fun insertLocation(location: Location): Long {
+        val locationId = locationDao.insert(location)
+        
+        // Erstelle automatisch ein Eigenobjekt für die Location
+        val createdLocation = locationDao.getLocationById(locationId)
+        if (createdLocation != null) {
+            createSelfItemForLocation(createdLocation)
+        }
+        
+        return locationId
+    }
+    
+    /**
+     * Fügt eine Location ein OHNE automatisch ein Eigenobjekt zu erstellen.
+     * Nur für spezielle Fälle wie Migration oder Import verwenden.
+     */
+    suspend fun insertLocationWithoutSelfItem(location: Location): Long =
         locationDao.insert(location)
     
     suspend fun updateLocation(location: Location) =
@@ -333,8 +353,19 @@ class ApplicatusRepository(
     suspend fun deleteLocation(location: Location) =
         locationDao.delete(location)
     
-    suspend fun createDefaultLocationsForCharacter(characterId: Long) =
+    /**
+     * Erstellt die Standard-Locations für einen Charakter und automatisch Eigenobjekte dafür.
+     */
+    suspend fun createDefaultLocationsForCharacter(characterId: Long) {
         locationDao.createDefaultLocations(characterId)
+        
+        // Erstelle Eigenobjekte für alle neu erstellten Locations
+        locationDao.getLocationsForCharacterOnce(characterId).forEach { location ->
+            if (!location.hasSelfItem) {
+                createSelfItemForLocation(location)
+            }
+        }
+    }
     
     // Items
     fun getItemsForCharacter(characterId: Long): Flow<List<Item>> =
