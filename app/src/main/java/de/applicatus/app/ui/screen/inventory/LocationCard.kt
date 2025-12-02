@@ -195,25 +195,38 @@ fun LocationCard(
                     // Spezielle Anzeige für Rüstung/Kleidung (halbes Gewicht)
                     if (location?.name == "Rüstung/Kleidung" && location.isDefault) {
                         val effectiveWeight = Weight.fromOunces(totalWeight.toOunces() / 2)
+                        val hasReduction = originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()
                         
-                        // Gewicht in eigener Zeile - mit magischer Reduktion wenn vorhanden
-                        val weightText = if (originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()) {
-                            "${originalWeight.toDisplayString()} → ${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})"
+                        // Gewicht - ggf. auf zwei Zeilen aufgeteilt bei magischer Reduktion
+                        if (hasReduction) {
+                            // Zeile 1: Original-Gewicht
+                            Text(
+                                text = "${originalWeight!!.toDisplayString()} →",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            // Zeile 2: Reduziertes Gewicht + effektiv
+                            Text(
+                                text = "${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
                         } else {
-                            "${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})"
+                            // Single line: Gewicht + effektiv
+                            Text(
+                                text = "${totalWeight.toDisplayString()} (eff. ${effectiveWeight.toDisplayString()})",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
-                        Text(
-                            text = weightText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()) 
-                                MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
                         
-                        // Checkbox "Getragen" in nächster Zeile mit geringem Abstand
+                        // Checkbox "Getragen" in eigener Zeile
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 2.dp)
+                            modifier = Modifier.padding(top = 4.dp)
                         ) {
                             Checkbox(
                                 checked = location.isCarried,
@@ -228,27 +241,41 @@ fun LocationCard(
                             )
                         }
                     } else {
-                        // Kompakte Zeile: Gewicht und Checkbox für alle anderen Orte
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            // Gewicht mit magischer Reduktion wenn vorhanden
-                            val hasReduction = originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()
+                        // Normale Locations
+                        val hasReduction = originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()
+                        
+                        // Gewicht - ggf. auf zwei Zeilen aufgeteilt bei magischer Reduktion
+                        if (hasReduction) {
+                            // Zeile 1: Original-Gewicht
                             Text(
-                                text = if (hasReduction) {
-                                    "${originalWeight!!.toDisplayString()} → ${totalWeight.toDisplayString()}"
-                                } else {
-                                    totalWeight.toDisplayString()
-                                },
+                                text = "${originalWeight!!.toDisplayString()} →",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (hasReduction) MaterialTheme.colorScheme.tertiary 
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(top = 4.dp)
                             )
-                            
-                            // Checkbox "Getragen" (nur für normale Locations)
-                            if (location != null) {
-                                Spacer(modifier = Modifier.width(12.dp))
+                            // Zeile 2: Reduziertes Gewicht
+                            Text(
+                                text = totalWeight.toDisplayString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        } else {
+                            // Single line: nur reduziertes Gewicht
+                            Text(
+                                text = totalWeight.toDisplayString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                        
+                        // Checkbox "Getragen" in eigener Zeile (nur für normale Locations)
+                        if (location != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
                                 Checkbox(
                                     checked = location.isCarried,
                                     onCheckedChange = onCarriedChanged,
