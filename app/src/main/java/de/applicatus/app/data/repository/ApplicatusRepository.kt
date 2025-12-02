@@ -612,18 +612,33 @@ class ApplicatusRepository(
         val items = itemDao.getItemsForLocation(locationId).first()
         val potions = potionDao.getPotionsForLocation(locationId).first()
         
-        // Übertrage alle Items
+        // Finde den Eigengewichts-Gegenstand der Original-Location
+        val selfItem = items.find { it.isSelfItem && it.selfItemForLocationId == locationId }
+        val selfItemWeight = selfItem?.weight ?: Weight.ZERO
+        
+        // Übertrage alle Items (außer dem Eigengewichts-Gegenstand)
         items.forEach { item ->
-            // Erstelle Kopie des Items beim Zielcharakter
-            insertItem(
-                item.copy(
-                    id = 0, // Neue ID generieren lassen
-                    characterId = targetCharacterId,
-                    locationId = newLocationId
+            if (item.isSelfItem && item.selfItemForLocationId == locationId) {
+                // Eigengewichts-Gegenstand nicht übertragen, nur löschen
+                deleteItem(item)
+            } else {
+                // Erstelle Kopie des Items beim Zielcharakter
+                insertItem(
+                    item.copy(
+                        id = 0, // Neue ID generieren lassen
+                        characterId = targetCharacterId,
+                        locationId = newLocationId
+                    )
                 )
-            )
-            // Lösche Original-Item
-            deleteItem(item)
+                // Lösche Original-Item
+                deleteItem(item)
+            }
+        }
+        
+        // Erstelle neuen Eigengewichts-Gegenstand für die neue Location
+        val newLocation = getLocationById(newLocationId)
+        if (newLocation != null) {
+            createSelfItemForLocation(newLocation, selfItemWeight)
         }
         
         // Übertrage alle Tränke
