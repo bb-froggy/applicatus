@@ -16,13 +16,16 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE id = :itemId")
     suspend fun getItemById(itemId: Long): Item?
     
+    @Query("SELECT * FROM items WHERE guid = :guid")
+    suspend fun getItemByGuid(guid: String): Item?
+    
     @Query("SELECT * FROM items WHERE characterId = :characterId ORDER BY locationId, sortOrder, name")
     suspend fun getItemsListForCharacter(characterId: Long): List<Item>
     
     @Transaction
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("""
-        SELECT items.id, items.characterId, items.locationId, items.name, 
+        SELECT items.id, items.guid, items.characterId, items.locationId, items.name, 
                items.stone, items.ounces, items.sortOrder,
                locations.name as locationName,
                items.isPurse, items.kreuzerAmount,
@@ -37,6 +40,9 @@ interface ItemDao {
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: Item): Long
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<Item>): List<Long>
     
     @Update
     suspend fun update(item: Item)

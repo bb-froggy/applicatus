@@ -84,13 +84,37 @@ class DatabaseBackupManager(private val repository: ApplicatusRepository) {
                 groups.find { it.id == groupId }?.name
             }
             
+            // Locations laden (vor Items, da LocationName für Items gebraucht wird)
+            val locations = repository.getLocationsForCharacter(character.id).first()
+            val locationDtos = locations.map { LocationDto.fromLocation(it) }
+            
+            // Items laden (vor Slots, da itemGuid für Slots gebraucht wird)
+            val items = repository.getItemsForCharacter(character.id).first()
+            val itemsById = items.associateBy { it.id }
+            val itemDtos = items.map { item ->
+                val locationName = item.locationId?.let { locId ->
+                    locations.find { it.id == locId }?.name
+                }
+                ItemDto.fromItem(item, locationName)
+            }
+            
             // Zauber-Slots laden
             val slots = repository.getSlotsByCharacter(character.id).first()
             val slotDtos = slots.map { slot ->
                 val spellName = slot.spellId?.let { spellId ->
                     repository.getSpellById(spellId)?.name
                 }
-                SpellSlotDto.fromSpellSlot(slot, spellName)
+                val itemGuid = slot.itemId?.let { itemId ->
+                    itemsById[itemId]?.guid
+                }
+                SpellSlotDto.fromSpellSlot(slot, spellName, itemGuid)
+            }
+            
+            // MagicSigns laden (seit v6)
+            val magicSigns = repository.getMagicSignsWithItemsForCharacter(character.id).first()
+            val magicSignDtos = magicSigns.mapNotNull { signWithItem ->
+                val itemGuid = itemsById[signWithItem.magicSign.itemId]?.guid ?: return@mapNotNull null
+                MagicSignDto.fromMagicSign(signWithItem.magicSign, itemGuid)
             }
             
             // Tränke laden
@@ -108,19 +132,6 @@ class DatabaseBackupManager(private val repository: ApplicatusRepository) {
                 RecipeKnowledgeDto.fromModel(knowledge, recipeName)
             }
             
-            // Locations laden
-            val locations = repository.getLocationsForCharacter(character.id).first()
-            val locationDtos = locations.map { LocationDto.fromLocation(it) }
-            
-            // Items laden
-            val items = repository.getItemsForCharacter(character.id).first()
-            val itemDtos = items.map { item ->
-                val locationName = item.locationId?.let { locId ->
-                    locations.find { it.id == locId }?.name
-                }
-                ItemDto.fromItem(item, locationName)
-            }
-            
             characterExports.add(
                 CharacterExportDto(
                     version = DataModelVersion.CURRENT_VERSION,
@@ -130,6 +141,7 @@ class DatabaseBackupManager(private val repository: ApplicatusRepository) {
                     recipeKnowledge = knowledgeDtos,
                     locations = locationDtos,
                     items = itemDtos,
+                    magicSigns = magicSignDtos,
                     exportTimestamp = System.currentTimeMillis()
                 )
             )

@@ -100,13 +100,18 @@ class CharacterDetailViewModel(
             initialValue = false
         )
     
-    val spellSlots: StateFlow<List<SpellSlotWithSpell>> = 
-        repository.getSlotsWithSpellsByCharacter(characterId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+    // SpellSlots - nur eigene Slots anzeigen (creatorGuid == character.guid)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val spellSlots: StateFlow<List<SpellSlotWithSpell>> = character
+        .filterNotNull()
+        .flatMapLatest { char ->
+            repository.getOwnSlotsWithSpellsByCharacter(characterId, char.guid)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
     
     val allSpells: StateFlow<List<Spell>> = repository.allSpells
         .stateIn(
@@ -114,6 +119,15 @@ class CharacterDetailViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+    
+    // Alle Items des Charakters (für Item-Bindung bei Slots)
+    val allItems: StateFlow<List<de.applicatus.app.data.model.inventory.Item>> = 
+        repository.getItemsForCharacter(characterId)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
     
     fun toggleEditMode() {
         isEditMode = !isEditMode
@@ -179,8 +193,10 @@ class CharacterDetailViewModel(
         }
     }
     
-    fun addSlot(slotType: SlotType, volumePoints: Int = 0) {
+    fun addSlot(slotType: SlotType, volumePoints: Int = 0, itemId: Long? = null) {
         viewModelScope.launch {
+            val char = character.value ?: return@launch
+            
             // Prüfe Volumenpunkte-Limit bei Zauberspeicher
             if (slotType == SlotType.SPELL_STORAGE) {
                 val currentVolume = spellSlots.value
@@ -193,6 +209,12 @@ class CharacterDetailViewModel(
                 }
             }
             
+            // Applicatus erfordert ein Item
+            if (slotType == SlotType.APPLICATUS && itemId == null) {
+                // Fehler: Applicatus benötigt ein Ziel-Item
+                return@launch
+            }
+            
             val nextSlotNumber = (spellSlots.value.maxOfOrNull { it.slot.slotNumber } ?: -1) + 1
             
             val newSlot = SpellSlot(
@@ -200,7 +222,9 @@ class CharacterDetailViewModel(
                 slotNumber = nextSlotNumber,
                 slotType = slotType,
                 volumePoints = volumePoints,
-                spellId = null
+                spellId = null,
+                creatorGuid = char.guid, // Setze creatorGuid auf aktuelle Character-GUID
+                itemId = itemId // Optional für langwährende Zauber, Pflicht für Applicatus
             )
             
             repository.insertSlot(newSlot)
@@ -220,10 +244,14 @@ class CharacterDetailViewModel(
                 " ($volumePoints VP)"
             } else ""
             
+            // Hole Item-Name für Journal
+            val itemName = itemId?.let { repository.getItemById(it)?.name }
+            val itemInfo = if (itemId != null && itemName != null) " auf '$itemName'" else ""
+            
             repository.logCharacterEvent(
                 characterId = characterId,
                 category = journalCategory,
-                playerMessage = "$slotTypeName-Slot hinzugefügt$volumeInfo",
+                playerMessage = "$slotTypeName-Slot hinzugefügt$volumeInfo$itemInfo",
                 gmMessage = "Slot #$nextSlotNumber"
             )
         }

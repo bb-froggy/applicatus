@@ -9,13 +9,13 @@ import org.junit.Test
 class DataModelVersionTest {
     
     @Test
-    fun `current version is 5`() {
-        assertEquals(5, DataModelVersion.CURRENT_VERSION)
+    fun `current version is 6`() {
+        assertEquals(6, DataModelVersion.CURRENT_VERSION)
     }
     
     @Test
     fun `same version is compatible`() {
-        val (isCompatible, warning) = DataModelVersion.checkCompatibility(5)
+        val (isCompatible, warning) = DataModelVersion.checkCompatibility(6)
         assertTrue(isCompatible)
         assertNull(warning)
     }
@@ -30,7 +30,7 @@ class DataModelVersionTest {
     
     @Test
     fun `newer version is incompatible`() {
-        val (isCompatible, warning) = DataModelVersion.checkCompatibility(6)
+        val (isCompatible, warning) = DataModelVersion.checkCompatibility(7)
         assertFalse(isCompatible)
         assertNotNull(warning)
         assertTrue(warning!!.contains("neueren Version"))

@@ -25,6 +25,7 @@ fun SpellStorageScreen(
     val character by viewModel.character.collectAsState()
     val spellSlots by viewModel.spellSlots.collectAsState()
     val allSpells by viewModel.allSpells.collectAsState()
+    val allItems by viewModel.allItems.collectAsState()
     val groupDate by viewModel.groupDate.collectAsState()
     val isGameMasterGroup by viewModel.isGameMasterGroup.collectAsState()
     val isEditMode = viewModel.isEditMode
@@ -214,9 +215,10 @@ fun SpellStorageScreen(
         AddSlotDialog(
             canAddApplicatus = viewModel.canAddApplicatusSlot(),
             remainingVolumePoints = viewModel.getRemainingVolumePoints(),
+            availableItems = allItems,
             onDismiss = { showAddSlotDialog = false },
-            onConfirm = { slotType, volumePoints ->
-                viewModel.addSlot(slotType, volumePoints)
+            onConfirm = { slotType, volumePoints, itemId ->
+                viewModel.addSlot(slotType, volumePoints, itemId)
                 showAddSlotDialog = false
             }
         )

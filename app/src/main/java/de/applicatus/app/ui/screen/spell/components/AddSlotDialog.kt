@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.spell.SlotType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -12,11 +13,21 @@ import de.applicatus.app.data.model.spell.SlotType
 fun AddSlotDialog(
     canAddApplicatus: Boolean,
     remainingVolumePoints: Int,
+    availableItems: List<Item> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirm: (SlotType, Int) -> Unit
+    onConfirm: (SlotType, Int, Long?) -> Unit
 ) {
     var selectedType by remember { mutableStateOf(SlotType.SPELL_STORAGE) }
     var volumePointsText by remember { mutableStateOf("10") }
+    var selectedItem by remember { mutableStateOf<Item?>(null) }
+    var itemDropdownExpanded by remember { mutableStateOf(false) }
+    
+    // Reset item selection when type changes (except for APPLICATUS and LONG_DURATION)
+    LaunchedEffect(selectedType) {
+        if (selectedType == SlotType.SPELL_STORAGE) {
+            selectedItem = null
+        }
+    }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -56,6 +67,79 @@ fun AddSlotDialog(
                         .heightIn(min = 32.dp)
                         .padding(vertical = 0.dp)
                 )
+                
+                // Item-Auswahl für Applicatus (Pflicht) und Langwirkend (optional)
+                if (selectedType == SlotType.APPLICATUS || selectedType == SlotType.LONG_DURATION) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = if (selectedType == SlotType.APPLICATUS) 
+                            "Gegenstand auswählen (Pflicht):" 
+                        else 
+                            "Gegenstand auswählen (optional):"
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = itemDropdownExpanded,
+                        onExpandedChange = { itemDropdownExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedItem?.name ?: if (selectedType == SlotType.LONG_DURATION) "Kein Gegenstand" else "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Gegenstand") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemDropdownExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            isError = selectedType == SlotType.APPLICATUS && selectedItem == null
+                        )
+                        ExposedDropdownMenu(
+                            expanded = itemDropdownExpanded,
+                            onDismissRequest = { itemDropdownExpanded = false }
+                        ) {
+                            // Option "Kein Gegenstand" nur für langwirkende Zauber
+                            if (selectedType == SlotType.LONG_DURATION) {
+                                DropdownMenuItem(
+                                    text = { Text("Kein Gegenstand") },
+                                    onClick = {
+                                        selectedItem = null
+                                        itemDropdownExpanded = false
+                                    }
+                                )
+                            }
+                            availableItems.forEach { item ->
+                                DropdownMenuItem(
+                                    text = { Text(item.name) },
+                                    onClick = {
+                                        selectedItem = item
+                                        itemDropdownExpanded = false
+                                    }
+                                )
+                            }
+                            if (availableItems.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { 
+                                        Text(
+                                            "Keine Gegenstände vorhanden",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ) 
+                                    },
+                                    onClick = { itemDropdownExpanded = false },
+                                    enabled = false
+                                )
+                            }
+                        }
+                    }
+                    
+                    if (selectedType == SlotType.APPLICATUS && selectedItem == null) {
+                        Text(
+                            text = "Ein Applicatus muss an einen Gegenstand gebunden werden",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
 
                 if (selectedType == SlotType.SPELL_STORAGE) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -103,13 +187,20 @@ fun AddSlotDialog(
                         return@TextButton
                     }
                     
-                    onConfirm(selectedType, volumePoints)
+                    // Prüfe Applicatus-Pflicht
+                    if (selectedType == SlotType.APPLICATUS && selectedItem == null) {
+                        return@TextButton
+                    }
+                    
+                    onConfirm(selectedType, volumePoints, selectedItem?.id)
                 },
-                enabled = if (selectedType == SlotType.SPELL_STORAGE) {
-                    val vp = volumePointsText.toIntOrNull() ?: 0
-                    vp in 1..remainingVolumePoints
-                } else {
-                    true
+                enabled = when (selectedType) {
+                    SlotType.SPELL_STORAGE -> {
+                        val vp = volumePointsText.toIntOrNull() ?: 0
+                        vp in 1..remainingVolumePoints
+                    }
+                    SlotType.APPLICATUS -> selectedItem != null
+                    SlotType.LONG_DURATION -> true
                 }
             ) {
                 Text("Hinzufügen")

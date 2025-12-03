@@ -21,6 +21,7 @@ data class CharacterExportDto(
     val locations: List<LocationDto> = emptyList(),
     val items: List<ItemDto> = emptyList(),
     val journalEntries: List<JournalEntryDto> = emptyList(),
+    val magicSigns: List<MagicSignDto> = emptyList(),  // Seit Version 6
     val exportTimestamp: Long
 )
 
@@ -177,6 +178,8 @@ data class SpellSlotDto(
     val spellName: String?, // Zaubername zur Referenz (für manuelles Matching)
     val zfw: Int = 0,
     val modifier: Int = 0,
+    val creatorGuid: String? = null,  // GUID des Erstellers (seit Version 6)
+    val itemGuid: String? = null,  // GUID des gebundenen Items (seit Version 6)
     val variant: String = "",
     val isFilled: Boolean = false,
     val zfpStar: Int? = null,
@@ -189,7 +192,7 @@ data class SpellSlotDto(
     val useHexenRepresentation: Boolean = false
 ) {
     companion object {
-        fun fromSpellSlot(slot: SpellSlot, spellName: String?) = SpellSlotDto(
+        fun fromSpellSlot(slot: SpellSlot, spellName: String?, itemGuid: String?) = SpellSlotDto(
             slotNumber = slot.slotNumber,
             slotType = slot.slotType.name,
             volumePoints = slot.volumePoints,
@@ -197,6 +200,8 @@ data class SpellSlotDto(
             spellName = spellName,
             zfw = slot.zfw,
             modifier = slot.modifier,
+            creatorGuid = slot.creatorGuid,
+            itemGuid = itemGuid,
             variant = slot.variant,
             isFilled = slot.isFilled,
             zfpStar = slot.zfpStar,
@@ -210,7 +215,7 @@ data class SpellSlotDto(
         )
     }
     
-    fun toSpellSlot(characterId: Long, resolvedSpellId: Long?) = SpellSlot(
+    fun toSpellSlot(characterId: Long, resolvedSpellId: Long?, resolvedItemId: Long?, creatorGuidFallback: String?) = SpellSlot(
         id = 0, // Neue ID wird bei Insert generiert
         characterId = characterId,
         slotNumber = slotNumber,
@@ -219,6 +224,8 @@ data class SpellSlotDto(
         spellId = resolvedSpellId,
         zfw = zfw,
         modifier = modifier,
+        creatorGuid = creatorGuid ?: creatorGuidFallback,  // Fallback auf Character-GUID bei Migration
+        itemId = resolvedItemId,
         variant = variant,
         isFilled = isFilled,
         zfpStar = zfpStar,
@@ -364,6 +371,7 @@ data class LocationDto(
  */
 @Serializable
 data class ItemDto(
+    val guid: String = java.util.UUID.randomUUID().toString(),  // GUID für Import/Export (seit Version 6)
     val locationName: String?, // Referenz zum Location-Namen (null = kein Ort)
     val name: String,
     val weightStone: Int = 0,
@@ -376,6 +384,7 @@ data class ItemDto(
 ) {
     companion object {
         fun fromItem(item: de.applicatus.app.data.model.inventory.Item, locationName: String?) = ItemDto(
+            guid = item.guid,
             locationName = locationName,
             name = item.name,
             weightStone = item.weight.stone,
@@ -390,6 +399,7 @@ data class ItemDto(
 
     fun toItem(characterId: Long, resolvedLocationId: Long?) = de.applicatus.app.data.model.inventory.Item(
         id = 0, // Neue ID wird bei Insert generiert
+        guid = guid,  // GUID übernehmen
         characterId = characterId,
         locationId = resolvedLocationId,
         name = name,
@@ -434,5 +444,61 @@ data class JournalEntryDto(
         category = category,
         playerMessage = playerMessage,
         gmMessage = gmMessage
+    )
+}
+
+/**
+ * DTO für MagicSign-Daten (ohne Room-Annotationen). Seit Version 6.
+ */
+@Serializable
+data class MagicSignDto(
+    val guid: String,
+    val itemGuid: String,  // GUID des Items, auf dem das Zauberzeichen angebracht ist
+    val creatorGuid: String?,  // GUID des Charakters, der das Zauberzeichen erstellt hat
+    val name: String,
+    val effectDescription: String = "",
+    val effect: String = de.applicatus.app.data.model.magicsign.MagicSignEffect.NONE.name,
+    val activationModifier: Int = 0,
+    val duration: String = de.applicatus.app.data.model.magicsign.MagicSignDuration.HALF_RKW_DAYS.name,
+    val isActivated: Boolean = false,
+    val isBotched: Boolean = false,
+    val expiryDate: String? = null,
+    val activationRkpStar: Int? = null,
+    val lastRollResult: String? = null
+) {
+    companion object {
+        fun fromMagicSign(sign: de.applicatus.app.data.model.magicsign.MagicSign, itemGuid: String) = MagicSignDto(
+            guid = sign.guid,
+            itemGuid = itemGuid,
+            creatorGuid = sign.creatorGuid,
+            name = sign.name,
+            effectDescription = sign.effectDescription,
+            effect = sign.effect.name,
+            activationModifier = sign.activationModifier,
+            duration = sign.duration.name,
+            isActivated = sign.isActivated,
+            isBotched = sign.isBotched,
+            expiryDate = sign.expiryDate,
+            activationRkpStar = sign.activationRkpStar,
+            lastRollResult = sign.lastRollResult
+        )
+    }
+
+    fun toMagicSign(characterId: Long, resolvedItemId: Long, creatorGuidFallback: String?) = de.applicatus.app.data.model.magicsign.MagicSign(
+        id = 0, // Neue ID wird bei Insert generiert
+        guid = guid,
+        characterId = characterId,
+        itemId = resolvedItemId,
+        creatorGuid = creatorGuid ?: creatorGuidFallback,  // Fallback auf Character-GUID bei Migration
+        name = name,
+        effectDescription = effectDescription,
+        effect = try { de.applicatus.app.data.model.magicsign.MagicSignEffect.valueOf(effect) } catch (e: Exception) { de.applicatus.app.data.model.magicsign.MagicSignEffect.NONE },
+        activationModifier = activationModifier,
+        duration = try { de.applicatus.app.data.model.magicsign.MagicSignDuration.valueOf(duration) } catch (e: Exception) { de.applicatus.app.data.model.magicsign.MagicSignDuration.HALF_RKW_DAYS },
+        isActivated = isActivated,
+        isBotched = isBotched,
+        expiryDate = expiryDate,
+        activationRkpStar = activationRkpStar,
+        lastRollResult = lastRollResult
     )
 }

@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class, CharacterJournalEntry::class, MagicSign::class],
-    version = 37,
+    version = 38,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -1226,6 +1226,96 @@ abstract class ApplicatusDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration 37 -> 38: Creator-Tracking für magische Gegenstände
+         * - Fügt guid zu items hinzu
+         * - Fügt creatorGuid zu magic_signs hinzu
+         * - Fügt itemId und creatorGuid zu spell_slots hinzu
+         */
+        val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Items-Tabelle erweitern mit GUID
+                database.execSQL("ALTER TABLE items ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
+                
+                // GUIDs für bestehende Items generieren
+                val itemsCursor = database.query("SELECT id FROM items")
+                while (itemsCursor.moveToNext()) {
+                    val id = itemsCursor.getLong(0)
+                    val guid = java.util.UUID.randomUUID().toString()
+                    database.execSQL("UPDATE items SET guid = '$guid' WHERE id = $id")
+                }
+                itemsCursor.close()
+                
+                // 2. MagicSigns-Tabelle erweitern mit creatorGuid
+                database.execSQL("ALTER TABLE magic_signs ADD COLUMN creatorGuid TEXT")
+                
+                // Setze creatorGuid für bestehende magic_signs auf die GUID des aktuellen Besitzer-Charakters
+                database.execSQL("""
+                    UPDATE magic_signs 
+                    SET creatorGuid = (
+                        SELECT guid FROM characters WHERE characters.id = magic_signs.characterId
+                    )
+                """.trimIndent())
+                
+                // 3. SpellSlots-Tabelle neu erstellen mit itemId und creatorGuid
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS spell_slots_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        characterId INTEGER NOT NULL,
+                        slotNumber INTEGER NOT NULL,
+                        slotType TEXT NOT NULL,
+                        volumePoints INTEGER NOT NULL,
+                        spellId INTEGER,
+                        zfw INTEGER NOT NULL,
+                        modifier INTEGER NOT NULL,
+                        variant TEXT NOT NULL,
+                        isFilled INTEGER NOT NULL,
+                        zfpStar INTEGER,
+                        lastRollResult TEXT,
+                        applicatusRollResult TEXT,
+                        isBotched INTEGER NOT NULL,
+                        expiryDate TEXT,
+                        longDurationFormula TEXT NOT NULL DEFAULT '',
+                        aspCost TEXT NOT NULL DEFAULT '',
+                        useHexenRepresentation INTEGER NOT NULL DEFAULT 0,
+                        itemId INTEGER,
+                        creatorGuid TEXT,
+                        FOREIGN KEY(characterId) REFERENCES characters(id) ON DELETE CASCADE,
+                        FOREIGN KEY(spellId) REFERENCES spells(id) ON DELETE SET NULL,
+                        FOREIGN KEY(itemId) REFERENCES items(id) ON DELETE CASCADE
+                    )
+                """)
+                
+                // Daten migrieren und creatorGuid auf Besitzer-Character-GUID setzen
+                database.execSQL("""
+                    INSERT INTO spell_slots_new (
+                        id, characterId, slotNumber, slotType, volumePoints, spellId,
+                        zfw, modifier, variant, isFilled, zfpStar, lastRollResult,
+                        applicatusRollResult, isBotched, expiryDate, longDurationFormula,
+                        aspCost, useHexenRepresentation, itemId, creatorGuid
+                    )
+                    SELECT 
+                        s.id, s.characterId, s.slotNumber, s.slotType, s.volumePoints, s.spellId,
+                        s.zfw, s.modifier, s.variant, s.isFilled, s.zfpStar, s.lastRollResult,
+                        s.applicatusRollResult, s.isBotched, s.expiryDate, s.longDurationFormula,
+                        s.aspCost, s.useHexenRepresentation, NULL,
+                        (SELECT guid FROM characters WHERE characters.id = s.characterId)
+                    FROM spell_slots s
+                """)
+                
+                // Alte Tabelle löschen
+                database.execSQL("DROP TABLE spell_slots")
+                
+                // Neue Tabelle umbenennen
+                database.execSQL("ALTER TABLE spell_slots_new RENAME TO spell_slots")
+                
+                // Indices neu erstellen
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_characterId ON spell_slots(characterId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_spellId ON spell_slots(spellId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_itemId ON spell_slots(itemId)")
+            }
+        }
+
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -1233,7 +1323,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

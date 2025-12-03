@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.inventory.Item
 
 @Entity(
     tableName = "spell_slots",
@@ -20,11 +21,18 @@ import de.applicatus.app.data.model.character.Character
             parentColumns = ["id"],
             childColumns = ["spellId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = Item::class,
+            parentColumns = ["id"],
+            childColumns = ["itemId"],
+            onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
         Index(value = ["characterId"]),
-        Index(value = ["spellId"])
+        Index(value = ["spellId"]),
+        Index(value = ["itemId"])
     ]
 )
 data class SpellSlot(
@@ -46,5 +54,11 @@ data class SpellSlot(
     val expiryDate: String? = null,  // Ablaufdatum im derischen Format (z.B. "1 Praios 1040 BF")
     val longDurationFormula: String = "", // Formel für langwirkende Zauber (z.B. "ZfP* Wochen")
     val aspCost: String = "",           // AsP-Kosten: Zahl ("8") oder Formel ("16-ZfP/2")
-    val useHexenRepresentation: Boolean = false // Wird in hexischer Repräsentation gesprochen? (1/3 AsP bei Fehlschlag statt 1/2)
+    val useHexenRepresentation: Boolean = false, // Wird in hexischer Repräsentation gesprochen? (1/3 AsP bei Fehlschlag statt 1/2)
+    
+    /** ID des Items, an das dieser Slot gebunden ist (Pflicht für Applicatus, optional für langwährende Zauber) */
+    val itemId: Long? = null,
+    
+    /** GUID des Charakters, der diesen Zauber ursprünglich eingespeichert hat */
+    val creatorGuid: String? = null
 )

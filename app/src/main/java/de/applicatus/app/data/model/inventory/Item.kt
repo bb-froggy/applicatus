@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 /**
  * Gegenstand im Inventar eines Charakters
@@ -33,6 +34,9 @@ import androidx.room.PrimaryKey
 data class Item(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    
+    /** Eindeutige GUID für Import/Export und Transfer */
+    val guid: String = UUID.randomUUID().toString(),
     
     /** ID des Charakters, dem dieser Gegenstand gehört */
     val characterId: Long,

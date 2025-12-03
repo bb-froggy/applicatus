@@ -64,11 +64,18 @@ class CharacterExportManager(
                 repository.getGroupByIdOnce(gId)?.name
             }
             
+            // Sammle alle Items für GUID-Auflösung
+            val allItems = repository.getItemsForCharacterOnce(characterId)
+            val itemsById = allItems.associateBy { it.id }
+            
             // Sammle Slots und zugehörige Zauber
             val slotsWithSpells = repository.getSlotsWithSpellsByCharacter(characterId).first()
             
             val slots = slotsWithSpells.map { slotWithSpell ->
-                SpellSlotDto.fromSpellSlot(slotWithSpell.slot, slotWithSpell.spell?.name)
+                val itemGuid = slotWithSpell.slot.itemId?.let { itemId ->
+                    itemsById[itemId]?.guid
+                }
+                SpellSlotDto.fromSpellSlot(slotWithSpell.slot, slotWithSpell.spell?.name, itemGuid)
             }
             
             // Sammle Tränke und Rezepte
@@ -92,6 +99,7 @@ class CharacterExportManager(
             val itemsWithLocation = repository.getItemsWithLocationForCharacter(characterId).first()
             val items = itemsWithLocation.map { itemWithLocation ->
                 ItemDto(
+                    guid = itemWithLocation.guid,
                     locationName = itemWithLocation.locationName,
                     name = itemWithLocation.name,
                     weightStone = itemWithLocation.stone,
@@ -102,6 +110,14 @@ class CharacterExportManager(
                     isCountable = itemWithLocation.isCountable,
                     quantity = itemWithLocation.quantity
                 )
+            }
+            
+            // Sammle MagicSigns (seit v6)
+            val magicSignsWithItems = repository.getMagicSignsWithItemsForCharacter(characterId).first()
+            val magicSigns = magicSignsWithItems.mapNotNull { signWithItem ->
+                // Nur exportieren, wenn Item gefunden wird
+                val itemGuid = itemsById[signWithItem.magicSign.itemId]?.guid ?: return@mapNotNull null
+                MagicSignDto.fromMagicSign(signWithItem.magicSign, itemGuid)
             }
             
             // Sammle Journal-Einträge
@@ -118,6 +134,7 @@ class CharacterExportManager(
                 locations = locations,
                 items = items,
                 journalEntries = journalEntries,
+                magicSigns = magicSigns,
                 exportTimestamp = System.currentTimeMillis()  // Explizit setzen
             )
             
@@ -398,22 +415,6 @@ class CharacterExportManager(
                 newCharacterId
             }
             
-            // Zauber-IDs auflösen (nach Namen matchen)
-            val allSpells = repository.allSpells.first()
-            
-            val newSlots = exportDto.spellSlots.map { slotDto ->
-                val resolvedSpellId = slotDto.spellName?.let { spellName ->
-                    allSpells.find { it.name == spellName }?.id
-                }
-                slotDto.toSpellSlot(characterId, resolvedSpellId)
-            }
-            
-            try {
-                repository.insertSlots(newSlots)
-            } catch (e: Exception) {
-                throw Exception("Fehler beim Einfügen der Zauber-Slots (Foreign Key: Spell): ${e.message}", e)
-            }
-            
             // Rezepte für spätere Zuordnung cachen
             val allRecipes = repository.allRecipes.first()
             val recipesById = allRecipes.associateBy { it.id }
@@ -495,10 +496,13 @@ class CharacterExportManager(
             }
             
             // Items importieren
+            // Items importieren und GUID -> ID Mapping erstellen (für SpellSlots und MagicSigns)
+            val itemIdsByGuid = mutableMapOf<String, Long>()
             exportDto.items.forEach { itemDto ->
                 val resolvedLocationId = itemDto.locationName?.let { locationIdsByName[it] }
                 try {
-                    repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
+                    val newItemId = repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
+                    itemIdsByGuid[itemDto.guid] = newItemId
                 } catch (e: Exception) {
                     val locationInfo = itemDto.locationName?.let { " in Location '$it'" } ?: " ohne Location"
                     throw Exception("Fehler beim Einfügen des Items '${itemDto.name}'$locationInfo (Foreign Key: Character oder Location): ${e.message}", e)
@@ -513,6 +517,45 @@ class CharacterExportManager(
                         repository.createSelfItemForLocation(location)
                     } catch (e: Exception) {
                         // Ignoriere Fehler beim Erstellen von Eigenobjekten (nicht kritisch)
+                    }
+                }
+            }
+            
+            // SpellSlots importieren (nach Items, da itemId aufgelöst werden muss)
+            val allSpells = repository.allSpells.first()
+            val characterGuid = exportDto.character.guid
+            
+            val newSlots = exportDto.spellSlots.map { slotDto ->
+                val resolvedSpellId = slotDto.spellName?.let { spellName ->
+                    allSpells.find { it.name == spellName }?.id
+                }
+                // Item-ID über GUID auflösen
+                val resolvedItemId = slotDto.itemGuid?.let { guid ->
+                    itemIdsByGuid[guid]
+                }
+                // creatorGuid mit Character-GUID als Fallback (für ältere Exporte)
+                slotDto.toSpellSlot(characterId, resolvedSpellId, resolvedItemId, characterGuid)
+            }
+            
+            try {
+                repository.insertSlots(newSlots)
+            } catch (e: Exception) {
+                throw Exception("Fehler beim Einfügen der Zauber-Slots (Foreign Key: Spell oder Item): ${e.message}", e)
+            }
+            
+            // MagicSigns importieren (seit v6)
+            if (exportDto.magicSigns.isNotEmpty()) {
+                exportDto.magicSigns.forEach { signDto ->
+                    val resolvedItemId = itemIdsByGuid[signDto.itemGuid]
+                    if (resolvedItemId != null) {
+                        try {
+                            val magicSign = signDto.toMagicSign(characterId, resolvedItemId, characterGuid)
+                            repository.insertMagicSign(magicSign)
+                        } catch (e: Exception) {
+                            additionalWarnings += "Zauberzeichen '${signDto.name}' konnte nicht importiert werden: ${e.message}"
+                        }
+                    } else {
+                        additionalWarnings += "Zauberzeichen '${signDto.name}' konnte nicht importiert werden, da das zugehörige Item nicht gefunden wurde."
                     }
                 }
             }

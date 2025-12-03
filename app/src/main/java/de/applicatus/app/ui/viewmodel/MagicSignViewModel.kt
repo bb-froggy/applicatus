@@ -62,8 +62,13 @@ class MagicSignViewModel(
             initialValue = "1 Praios 1040 BF"
         )
     
-    // Zauberzeichen mit Item-Informationen
-    val magicSignsWithItems = repository.getMagicSignsWithItemsForCharacter(characterId)
+    // Zauberzeichen mit Item-Informationen (nur eigene, wo creatorGuid == character.guid)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val magicSignsWithItems = character
+        .filterNotNull()
+        .flatMapLatest { char ->
+            repository.getOwnMagicSignsWithItemsForCharacter(characterId, char.guid)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
     // Alle Items für die Zielauswahl (inkl. Eigenobjekte)
@@ -100,9 +105,11 @@ class MagicSignViewModel(
         targetItemId: Long
     ) {
         viewModelScope.launch {
+            val char = character.value ?: return@launch
             val magicSign = MagicSign(
                 characterId = characterId,
                 itemId = targetItemId,
+                creatorGuid = char.guid, // Setze creatorGuid auf aktuelle Character-GUID
                 name = name,
                 effectDescription = effectDescription,
                 effect = effect,

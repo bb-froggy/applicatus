@@ -14,6 +14,8 @@ import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.model.magicsign.MagicSignEffect
 import de.applicatus.app.data.model.potion.PotionWithRecipe
 import de.applicatus.app.data.model.potion.RecipeKnowledgeLevel
+import de.applicatus.app.data.model.spell.SlotType
+import de.applicatus.app.data.model.spell.SpellSlot
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,6 +62,14 @@ class InventoryViewModel(
     
     // Zauberzeichen mit Item-Informationen (für Gewichtsreduktion)
     private val magicSignsWithItems = repository.getMagicSignsWithItemsForCharacter(characterId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // Alle SpellSlots des Charakters (für Magic-Indikatoren auf Items)
+    private val allSpellSlots = repository.getSlotsByCharacter(characterId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // Alle Zauber (für Slot-Namen)
+    private val allSpells = repository.allSpells
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
     // Aktuelles derisches Datum der Gruppe
@@ -150,10 +160,10 @@ class InventoryViewModel(
     
     /**
      * Items mit Magic-Indikatoren und Gewichtsreduktion, gruppiert nach Location.
-     * Enthält Zauberzeichen-Informationen für jedes Item.
+     * Enthält Zauberzeichen-Informationen und SpellSlot-Informationen für jedes Item.
      */
     val itemsWithMagicByLocation: StateFlow<Map<Location?, List<ItemWithMagic>>> =
-        combine(itemsByLocation, magicSignsWithItems, currentDerianDate) { itemsMap, signs, currentDate ->
+        combine(itemsByLocation, magicSignsWithItems, allSpellSlots, allSpells, currentDerianDate) { itemsMap, signs, slots, spells, currentDate ->
             val currentDays = DerianDateCalculator.parseDateToDays(currentDate) ?: 0
             
             itemsMap.mapValues { (_, items) ->
@@ -161,8 +171,11 @@ class InventoryViewModel(
                     // Finde Zauberzeichen für dieses Item
                     val itemSigns = signs.filter { it.magicSign.itemId == item.id }
                     
-                    // Erstelle Magic-Indikatoren
-                    val indicators = itemSigns.map { signWithItem ->
+                    // Finde SpellSlots, die an dieses Item gebunden sind
+                    val itemSlots = slots.filter { it.itemId == item.id }
+                    
+                    // Erstelle Magic-Indikatoren für Zauberzeichen
+                    val signIndicators = itemSigns.map { signWithItem ->
                         val sign = signWithItem.magicSign
                         val isExpired = sign.expiryDate?.let { expiryDate ->
                             DerianDateCalculator.parseDateToDays(expiryDate)?.let { expiryDays ->
@@ -183,6 +196,37 @@ class InventoryViewModel(
                             activationModifier = sign.activationModifier
                         )
                     }
+                    
+                    // Erstelle Magic-Indikatoren für SpellSlots (Applicatus und langwährende Zauber)
+                    val slotIndicators = itemSlots.mapNotNull { slot ->
+                        val spell = spells.find { it.id == slot.spellId }
+                        val spellName = spell?.name ?: "Unbekannter Zauber"
+                        
+                        val isExpired = slot.expiryDate?.let { expiryDate ->
+                            DerianDateCalculator.parseDateToDays(expiryDate)?.let { expiryDays ->
+                                expiryDays < currentDays
+                            }
+                        } ?: false
+                        
+                        val indicatorType = when (slot.slotType) {
+                            SlotType.APPLICATUS -> MagicIndicatorType.APPLICATUS
+                            SlotType.LONG_DURATION -> MagicIndicatorType.LONG_DURATION_SPELL
+                            else -> return@mapNotNull null // Zauberspeicher werden nicht angezeigt
+                        }
+                        
+                        MagicIndicator(
+                            type = indicatorType,
+                            name = spellName,
+                            description = if (slot.variant.isNotBlank()) slot.variant else "",
+                            isActive = slot.isFilled && !isExpired,
+                            isBotched = slot.isBotched,
+                            expiryDate = slot.expiryDate,
+                            effectPoints = slot.zfpStar,
+                            sourceId = slot.id
+                        )
+                    }
+                    
+                    val indicators = signIndicators + slotIndicators
                     
                     // Berechne Gewichtsreduktion für dieses Item (nur für normale Items, nicht Eigenobjekte)
                     var originalWeight = item.weight
@@ -543,6 +587,54 @@ class InventoryViewModel(
         viewModelScope.launch {
             repository.updateItem(item)
         }
+    }
+    
+    /**
+     * Datenklasse für magische Eigenschaften eines Items
+     */
+    data class ItemMagicProperties(
+        val hasMagicSigns: Boolean = false,
+        val magicSignCount: Int = 0,
+        val hasSpellSlots: Boolean = false,
+        val spellSlotCount: Int = 0,
+        val slotTypes: List<SlotType> = emptyList()
+    ) {
+        val hasMagic: Boolean get() = hasMagicSigns || hasSpellSlots
+        
+        fun getWarningMessage(): String {
+            val parts = mutableListOf<String>()
+            if (hasMagicSigns) {
+                parts.add("$magicSignCount Zauberzeichen")
+            }
+            if (hasSpellSlots) {
+                val slotDescriptions = slotTypes.groupBy { it }.map { (type, slots) ->
+                    val typeName = when (type) {
+                        SlotType.APPLICATUS -> "Applicatus"
+                        SlotType.SPELL_STORAGE -> "Zauberspeicher"
+                        SlotType.LONG_DURATION -> "Langwirkender Zauber"
+                    }
+                    "${slots.size}x $typeName"
+                }
+                parts.add(slotDescriptions.joinToString(", "))
+            }
+            return "Dieser Gegenstand hat folgende magische Eigenschaften, die beim Löschen verloren gehen:\n\n${parts.joinToString("\n")}"
+        }
+    }
+    
+    /**
+     * Prüft, ob ein Item magische Eigenschaften hat (Zauberzeichen oder SpellSlots)
+     */
+    suspend fun getItemMagicProperties(itemId: Long): ItemMagicProperties {
+        val magicSigns = repository.getMagicSignsListForItem(itemId)
+        val spellSlots = repository.getSlotsListForItem(itemId)
+        
+        return ItemMagicProperties(
+            hasMagicSigns = magicSigns.isNotEmpty(),
+            magicSignCount = magicSigns.size,
+            hasSpellSlots = spellSlots.isNotEmpty(),
+            spellSlotCount = spellSlots.size,
+            slotTypes = spellSlots.map { it.slotType }
+        )
     }
     
     /**

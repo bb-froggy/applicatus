@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.offset
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,6 +34,7 @@ fun InventoryScreen(
     application: ApplicatusApplication
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
     
     val viewModel: InventoryViewModel = viewModel(
         factory = InventoryViewModelFactory(application.repository, characterId)
@@ -67,6 +69,11 @@ fun InventoryScreen(
     var showSplitItemDialog by remember { mutableStateOf(false) }
     var itemToSplit by remember { mutableStateOf<ItemWithLocation?>(null) }
     var targetLocationForSplit by remember { mutableStateOf<Long?>(null) }
+    
+    // Delete Item with Magic Warning Dialog State
+    var showDeleteItemConfirmDialog by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<Item?>(null) }
+    var itemMagicWarning by remember { mutableStateOf<String?>(null) }
     
     // Drag-and-Drop-State
     var draggedItem by remember { mutableStateOf<ItemWithLocation?>(null) }
@@ -280,13 +287,26 @@ fun InventoryScreen(
                             },
                             onDeleteItem = { item ->
                                 if (item.id > 0) { // Echte Items (keine Tränke)
-                                    viewModel.deleteItem(Item(
-                                        id = item.id,
-                                        characterId = item.characterId,
-                                        locationId = item.locationId,
-                                        name = item.name,
-                                        weight = item.weight
-                                    ))
+                                    coroutineScope.launch {
+                                        val itemObj = Item(
+                                            id = item.id,
+                                            characterId = item.characterId,
+                                            locationId = item.locationId,
+                                            name = item.name,
+                                            weight = item.weight,
+                                            guid = item.guid
+                                        )
+                                        val magicProperties = viewModel.getItemMagicProperties(item.id)
+                                        if (magicProperties.hasMagic) {
+                                            // Show warning dialog
+                                            itemToDelete = itemObj
+                                            itemMagicWarning = magicProperties.getWarningMessage()
+                                            showDeleteItemConfirmDialog = true
+                                        } else {
+                                            // Delete directly
+                                            viewModel.deleteItem(itemObj)
+                                        }
+                                    }
                                 }
                             },
                             onDeleteLocation = {
@@ -409,13 +429,26 @@ fun InventoryScreen(
                             },
                             onDeleteItem = { item ->
                                 if (item.id > 0) {
-                                    viewModel.deleteItem(Item(
-                                        id = item.id,
-                                        characterId = item.characterId,
-                                        locationId = item.locationId,
-                                        name = item.name,
-                                        weight = item.weight
-                                    ))
+                                    coroutineScope.launch {
+                                        val itemObj = Item(
+                                            id = item.id,
+                                            characterId = item.characterId,
+                                            locationId = item.locationId,
+                                            name = item.name,
+                                            weight = item.weight,
+                                            guid = item.guid
+                                        )
+                                        val magicProperties = viewModel.getItemMagicProperties(item.id)
+                                        if (magicProperties.hasMagic) {
+                                            // Show warning dialog
+                                            itemToDelete = itemObj
+                                            itemMagicWarning = magicProperties.getWarningMessage()
+                                            showDeleteItemConfirmDialog = true
+                                        } else {
+                                            // Delete directly
+                                            viewModel.deleteItem(itemObj)
+                                        }
+                                    }
                                 }
                             },
                             onDeleteLocation = {},
@@ -635,6 +668,58 @@ fun InventoryScreen(
             onDismiss = {
                 showMagicIndicatorDialog = false
                 selectedMagicIndicator = null
+            }
+        )
+    }
+    
+    // Delete Item with Magic Warning Dialog
+    if (showDeleteItemConfirmDialog && itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteItemConfirmDialog = false
+                itemToDelete = null
+                itemMagicWarning = null
+            },
+            title = { Text("Magischen Gegenstand löschen?") },
+            text = { 
+                Column {
+                    Text(
+                        text = itemMagicWarning ?: "",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Möchtest du den Gegenstand \"${itemToDelete?.name}\" wirklich löschen?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        itemToDelete?.let { viewModel.deleteItem(it) }
+                        showDeleteItemConfirmDialog = false
+                        itemToDelete = null
+                        itemMagicWarning = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Löschen")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteItemConfirmDialog = false
+                        itemToDelete = null
+                        itemMagicWarning = null
+                    }
+                ) {
+                    Text("Abbrechen")
+                }
             }
         )
     }

@@ -13,6 +13,25 @@ interface MagicSignDao {
     @Query("SELECT * FROM magic_signs WHERE characterId = :characterId ORDER BY name")
     suspend fun getMagicSignsListForCharacter(characterId: Long): List<MagicSign>
     
+    /** Nur eigene Zauberzeichen: creatorGuid == characterGuid oder creatorGuid ist null (alte Daten) */
+    @Query("""
+        SELECT * FROM magic_signs 
+        WHERE characterId = :characterId 
+        AND (creatorGuid = :characterGuid OR creatorGuid IS NULL)
+        ORDER BY name
+    """)
+    fun getOwnMagicSignsForCharacter(characterId: Long, characterGuid: String): Flow<List<MagicSign>>
+    
+    /** Fremde Zauberzeichen: creatorGuid != characterGuid und creatorGuid ist nicht null */
+    @Query("""
+        SELECT * FROM magic_signs 
+        WHERE characterId = :characterId 
+        AND creatorGuid IS NOT NULL 
+        AND creatorGuid != :characterGuid
+        ORDER BY name
+    """)
+    fun getForeignMagicSignsForCharacter(characterId: Long, characterGuid: String): Flow<List<MagicSign>>
+    
     @Query("SELECT * FROM magic_signs WHERE itemId = :itemId ORDER BY name")
     fun getMagicSignsForItem(itemId: Long): Flow<List<MagicSign>>
     
@@ -64,6 +83,9 @@ interface MagicSignDao {
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(magicSign: MagicSign): Long
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(magicSigns: List<MagicSign>)
     
     @Update
     suspend fun update(magicSign: MagicSign)

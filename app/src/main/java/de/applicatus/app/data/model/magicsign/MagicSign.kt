@@ -46,6 +46,9 @@ data class MagicSign(
     /** ID des Items, auf dem das Zauberzeichen angebracht ist */
     val itemId: Long,
     
+    /** GUID des Charakters, der das Zauberzeichen ursprünglich angelegt hat */
+    val creatorGuid: String? = null,
+    
     /** Name/Beschreibung des Zauberzeichens (Freitext) */
     val name: String,
     

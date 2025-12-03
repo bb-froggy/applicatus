@@ -152,6 +152,34 @@ class ApplicatusRepository(
         }
     }
     
+    /**
+     * Get own spell slots with spells for a character (where creatorGuid matches).
+     * Only returns slots created by this character.
+     */
+    fun getOwnSlotsWithSpellsByCharacter(characterId: Long, characterGuid: String): Flow<List<SpellSlotWithSpell>> {
+        return combine(
+            spellSlotDao.getOwnSlotsByCharacter(characterId, characterGuid),
+            allSpells
+        ) { slots, spells ->
+            slots.map { slot ->
+                val spell = spells.find { it.id == slot.spellId }
+                SpellSlotWithSpell(slot, spell)
+            }
+        }
+    }
+    
+    /**
+     * Get spell slots linked to a specific item (for magic indicators in inventory).
+     */
+    fun getSlotsForItem(itemId: Long): Flow<List<SpellSlot>> = 
+        spellSlotDao.getSlotsByItem(itemId)
+    
+    /**
+     * Get spell slots linked to a specific item (synchronous).
+     */
+    suspend fun getSlotsListForItem(itemId: Long): List<SpellSlot> =
+        spellSlotDao.getSlotsByItemOnce(itemId)
+    
     suspend fun insertSlot(slot: SpellSlot) {
         spellSlotDao.insertSlot(slot)
         touchCharacter(slot.characterId)
@@ -370,6 +398,9 @@ class ApplicatusRepository(
     // Items
     fun getItemsForCharacter(characterId: Long): Flow<List<Item>> =
         itemDao.getItemsForCharacter(characterId)
+    
+    suspend fun getItemsForCharacterOnce(characterId: Long): List<Item> =
+        itemDao.getItemsListForCharacter(characterId)
     
     fun getItemsWithLocationForCharacter(characterId: Long): Flow<List<ItemWithLocation>> =
         itemDao.getItemsWithLocationForCharacter(characterId)
@@ -616,21 +647,60 @@ class ApplicatusRepository(
         val selfItem = items.find { it.isSelfItem && it.selfItemForLocationId == locationId }
         val selfItemWeight = selfItem?.weight ?: Weight.ZERO
         
+        // Map für alte Item-ID -> neue Item-ID (für MagicSign und SpellSlot Transfer)
+        val itemIdMapping = mutableMapOf<Long, Long>()
+        
         // Übertrage alle Items (außer dem Eigengewichts-Gegenstand)
         items.forEach { item ->
             if (item.isSelfItem && item.selfItemForLocationId == locationId) {
                 // Eigengewichts-Gegenstand nicht übertragen, nur löschen
                 deleteItem(item)
             } else {
-                // Erstelle Kopie des Items beim Zielcharakter
-                insertItem(
+                // Hole MagicSigns für dieses Item VOR dem Löschen
+                val magicSigns = magicSignDao.getMagicSignsListForItem(item.id)
+                // Hole SpellSlots für dieses Item VOR dem Löschen
+                val linkedSlots = spellSlotDao.getSlotsByItemOnce(item.id)
+                
+                // Erstelle Kopie des Items beim Zielcharakter (mit neuer GUID)
+                val newItemId = insertItem(
                     item.copy(
                         id = 0, // Neue ID generieren lassen
+                        guid = java.util.UUID.randomUUID().toString(), // Neue GUID für neues Item
                         characterId = targetCharacterId,
                         locationId = newLocationId
                     )
                 )
-                // Lösche Original-Item
+                itemIdMapping[item.id] = newItemId
+                
+                // Übertrage MagicSigns (behalten creatorGuid, bekommen neue characterId)
+                magicSigns.forEach { sign ->
+                    magicSignDao.insert(
+                        sign.copy(
+                            id = 0, // Neue ID generieren lassen
+                            guid = java.util.UUID.randomUUID().toString(), // Neue GUID
+                            characterId = targetCharacterId,
+                            itemId = newItemId
+                            // creatorGuid bleibt unverändert!
+                        )
+                    )
+                }
+                
+                // Übertrage SpellSlots die an dieses Item gebunden sind (behalten creatorGuid)
+                linkedSlots.forEach { slot ->
+                    spellSlotDao.insertSlot(
+                        slot.copy(
+                            id = 0, // Neue ID generieren lassen
+                            characterId = targetCharacterId,
+                            itemId = newItemId
+                            // creatorGuid bleibt unverändert!
+                        )
+                    )
+                }
+                
+                // Lösche MagicSigns des Original-Items (werden mit CASCADE gelöscht)
+                // Lösche SpellSlots des Original-Items (werden mit CASCADE gelöscht, da itemId FK mit CASCADE)
+                
+                // Lösche Original-Item (CASCADE löscht MagicSigns und SpellSlots)
                 deleteItem(item)
             }
         }
@@ -727,16 +797,6 @@ class ApplicatusRepository(
             throw IllegalStateException("Charakter mit GUID ${snapshot.character.guid} existiert nicht und allowCreateNew=false")
         }
         
-        // Slots einfügen
-        val allSpells = allSpells.first()
-        val newSlots = snapshot.spellSlots.map { slotDto ->
-            val resolvedSpellId = slotDto.spellName?.let { spellName ->
-                allSpells.find { it.name == spellName }?.id
-            }
-            slotDto.toSpellSlot(characterId, resolvedSpellId)
-        }
-        insertSlots(newSlots)
-        
         // Tränke importieren
         val allRecipes = allRecipes.first()
         val recipesById = allRecipes.associateBy { it.id }
@@ -781,13 +841,15 @@ class ApplicatusRepository(
             insertLocation(location)
         }
         
-        // Items importieren - auflöse locationName zu locationId
+        // Items importieren - auflöse locationName zu locationId, erstelle GUID-Map
         val locationsByName = getLocationsForCharacter(characterId).first().associateBy { it.name }
+        val itemIdsByGuid = mutableMapOf<String, Long>()
         snapshot.items.forEach { itemDto ->
             val resolvedLocationId = itemDto.locationName?.let { locationsByName[it]?.id }
             if (resolvedLocationId != null) {
                 val item = Item(
                     id = 0,
+                    guid = itemDto.guid,
                     characterId = characterId,
                     name = itemDto.name,
                     weight = Weight(itemDto.weightStone, itemDto.weightOunces),
@@ -798,7 +860,29 @@ class ApplicatusRepository(
                     isCountable = itemDto.isCountable,
                     quantity = itemDto.quantity
                 )
-                insertItem(item)
+                val newItemId = insertItem(item)
+                itemIdsByGuid[itemDto.guid] = newItemId
+            }
+        }
+        
+        // Slots einfügen (nach Items, damit itemId aufgelöst werden kann)
+        val allSpells = allSpells.first()
+        val characterGuid = snapshot.character.guid
+        val newSlots = snapshot.spellSlots.map { slotDto ->
+            val resolvedSpellId = slotDto.spellName?.let { spellName ->
+                allSpells.find { it.name == spellName }?.id
+            }
+            val resolvedItemId = slotDto.itemGuid?.let { itemIdsByGuid[it] }
+            slotDto.toSpellSlot(characterId, resolvedSpellId, resolvedItemId, characterGuid)
+        }
+        insertSlots(newSlots)
+        
+        // MagicSigns importieren (seit v6)
+        snapshot.magicSigns.forEach { signDto ->
+            val resolvedItemId = itemIdsByGuid[signDto.itemGuid]
+            if (resolvedItemId != null) {
+                val magicSign = signDto.toMagicSign(characterId, resolvedItemId, characterGuid)
+                insertMagicSign(magicSign)
             }
         }
         
@@ -933,6 +1017,12 @@ class ApplicatusRepository(
         magicSignDao.getMagicSignsForItem(itemId)
     
     /**
+     * Get magic signs for a specific item (synchronous).
+     */
+    suspend fun getMagicSignsListForItem(itemId: Long): List<MagicSign> =
+        magicSignDao.getMagicSignsListForItem(itemId)
+    
+    /**
      * Get active magic signs for a specific location (via items in that location).
      */
     suspend fun getActiveMagicSignsForLocation(locationId: Long): List<MagicSign> =
@@ -944,6 +1034,28 @@ class ApplicatusRepository(
     fun getMagicSignsWithItemsForCharacter(characterId: Long): Flow<List<MagicSignWithItem>> {
         return combine(
             magicSignDao.getMagicSignsForCharacter(characterId),
+            itemDao.getItemsForCharacter(characterId),
+            locationDao.getLocationsForCharacter(characterId)
+        ) { signs, items, locations ->
+            signs.map { sign ->
+                val item = items.find { it.id == sign.itemId }
+                val location = item?.locationId?.let { locId -> locations.find { it.id == locId } }
+                MagicSignWithItem(
+                    magicSign = sign,
+                    itemName = item?.name,
+                    locationName = location?.name
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get own magic signs with their item names for a character (where creatorGuid matches).
+     * Only returns magic signs created by this character.
+     */
+    fun getOwnMagicSignsWithItemsForCharacter(characterId: Long, characterGuid: String): Flow<List<MagicSignWithItem>> {
+        return combine(
+            magicSignDao.getOwnMagicSignsForCharacter(characterId, characterGuid),
             itemDao.getItemsForCharacter(characterId),
             locationDao.getLocationsForCharacter(characterId)
         ) { signs, items, locations ->

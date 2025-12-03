@@ -351,8 +351,8 @@ class CharacterExportDtoTest {
             variant = ""
         )
         
-        val applicatusModel = applicatusSlot.toSpellSlot(characterId = 1, resolvedSpellId = null)
-        val storageModel = storageSlot.toSpellSlot(characterId = 1, resolvedSpellId = null)
+        val applicatusModel = applicatusSlot.toSpellSlot(characterId = 1, resolvedSpellId = null, resolvedItemId = null, creatorGuidFallback = null)
+        val storageModel = storageSlot.toSpellSlot(characterId = 1, resolvedSpellId = null, resolvedItemId = null, creatorGuidFallback = null)
         
         assertEquals(SlotType.APPLICATUS, applicatusModel.slotType)
         assertEquals(SlotType.SPELL_STORAGE, storageModel.slotType)
@@ -372,7 +372,7 @@ class CharacterExportDtoTest {
             variant = ""
         )
         
-        val model = invalidSlot.toSpellSlot(characterId = 1, resolvedSpellId = null)
+        val model = invalidSlot.toSpellSlot(characterId = 1, resolvedSpellId = null, resolvedItemId = null, creatorGuidFallback = null)
         
         // Sollte auf APPLICATUS zurückfallen
         assertEquals(SlotType.APPLICATUS, model.slotType)

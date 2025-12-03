@@ -5,6 +5,7 @@ package de.applicatus.app.data.model.inventory
  */
 data class ItemWithLocation(
     val id: Long,
+    val guid: String = "",
     val characterId: Long,
     val locationId: Long?,
     val name: String,
