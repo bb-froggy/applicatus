@@ -382,6 +382,16 @@ class CharacterDetailViewModel(
         }
     }
     
+    /**
+     * Aktualisiert das Item, an das ein Slot gebunden ist.
+     * Relevant für Applicatus und langwirkende Zauber.
+     */
+    fun updateSlotItem(slot: SpellSlot, itemId: Long?) {
+        viewModelScope.launch {
+            repository.updateSlot(slot.copy(itemId = itemId))
+        }
+    }
+    
     fun updateAllModifiers(delta: Int) {
         viewModelScope.launch {
             spellSlots.value.forEach { slotWithSpell ->

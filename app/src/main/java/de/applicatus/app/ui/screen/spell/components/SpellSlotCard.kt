@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.spell.Spell
 import de.applicatus.app.data.model.spell.SpellSlotWithSpell
 import de.applicatus.app.data.model.spell.SlotType
@@ -29,7 +30,8 @@ fun SpellSlotCardUsageMode(
     showAnimation: Boolean,
     onCastSpell: () -> Unit,
     onClearSlot: () -> Unit,
-    onAnimationEnd: () -> Unit = {}
+    onAnimationEnd: () -> Unit = {},
+    linkedItem: Item? = null // Das zugeordnete Item (falls vorhanden)
 ) {
     val slot = slotWithSpell.slot
     val spell = slotWithSpell.spell
@@ -53,6 +55,7 @@ fun SpellSlotCardUsageMode(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+                    // Zeile 1: Slot-Nummer und Zaubername
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "${slot.slotNumber + 1}. ",
@@ -72,22 +75,25 @@ fun SpellSlotCardUsageMode(
                                 modifier = Modifier.size(16.dp)
                             )
                         }
-                        if (slot.slotType == SlotType.SPELL_STORAGE) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "(${slot.volumePoints}VP)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        } else if (slot.slotType == SlotType.LONG_DURATION) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "(langwirkend)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
                     }
+                    
+                    // Zeile 2: Slot-Typ mit Volumenpunkten und Item-Zuordnung
+                    val slotTypeText = when (slot.slotType) {
+                        SlotType.APPLICATUS -> "Applicatus"
+                        SlotType.SPELL_STORAGE -> "Stabzauber – ${slot.volumePoints} VP"
+                        SlotType.LONG_DURATION -> "Langwirkend"
+                    }
+                    val itemText = linkedItem?.let { " • ${it.name}" } ?: 
+                        if (slot.slotType != SlotType.SPELL_STORAGE && slot.itemId == null) " • Kein Gegenstand" else ""
+                    
+                    Text(
+                        text = slotTypeText + itemText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (slot.itemId == null && slot.slotType != SlotType.SPELL_STORAGE) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.secondary
+                    )
                     
                     if (spell != null) {
                         Text(
@@ -254,6 +260,8 @@ fun SpellSlotCardUsageMode(
 fun SpellSlotCardEditMode(
     slotWithSpell: SpellSlotWithSpell,
     allSpells: List<Spell>,
+    allItems: List<Item> = emptyList(),
+    linkedItem: Item? = null,
     onSpellSelected: (Spell) -> Unit,
     onZfwChanged: (Int) -> Unit,
     onModifierChanged: (Int) -> Unit,
@@ -261,11 +269,13 @@ fun SpellSlotCardEditMode(
     onDurationFormulaChanged: (String) -> Unit,
     onAspCostChanged: (String) -> Unit,
     onUseHexenRepresentationChanged: (Boolean) -> Unit,
+    onItemChanged: (Long?) -> Unit = {},
     onDeleteSlot: () -> Unit
 ) {
     val slot = slotWithSpell.slot
     val spell = slotWithSpell.spell
     var showSpellPicker by remember { mutableStateOf(false) }
+    var showItemPicker by remember { mutableStateOf(false) }
     var zfwText by remember(slot.zfw) { mutableStateOf(slot.zfw.toString()) }
     var modifierText by remember(slot.modifier) { mutableStateOf(slot.modifier.toString()) }
     var variantText by remember(slot.variant) { mutableStateOf(slot.variant) }
@@ -460,6 +470,38 @@ fun SpellSlotCardEditMode(
                 )
                 Text("Hexische Repräsentation (1/3 statt 1/2 AsP bei Fehlschlag)")
             }
+            
+            // Item-Zuordnung (nur für Applicatus und langwirkende Zauber)
+            if (slot.slotType != SlotType.SPELL_STORAGE) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Gegenstand-Bindung",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                OutlinedButton(
+                    onClick = { showItemPicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = if (slot.itemId == null) 
+                        ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    else 
+                        ButtonDefaults.outlinedButtonColors()
+                ) {
+                    Text(linkedItem?.name ?: "Gegenstand auswählen")
+                }
+                
+                if (slot.itemId == null) {
+                    Text(
+                        text = "Kein Gegenstand zugeordnet – bitte auswählen",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         }
     }
     
@@ -470,6 +512,18 @@ fun SpellSlotCardEditMode(
             onSpellSelected = { selectedSpell ->
                 onSpellSelected(selectedSpell)
                 showSpellPicker = false
+            }
+        )
+    }
+    
+    if (showItemPicker) {
+        ItemPickerDialog(
+            items = allItems,
+            currentItemId = slot.itemId,
+            onDismiss = { showItemPicker = false },
+            onItemSelected = { selectedItem ->
+                onItemChanged(selectedItem?.id)
+                showItemPicker = false
             }
         )
     }
@@ -555,4 +609,75 @@ fun Chip(
             }
         }
     }
+}
+
+@Composable
+fun ItemPickerDialog(
+    items: List<Item>,
+    currentItemId: Long?,
+    onDismiss: () -> Unit,
+    onItemSelected: (Item?) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredItems = remember(items, searchQuery) {
+        if (searchQuery.isBlank()) {
+            items
+        } else {
+            items.filter { it.name.contains(searchQuery, ignoreCase = true) }
+        }
+    }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Gegenstand auswählen") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Suchen...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(400.dp)
+                ) {
+                    items(filteredItems, key = { it.id }) { item ->
+                        val isSelected = item.id == currentItemId
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onItemSelected(item) }
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isSelected) {
+                                    Text(
+                                        text = "✓ ",
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Text(
+                                    text = item.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified
+                                )
+                            }
+                        }
+                        Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
 }

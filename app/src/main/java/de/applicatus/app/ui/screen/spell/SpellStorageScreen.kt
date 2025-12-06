@@ -158,10 +158,17 @@ fun SpellStorageScreen(
                 verticalArrangement = Arrangement.spacedBy(if (isEditMode) 12.dp else 8.dp)
             ) {
                 items(spellSlots, key = { it.slot.id }) { slotWithSpell ->
+                    // Finde das zugeordnete Item
+                    val linkedItem = slotWithSpell.slot.itemId?.let { itemId ->
+                        allItems.find { it.id == itemId }
+                    }
+                    
                     if (isEditMode) {
                         SpellSlotCardEditMode(
                             slotWithSpell = slotWithSpell,
                             allSpells = allSpells,
+                            allItems = allItems,
+                            linkedItem = linkedItem,
                             onSpellSelected = { spell ->
                                 viewModel.updateSlotSpell(slotWithSpell.slot, spell.id)
                             },
@@ -183,6 +190,9 @@ fun SpellStorageScreen(
                             onUseHexenRepresentationChanged = { useHexen ->
                                 viewModel.updateSlotUseHexenRepresentation(slotWithSpell.slot, useHexen)
                             },
+                            onItemChanged = { itemId ->
+                                viewModel.updateSlotItem(slotWithSpell.slot, itemId)
+                            },
                             onDeleteSlot = {
                                 viewModel.removeSlot(slotWithSpell.slot)
                             }
@@ -193,6 +203,7 @@ fun SpellStorageScreen(
                             currentDate = groupDate,
                             isGameMaster = isGameMasterGroup,
                             showAnimation = viewModel.showSpellAnimation && viewModel.animatingSlotId == slotWithSpell.slot.id,
+                            linkedItem = linkedItem,
                             onCastSpell = {
                                 slotWithSpell.spell?.let { spell ->
                                     viewModel.castSpell(slotWithSpell.slot, spell)
