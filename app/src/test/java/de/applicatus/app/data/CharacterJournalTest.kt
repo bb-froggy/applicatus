@@ -94,7 +94,7 @@ class CharacterJournalTest {
         // Define expected domains
         val expectedDomains = setOf(
             "Potion", "Spell", "Energy", "Character", 
-            "Inventory", "Group", "Talent", "Recipe", "Combat", "Other"
+            "Inventory", "Group", "Talent", "Recipe", "Combat", "MagicSign", "Other"
         )
         
         val categoryFields = JournalCategory::class.java.declaredFields
