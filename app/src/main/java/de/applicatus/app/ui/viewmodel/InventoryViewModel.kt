@@ -161,13 +161,23 @@ class InventoryViewModel(
     /**
      * Items mit Magic-Indikatoren und Gewichtsreduktion, gruppiert nach Location.
      * Enthält Zauberzeichen-Informationen und SpellSlot-Informationen für jedes Item.
+     * 
+     * Hinweis: Das Eigenobjekt von "Rüstung/Kleidung" wird ausgeblendet, da
+     * Kleidung/Rüstung kein eigenes Gewicht hat (wird direkt am Körper getragen).
      */
     val itemsWithMagicByLocation: StateFlow<Map<Location?, List<ItemWithMagic>>> =
         combine(itemsByLocation, magicSignsWithItems, allSpellSlots, allSpells, currentDerianDate) { itemsMap, signs, slots, spells, currentDate ->
             val currentDays = DerianDateCalculator.parseDateToDays(currentDate) ?: 0
             
-            itemsMap.mapValues { (_, items) ->
-                items.map { item ->
+            itemsMap.mapValues { (location, items) ->
+                // Filtere das Eigenobjekt von "Rüstung/Kleidung" aus
+                val filteredItems = if (location?.name == "Rüstung/Kleidung") {
+                    items.filter { !it.isSelfItem }
+                } else {
+                    items
+                }
+                
+                filteredItems.map { item ->
                     // Finde Zauberzeichen für dieses Item
                     val itemSigns = signs.filter { it.magicSign.itemId == item.id }
                     

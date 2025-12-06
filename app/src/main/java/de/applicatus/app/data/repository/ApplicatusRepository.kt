@@ -378,8 +378,23 @@ class ApplicatusRepository(
     suspend fun updateLocationIsCarried(locationId: Long, isCarried: Boolean) =
         locationDao.updateIsCarried(locationId, isCarried)
     
-    suspend fun deleteLocation(location: Location) =
+    /**
+     * Löscht eine Location.
+     * 
+     * Verhalten:
+     * - SelfItems (Eigengewicht) der Location werden vollständig gelöscht
+     * - Normale Items werden zu "ohne Ort" verschoben (locationId = null)
+     * - Die Location selbst wird gelöscht
+     */
+    suspend fun deleteLocation(location: Location) {
+        // Erst alle SelfItems dieser Location löschen
+        val items = itemDao.getItemsListForLocation(location.id)
+        items.filter { it.isSelfItem }.forEach { selfItem ->
+            itemDao.delete(selfItem)
+        }
+        // Dann die Location löschen (normale Items werden durch SET_NULL zu "ohne Ort")
         locationDao.delete(location)
+    }
     
     /**
      * Erstellt die Standard-Locations für einen Charakter und automatisch Eigenobjekte dafür.
@@ -629,13 +644,15 @@ class ApplicatusRepository(
     suspend fun transferLocationToCharacter(locationId: Long, targetCharacterId: Long) {
         val location = getLocationById(locationId) ?: return
         
-        // Erstelle neue Location beim Zielcharakter
-        val newLocationId = insertLocation(
+        // Erstelle neue Location beim Zielcharakter OHNE automatisches SelfItem
+        // (Das SelfItem wird später manuell mit dem korrekten Gewicht erstellt)
+        val newLocationId = insertLocationWithoutSelfItem(
             location.copy(
                 id = 0, // Neue ID generieren lassen
                 characterId = targetCharacterId,
                 isDefault = false, // Übertragene Locations sind nie Default
-                sortOrder = 0 // Wird automatisch ans Ende sortiert
+                sortOrder = 0, // Wird automatisch ans Ende sortiert
+                hasSelfItem = false // Wird später auf true gesetzt wenn SelfItem erstellt wird
             )
         )
         
@@ -647,12 +664,18 @@ class ApplicatusRepository(
         val selfItem = items.find { it.isSelfItem && it.selfItemForLocationId == locationId }
         val selfItemWeight = selfItem?.weight ?: Weight.ZERO
         
+        // Hole MagicSigns und SpellSlots des SelfItems VOR dem Löschen (für späteren Transfer)
+        val selfItemMagicSigns = selfItem?.let { magicSignDao.getMagicSignsListForItem(it.id) } ?: emptyList()
+        val selfItemSpellSlots = selfItem?.let { spellSlotDao.getSlotsByItemOnce(it.id) } ?: emptyList()
+        
         // Map für alte Item-ID -> neue Item-ID (für MagicSign und SpellSlot Transfer)
         val itemIdMapping = mutableMapOf<Long, Long>()
         
-        // Übertrage alle Items (außer dem Eigengewichts-Gegenstand)
+        // Übertrage alle Items (außer Eigengewichts-Gegenständen)
         items.forEach { item ->
-            if (item.isSelfItem && item.selfItemForLocationId == locationId) {
+            // Alle SelfItems (Eigengewichts-Gegenstände) überspringen - nur löschen
+            // SelfItems sind an ihre Location gebunden und werden neu erstellt
+            if (item.isSelfItem) {
                 // Eigengewichts-Gegenstand nicht übertragen, nur löschen
                 deleteItem(item)
             } else {
@@ -708,7 +731,32 @@ class ApplicatusRepository(
         // Erstelle neuen Eigengewichts-Gegenstand für die neue Location
         val newLocation = getLocationById(newLocationId)
         if (newLocation != null) {
-            createSelfItemForLocation(newLocation, selfItemWeight)
+            val newSelfItemId = createSelfItemForLocation(newLocation, selfItemWeight)
+            
+            // Übertrage MagicSigns des alten SelfItems auf das neue
+            selfItemMagicSigns.forEach { sign ->
+                magicSignDao.insert(
+                    sign.copy(
+                        id = 0, // Neue ID generieren lassen
+                        guid = java.util.UUID.randomUUID().toString(), // Neue GUID
+                        characterId = targetCharacterId,
+                        itemId = newSelfItemId
+                        // creatorGuid bleibt unverändert!
+                    )
+                )
+            }
+            
+            // Übertrage SpellSlots des alten SelfItems auf das neue
+            selfItemSpellSlots.forEach { slot ->
+                spellSlotDao.insertSlot(
+                    slot.copy(
+                        id = 0, // Neue ID generieren lassen
+                        characterId = targetCharacterId,
+                        itemId = newSelfItemId
+                        // creatorGuid bleibt unverändert!
+                    )
+                )
+            }
         }
         
         // Übertrage alle Tränke
@@ -1128,7 +1176,7 @@ class ApplicatusRepository(
         val selfItem = Item(
             characterId = location.characterId,
             locationId = location.id,
-            name = "${location.name} (Eigengewicht)",
+            name = "${location.name} (Eigenobjekt)",
             weight = weight,
             sortOrder = -1000, // Sort before all other items
             isSelfItem = true,

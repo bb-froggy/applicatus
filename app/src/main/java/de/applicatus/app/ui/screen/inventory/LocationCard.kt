@@ -55,6 +55,7 @@ fun LocationCard(
     var cardPosition by remember { mutableStateOf(Offset.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
     var currentLocationDragOffset by remember { mutableStateOf(Offset.Zero) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     
     // Registriere diese Card als Drop-Target
     LaunchedEffect(cardPosition, cardSize) {
@@ -304,12 +305,39 @@ fun LocationCard(
                         }
                     }
                     
-                    if (location != null && !location.isDefault) {
-                        IconButton(onClick = onDeleteLocation) {
+                    if (location != null && !location.isDefault && isEditMode) {
+                        IconButton(onClick = { showDeleteConfirmation = true }) {
                             Icon(Icons.Default.Delete, "Ort löschen")
                         }
                     }
                 }
+            }
+            
+            // Bestätigungsdialog für das Löschen einer Location
+            if (showDeleteConfirmation && location != null) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirmation = false },
+                    title = { Text("Ort löschen?") },
+                    text = { 
+                        Text("Möchtest du den Ort \"${location.name}\" wirklich löschen? " +
+                             "Enthaltene Gegenstände werden nach \"ohne Ort\" verschoben.")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteConfirmation = false
+                                onDeleteLocation()
+                            }
+                        ) {
+                            Text("Löschen", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirmation = false }) {
+                            Text("Abbrechen")
+                        }
+                    }
+                )
             }
             
             Divider(modifier = Modifier.padding(vertical = 8.dp))

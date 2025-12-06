@@ -277,11 +277,18 @@ fun InventoryScreen(
                             onEditItem = { item ->
                                 editingItem = Item(
                                     id = item.id,
+                                    guid = item.guid,
                                     characterId = item.characterId,
                                     locationId = item.locationId,
                                     name = item.name,
                                     weight = item.weight,
-                                    sortOrder = item.sortOrder
+                                    sortOrder = item.sortOrder,
+                                    isPurse = item.isPurse,
+                                    kreuzerAmount = item.kreuzerAmount,
+                                    isCountable = item.isCountable,
+                                    quantity = item.quantity,
+                                    isSelfItem = item.isSelfItem,
+                                    selfItemForLocationId = item.selfItemForLocationId
                                 )
                                 showEditItemDialog = true
                             },
@@ -419,11 +426,18 @@ fun InventoryScreen(
                             onEditItem = { item ->
                                 editingItem = Item(
                                     id = item.id,
+                                    guid = item.guid,
                                     characterId = item.characterId,
                                     locationId = item.locationId,
                                     name = item.name,
                                     weight = item.weight,
-                                    sortOrder = item.sortOrder
+                                    sortOrder = item.sortOrder,
+                                    isPurse = item.isPurse,
+                                    kreuzerAmount = item.kreuzerAmount,
+                                    isCountable = item.isCountable,
+                                    quantity = item.quantity,
+                                    isSelfItem = item.isSelfItem,
+                                    selfItemForLocationId = item.selfItemForLocationId
                                 )
                                 showEditItemDialog = true
                             },

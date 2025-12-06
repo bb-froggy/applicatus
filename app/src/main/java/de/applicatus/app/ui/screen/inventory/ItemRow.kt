@@ -116,42 +116,55 @@ fun ItemRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Drag-Handle (gepunktete Fläche)
+                // Drag-Handle (gepunktete Fläche) - nicht für SelfItems (Eigenobjekt)
+                // SelfItems sind an ihre Location gebunden und dürfen nicht verschoben werden
+                val canDrag = !item.isSelfItem
+                
                 Box(
                     modifier = Modifier
                         .width(32.dp)
                         .height(48.dp)
                         .clip(MaterialTheme.shapes.small)
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            if (canDrag) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            },
                             MaterialTheme.shapes.small
                         )
                         .border(
                             width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = if (canDrag) 0.3f else 0.1f),
                             shape = MaterialTheme.shapes.small
                         )
-                        .pointerInput(item.id) {
-                            detectDragGestures(
-                                onDragStart = { 
-                                    currentDragOffset = Offset.Zero
-                                    onStartDrag()
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    currentDragOffset += dragAmount
-                                    onDragUpdate(itemPosition + currentDragOffset)
-                                },
-                                onDragEnd = {
-                                    onDragEnd(itemPosition + currentDragOffset)
-                                    currentDragOffset = Offset.Zero
-                                },
-                                onDragCancel = {
-                                    onDragEnd(itemPosition + currentDragOffset)
-                                    currentDragOffset = Offset.Zero
+                        .then(
+                            if (canDrag) {
+                                Modifier.pointerInput(item.id) {
+                                    detectDragGestures(
+                                        onDragStart = { 
+                                            currentDragOffset = Offset.Zero
+                                            onStartDrag()
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            currentDragOffset += dragAmount
+                                            onDragUpdate(itemPosition + currentDragOffset)
+                                        },
+                                        onDragEnd = {
+                                            onDragEnd(itemPosition + currentDragOffset)
+                                            currentDragOffset = Offset.Zero
+                                        },
+                                        onDragCancel = {
+                                            onDragEnd(itemPosition + currentDragOffset)
+                                            currentDragOffset = Offset.Zero
+                                        }
+                                    )
                                 }
-                            )
-                        },
+                            } else {
+                                Modifier // Keine Drag-Gesten für SelfItems
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     // Gepunktetes Muster (3 Reihen mit je 2 Punkten)
@@ -335,7 +348,7 @@ fun ItemRow(
                 } else if (item.isSelfItem && isEditMode) {
                     // Eigenobjekte: Edit für Gewicht erlauben
                     IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, "Eigengewicht bearbeiten", tint = MaterialTheme.colorScheme.secondary)
+                        Icon(Icons.Default.Edit, "Eigenobjekt bearbeiten", tint = MaterialTheme.colorScheme.secondary)
                     }
                 } else if (isPotion) {
                     // Tränke: Marker-Icon

@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LocationDao {
-    @Query("SELECT * FROM locations WHERE characterId = :characterId ORDER BY sortOrder, name")
+    @Query("SELECT * FROM locations WHERE characterId = :characterId ORDER BY isDefault DESC, sortOrder, name")
     fun getLocationsForCharacter(characterId: Long): Flow<List<Location>>
     
-    @Query("SELECT * FROM locations WHERE characterId = :characterId ORDER BY sortOrder, name")
+    @Query("SELECT * FROM locations WHERE characterId = :characterId ORDER BY isDefault DESC, sortOrder, name")
     suspend fun getLocationsForCharacterOnce(characterId: Long): List<Location>
     
     @Query("SELECT * FROM locations WHERE id = :locationId")

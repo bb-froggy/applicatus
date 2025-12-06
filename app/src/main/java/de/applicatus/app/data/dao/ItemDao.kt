@@ -13,6 +13,9 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE locationId = :locationId ORDER BY sortOrder, name")
     fun getItemsForLocation(locationId: Long): Flow<List<Item>>
     
+    @Query("SELECT * FROM items WHERE locationId = :locationId ORDER BY sortOrder, name")
+    suspend fun getItemsListForLocation(locationId: Long): List<Item>
+    
     @Query("SELECT * FROM items WHERE id = :itemId")
     suspend fun getItemById(itemId: Long): Item?
     
