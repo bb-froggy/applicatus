@@ -22,7 +22,4 @@ interface GlobalSettingsDao {
     
     @Update
     suspend fun updateSettings(settings: GlobalSettings)
-    
-    @Query("UPDATE global_settings SET currentDerianDate = :date WHERE id = 1")
-    suspend fun updateCurrentDate(date: String)
 }

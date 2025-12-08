@@ -245,9 +245,7 @@ class ApplicatusRepository(
     suspend fun getGlobalSettingsOnce(): GlobalSettings? = globalSettingsDao.getSettingsOnce()
     
     suspend fun updateGlobalSettings(settings: GlobalSettings) = globalSettingsDao.updateSettings(settings)
-    
-    suspend fun updateCurrentDerianDate(date: String) = globalSettingsDao.updateCurrentDate(date)
-    
+
     /**
      * Stellt sicher, dass GlobalSettings existieren.
      * Falls nicht, wird ein Standard-Eintrag erstellt.

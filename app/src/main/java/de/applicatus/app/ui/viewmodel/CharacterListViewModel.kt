@@ -439,9 +439,9 @@ class CharacterListViewModel(
         isDateEditMode = !isDateEditMode
     }
     
-    fun incrementDerianDate() {
+    fun incrementDerianDate(groupId: Long) {
         viewModelScope.launch {
-            val group = currentGroup.value ?: return@launch
+            val group = repository.getGroupByIdOnce(groupId) ?: return@launch
             val currentDate = group.currentDerianDate
             val newDate = DerianDateCalculator.calculateExpiryDate(currentDate, "1 Tag")
             
@@ -452,9 +452,9 @@ class CharacterListViewModel(
         }
     }
     
-    fun decrementDerianDate() {
+    fun decrementDerianDate(groupId: Long) {
         viewModelScope.launch {
-            val group = currentGroup.value ?: return@launch
+            val group = repository.getGroupByIdOnce(groupId) ?: return@launch
             val currentDate = group.currentDerianDate
             
             // Parse aktuelles Datum
@@ -506,9 +506,9 @@ class CharacterListViewModel(
         }
     }
     
-    fun updateDerianDate(newDate: String) {
+    fun updateDerianDate(groupId: Long, newDate: String) {
         viewModelScope.launch {
-            val group = currentGroup.value ?: return@launch
+            val group = repository.getGroupByIdOnce(groupId) ?: return@launch
             
             // Prüfe auf ablaufende Zauber
             checkExpiringSpells(group.id, newDate)

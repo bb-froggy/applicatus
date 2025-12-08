@@ -219,14 +219,29 @@ fun CharacterListScreen(
     ) { padding ->
         // Gruppiere Charaktere nach groupId und mappe sie auf die entsprechenden Group-Objekte
         // Charaktere ohne passende Gruppe werden mit einer Dummy-Gruppe angezeigt
-        val groupedCharactersWithGroup = characters.groupBy { it.groupId }.map { (groupId, chars) ->
-            val group = groups.find { it.id == groupId } ?: Group(
-                id = groupId ?: -1,
-                name = "Unbekannte Gruppe",
-                currentDerianDate = "1 Praios 1000 BF"
-            )
-            group to chars
-        }.sortedBy { it.first.name }
+        // Gruppen ohne Charaktere werden ebenfalls angezeigt
+        val charactersByGroupId = characters.groupBy { it.groupId }
+        
+        // Erstelle eine Liste aller Gruppen (mit und ohne Charaktere)
+        val groupedCharactersWithGroup = groups.map { group ->
+            val charsInGroup = charactersByGroupId[group.id] ?: emptyList()
+            group to charsInGroup
+        }.toMutableList()
+        
+        // Füge Charaktere hinzu, deren Gruppe nicht existiert (Dummy-Gruppe)
+        val groupIds = groups.map { it.id }.toSet()
+        charactersByGroupId.forEach { (groupId, chars) ->
+            if (groupId != null && !groupIds.contains(groupId)) {
+                val dummyGroup = Group(
+                    id = groupId,
+                    name = "Unbekannte Gruppe",
+                    currentDerianDate = "1 Praios 1000 BF"
+                )
+                groupedCharactersWithGroup.add(dummyGroup to chars)
+            }
+        }
+        
+        val sortedGroups = groupedCharactersWithGroup.sortedBy { it.first.name }
         
         LazyColumn(
             modifier = Modifier
@@ -236,7 +251,7 @@ fun CharacterListScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Für jede Gruppe: Datum-Card und Charaktere
-            groupedCharactersWithGroup.forEach { (group, charactersInGroup) ->
+            sortedGroups.forEach { (group, charactersInGroup) ->
                 // Gruppenname als Überschrift mit Datum darunter
                 item {
                     Column {
@@ -296,17 +311,14 @@ fun CharacterListScreen(
                                 viewModel.selectGroup(group.id)
                                 viewModel.toggleDateEditMode() 
                             },
-                            onUpdateDate = { 
-                                viewModel.selectGroup(group.id)
-                                viewModel.updateDerianDate(it) 
+                            onUpdateDate = { newDate ->
+                                viewModel.updateDerianDate(group.id, newDate) 
                             },
                             onIncrement = { 
-                                viewModel.selectGroup(group.id)
-                                viewModel.incrementDerianDate() 
+                                viewModel.incrementDerianDate(group.id) 
                             },
                             onDecrement = { 
-                                viewModel.selectGroup(group.id)
-                                viewModel.decrementDerianDate() 
+                                viewModel.decrementDerianDate(group.id) 
                             }
                         )
                     }
@@ -1228,22 +1240,32 @@ fun DerianDateCard(
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = onToggleEditMode) {
-                        Text("Fertig")
-                    }
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Button(
-                    onClick = {
-                        onUpdateDate(editingDate)
-                        onToggleEditMode()
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Datum speichern")
+                    OutlinedButton(
+                        onClick = {
+                            editingDate = currentDate
+                            onToggleEditMode()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Abbrechen")
+                    }
+                    Button(
+                        onClick = {
+                            onUpdateDate(editingDate)
+                            onToggleEditMode()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Speichern")
+                    }
                 }
             } else {
                 // Nutzungsmodus: Kompakte Anzeige
