@@ -1,6 +1,10 @@
 package de.applicatus.app.ui.screen.character
 
+import android.Manifest
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -23,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.LocalContentColor
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
@@ -63,6 +68,50 @@ fun CharacterHomeScreen(
     var showAstralMeditationDialog by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showRealtimeSyncDialog by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    
+    // Get required permissions based on Android version
+    val nearbyPermissions = remember {
+        buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_ADVERTISE)
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+                add(Manifest.permission.BLUETOOTH_SCAN)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    
+    // Check if all required permissions are granted
+    fun arePermissionsGranted(): Boolean {
+        return nearbyPermissions.all { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+    
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            showRealtimeSyncDialog = true
+        } else {
+            showPermissionDialog = true
+        }
+    }
+    
+    // Helper function to request permission or open sync dialog
+    fun requestSyncPermissionsOrOpenDialog() {
+        if (arePermissionsGranted()) {
+            showRealtimeSyncDialog = true
+        } else {
+            permissionLauncher.launch(nearbyPermissions.toTypedArray())
+        }
+    }
     
     // File pickers
     val exportLauncher = rememberLauncherForActivityResult(
@@ -179,7 +228,7 @@ fun CharacterHomeScreen(
                     // Sync Status Indicator
                     SyncStatusIndicator(
                         syncStatus = syncStatus,
-                        onClick = { showRealtimeSyncDialog = true }
+                        onClick = { requestSyncPermissionsOrOpenDialog() }
                     )
                     
                     // Journal Button
@@ -239,7 +288,7 @@ fun CharacterHomeScreen(
                                 },
                                 onClick = {
                                     showMoreMenu = false
-                                    showRealtimeSyncDialog = true
+                                    requestSyncPermissionsOrOpenDialog()
                                 }
                             )
                             
@@ -447,6 +496,37 @@ fun CharacterHomeScreen(
             onConfirm = { updatedChar ->
                 viewModel.updateCharacter(updatedChar)
                 showEditSpellsDialog = false
+            }
+        )
+    }
+    
+    // Permission Dialog - shown when Bluetooth/Nearby permissions are denied
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("Berechtigungen erforderlich") },
+            text = { 
+                Text(
+                    "Für die Echtzeit-Synchronisation werden Bluetooth- und Standort-Berechtigungen benötigt.\n\n" +
+                    "Bitte erteile die Berechtigungen in den Einstellungen."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionDialog = false
+                    // Open app settings
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Text("Einstellungen öffnen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog = false }) {
+                    Text("Abbrechen")
+                }
             }
         )
     }

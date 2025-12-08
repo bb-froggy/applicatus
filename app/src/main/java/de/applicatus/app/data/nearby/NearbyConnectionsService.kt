@@ -235,6 +235,13 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
     }
     
     /**
+     * Stoppt nur die Discovery.
+     */
+    override fun stopDiscovery() {
+        connectionsClient.stopDiscovery()
+    }
+    
+    /**
      * Trennt alle Verbindungen.
      */
     override fun stopAllConnections() {

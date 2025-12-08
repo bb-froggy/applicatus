@@ -59,6 +59,12 @@ interface NearbyConnectionsInterface {
     )
     
     /**
+     * Stoppt nur die Discovery (ohne Advertising oder Endpoints zu trennen).
+     * Wichtig: Muss vor connectToEndpoint aufgerufen werden, um STATUS_OUT_OF_ORDER_API_CALL zu vermeiden.
+     */
+    fun stopDiscovery()
+    
+    /**
      * Trennt alle Verbindungen.
      */
     fun stopAllConnections()

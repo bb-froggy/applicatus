@@ -93,6 +93,13 @@ class NearbySyncViewModel(
     
     fun connectToDevice(device: DiscoveredDevice, deviceName: String) {
         viewModelScope.launch {
+            // Stop discovery before connecting to avoid STATUS_OUT_OF_ORDER_API_CALL (8009)
+            nearbyService.stopDiscovery()
+            isDiscovering = false
+            
+            // Small delay to ensure the API has processed the stop call
+            kotlinx.coroutines.delay(100)
+            
             nearbyService.connectToEndpoint(device.endpointId, deviceName).collect { state ->
                 connectionState = state
                 

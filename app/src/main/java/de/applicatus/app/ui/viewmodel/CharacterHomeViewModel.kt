@@ -595,18 +595,28 @@ class CharacterHomeViewModel(
      * Stops discovery and clears discovered endpoints.
      */
     fun stopDiscovery() {
-        nearbyService.stopAllConnections()
+        nearbyService.stopDiscovery()
         _discoveredEndpoints.value = emptyMap()
     }
     
     /**
      * Starts a client session to connect to a host.
      * Connects to the specified endpoint.
+     * 
+     * Important: Discovery must be stopped before connecting to avoid 
+     * STATUS_OUT_OF_ORDER_API_CALL (8009) from Nearby Connections API.
      */
     fun startClientSession(endpointId: String, endpointName: String) {
         viewModelScope.launch {
-            // Stop discovery first
-            stopDiscovery()
+            // Stop discovery first - required by Nearby Connections API
+            nearbyService.stopDiscovery()
+            
+            // Small delay to ensure the API has processed the stop call
+            // This is necessary because stopDiscovery() is asynchronous internally
+            delay(100)
+            
+            // Clear discovered endpoints
+            _discoveredEndpoints.value = emptyMap()
             
             // Start client session with the selected host
             realtimeSyncManager.startClientSession(characterId, endpointId, endpointName)

@@ -150,6 +150,12 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         dataReceivedCallback?.invoke(characterData)
     }
     
+    override fun stopDiscovery() {
+        if (_connectionState.value is NearbyConnectionsInterface.ConnectionState.Discovering) {
+            _connectionState.value = NearbyConnectionsInterface.ConnectionState.Idle
+        }
+    }
+    
     override fun stopAllConnections() {
         connectedEndpoint?.let { endpoint ->
             connectedPeer?._connectionState?.value = 

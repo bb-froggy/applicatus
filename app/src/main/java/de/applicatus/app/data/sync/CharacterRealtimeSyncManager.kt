@@ -97,6 +97,7 @@ class CharacterRealtimeSyncManager(
      * @param deviceName Name dieses Geräts für Advertising
      */
     suspend fun startHostSession(characterId: Long, deviceName: String) {
+        // Bei Host: Alte Session komplett beenden (inkl. stopAllConnections)
         stopSession()
         
         // Charakter laden und GUID ermitteln
@@ -146,12 +147,17 @@ class CharacterRealtimeSyncManager(
      * Startet eine Client-Session (verbindet sich mit Host).
      * Der Client synchronisiert seinen Charakter bidirektional mit dem Host.
      * 
+     * Wichtig: Der Aufrufer muss vorher die Discovery stoppen (nearbyService.stopDiscovery()),
+     * um STATUS_OUT_OF_ORDER_API_CALL (8009) zu vermeiden.
+     * 
      * @param characterId ID des zu synchronisierenden Charakters
      * @param hostEndpointId Endpoint-ID des Hosts
      * @param deviceName Name dieses Geräts
      */
     suspend fun startClientSession(characterId: Long, hostEndpointId: String, deviceName: String) {
-        stopSession()
+        // Bei Client: Nur Jobs abbrechen, aber NICHT stopAllConnections() aufrufen,
+        // da Discovery bereits vom Aufrufer gestoppt wurde und wir die Verbindung aufbauen wollen
+        cancelCurrentJobs()
         
         // Charakter laden und GUID ermitteln
         val character = repository.getCharacterById(characterId)
@@ -197,9 +203,10 @@ class CharacterRealtimeSyncManager(
     }
     
     /**
-     * Stoppt die aktuelle Sync-Session
+     * Interne Methode zum Aufräumen der Jobs ohne Nearby-Verbindungen zu trennen.
+     * Wird beim Start einer neuen Session verwendet.
      */
-    fun stopSession() {
+    private fun cancelCurrentJobs() {
         observeJob?.cancel()
         observeJob = null
         sendJob?.cancel()
@@ -214,7 +221,13 @@ class CharacterRealtimeSyncManager(
         currentEndpointName = null
         lastSuccessfulSendTime = 0L
         lastSuccessfulReceiveTime = 0L
-        
+    }
+    
+    /**
+     * Stoppt die aktuelle Sync-Session und trennt alle Verbindungen.
+     */
+    fun stopSession() {
+        cancelCurrentJobs()
         nearbyService.stopAllConnections()
         _syncStatus.value = SyncStatus.Idle
     }
