@@ -57,6 +57,14 @@ class CharacterListViewModel(
     var isDateEditMode by mutableStateOf(false)
         private set
     
+    // Edit Mode für Gruppen (ermöglicht Löschen)
+    var isGroupEditMode by mutableStateOf(false)
+        private set
+    
+    fun toggleGroupEditMode() {
+        isGroupEditMode = !isGroupEditMode
+    }
+    
     // Ausgewählte Gruppe für Datumsanzeige
     var selectedGroupId by mutableStateOf<Long?>(null)
         private set
@@ -262,6 +270,21 @@ class CharacterListViewModel(
         }
     }
     
+    /**
+     * Löscht eine Gruppe und alle dazugehörigen Charaktere.
+     * @return Anzahl der gelöschten Charaktere
+     */
+    fun deleteGroupWithCharacters(groupId: Long, onComplete: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            val deletedCount = repository.deleteGroupWithCharacters(groupId)
+            // Wähle erste verfügbare Gruppe nach Löschung
+            groups.value.firstOrNull { it.id != groupId }?.let {
+                selectedGroupId = it.id
+            }
+            onComplete(deletedCount)
+        }
+    }
+
     fun moveCharacterToGroup(characterId: Long, targetGroupId: Long) {
         viewModelScope.launch {
             repository.moveCharacterToGroup(characterId, targetGroupId)

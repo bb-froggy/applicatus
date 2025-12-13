@@ -310,6 +310,19 @@ class ApplicatusRepository(
     
     suspend fun deleteGroup(groupId: Long) = groupDao.deleteGroup(groupId)
     
+    /**
+     * Löscht eine Gruppe und alle dazugehörigen Charaktere.
+     * @return Anzahl der gelöschten Charaktere
+     */
+    suspend fun deleteGroupWithCharacters(groupId: Long): Int {
+        val characters = getCharactersByGroupOnce(groupId)
+        characters.forEach { character ->
+            deleteCharacter(character)
+        }
+        deleteGroup(groupId)
+        return characters.size
+    }
+
     suspend fun updateGroupDerianDate(groupId: Long, date: String) = groupDao.updateCurrentDate(groupId, date)
     
     suspend fun moveCharacterToGroup(characterId: Long, targetGroupId: Long) {

@@ -19,7 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -61,6 +63,7 @@ fun CharacterListScreen(
     val spellSyncState = viewModel.spellSyncState
     val recipeSyncState = viewModel.recipeSyncState
     val isDateEditMode by remember { derivedStateOf { viewModel.isDateEditMode } }
+    val isGroupEditMode by remember { derivedStateOf { viewModel.isGroupEditMode } }
     
     var showAddDialog by remember { mutableStateOf(false) }
     var showAddGroupDialog by remember { mutableStateOf(false) }
@@ -69,6 +72,8 @@ fun CharacterListScreen(
     var draggedCharacter by remember { mutableStateOf<Character?>(null) }
     var showMoveDialog by remember { mutableStateOf(false) }
     var characterToExport by remember { mutableStateOf<Character?>(null) }
+    var groupToDelete by remember { mutableStateOf<Group?>(null) }
+    var showDeleteGroupDialog by remember { mutableStateOf(false) }
     
     // File picker für JSON-Import
     val importLauncher = rememberLauncherForActivityResult(
@@ -107,6 +112,14 @@ fun CharacterListScreen(
             TopAppBar(
                 title = { Text("Charaktere") },
                 actions = {
+                    // Edit-Modus Toggle für Gruppen
+                    IconButton(onClick = { viewModel.toggleGroupEditMode() }) {
+                        Icon(
+                            imageVector = if (isGroupEditMode) Icons.Default.Close else Icons.Default.Edit,
+                            contentDescription = if (isGroupEditMode) "Bearbeitung beenden" else "Gruppen bearbeiten",
+                            tint = if (isGroupEditMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                        )
+                    }
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menü")
                     }
@@ -255,7 +268,7 @@ fun CharacterListScreen(
                 // Gruppenname als Überschrift mit Datum darunter
                 item {
                     Column {
-                        // Gruppenname mit Spielleiter-Toggle
+                        // Gruppenname mit Spielleiter-Toggle und Löschen-Button
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -266,13 +279,30 @@ fun CharacterListScreen(
                             Text(
                                 text = group.name,
                                 style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f)
                             )
                             
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
+                                // Löschen-Button nur im Edit-Modus anzeigen
+                                if (isGroupEditMode) {
+                                    IconButton(
+                                        onClick = {
+                                            groupToDelete = group
+                                            showDeleteGroupDialog = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Gruppe löschen",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                
                                 if (group.isGameMasterGroup) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_game_master_mask),
@@ -386,6 +416,66 @@ fun CharacterListScreen(
             }
             else -> {}
         }
+    }
+    
+    // Dialog zum Bestätigen des Löschens einer Gruppe
+    if (showDeleteGroupDialog && groupToDelete != null) {
+        val groupName = groupToDelete!!.name
+        val characterCount = characters.count { it.groupId == groupToDelete!!.id }
+        
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteGroupDialog = false
+                groupToDelete = null
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("Gruppe löschen?") },
+            text = {
+                Column {
+                    Text("Möchten Sie die Gruppe \"$groupName\" wirklich löschen?")
+                    if (characterCount > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Achtung: Es werden auch alle $characterCount Charakter${if (characterCount == 1) "" else "e"} in dieser Gruppe unwiderruflich gelöscht!",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        groupToDelete?.let { group ->
+                            viewModel.deleteGroupWithCharacters(group.id)
+                        }
+                        showDeleteGroupDialog = false
+                        groupToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Löschen")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteGroupDialog = false
+                        groupToDelete = null
+                    }
+                ) {
+                    Text("Abbrechen")
+                }
+            }
+        )
     }
     
     // Export State Dialog
