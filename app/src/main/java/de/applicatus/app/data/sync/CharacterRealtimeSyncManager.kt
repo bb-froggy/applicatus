@@ -39,6 +39,8 @@ class CharacterRealtimeSyncManager(
     private val scope: CoroutineScope
 ) {
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
+
+    private enum class SessionRole { HOST, CLIENT }
     
     /**
      * Status einer Sync-Session
@@ -82,6 +84,7 @@ class CharacterRealtimeSyncManager(
     
     private var lastSuccessfulSendTime: Long = 0L
     private var lastSuccessfulReceiveTime: Long = 0L
+    private var sessionRole: SessionRole? = null
     
     companion object {
         private const val DEBOUNCE_MS = 500L // Debounce für Änderungen
@@ -99,6 +102,7 @@ class CharacterRealtimeSyncManager(
     suspend fun startHostSession(characterId: Long, deviceName: String) {
         // Bei Host: Alte Session komplett beenden (inkl. stopAllConnections)
         stopSession()
+        sessionRole = SessionRole.HOST
         
         // Charakter laden und GUID ermitteln
         val character = repository.getCharacterById(characterId)
@@ -135,7 +139,7 @@ class CharacterRealtimeSyncManager(
                         _syncStatus.value = SyncStatus.Error(connectionState.message)
                     }
                     is NearbyConnectionsInterface.ConnectionState.Disconnected -> {
-                        stopSession()
+                        handleHostDisconnect(deviceName)
                     }
                     else -> { /* Advertising, Discovering - warten */ }
                 }
@@ -155,9 +159,8 @@ class CharacterRealtimeSyncManager(
      * @param deviceName Name dieses Geräts
      */
     suspend fun startClientSession(characterId: Long, hostEndpointId: String, deviceName: String) {
-        // Bei Client: Nur Jobs abbrechen, aber NICHT stopAllConnections() aufrufen,
-        // da Discovery bereits vom Aufrufer gestoppt wurde und wir die Verbindung aufbauen wollen
-        cancelCurrentJobs()
+        stopSession()
+        sessionRole = SessionRole.CLIENT
         
         // Charakter laden und GUID ermitteln
         val character = repository.getCharacterById(characterId)
@@ -194,7 +197,7 @@ class CharacterRealtimeSyncManager(
                         _syncStatus.value = SyncStatus.Error(connectionState.message)
                     }
                     is NearbyConnectionsInterface.ConnectionState.Disconnected -> {
-                        stopSession()
+                        handleClientDisconnect()
                     }
                     else -> { /* Connecting - warten */ }
                 }
@@ -206,30 +209,55 @@ class CharacterRealtimeSyncManager(
      * Interne Methode zum Aufräumen der Jobs ohne Nearby-Verbindungen zu trennen.
      * Wird beim Start einer neuen Session verwendet.
      */
-    private fun cancelCurrentJobs() {
+    private fun clearActiveDataPipelines(preserveCharacterGuid: Boolean) {
         observeJob?.cancel()
         observeJob = null
         sendJob?.cancel()
         sendJob = null
-        receiveJob?.cancel()
-        receiveJob = null
         watchdogJob?.cancel()
         watchdogJob = null
         
-        currentCharacterGuid = null
         currentEndpointId = null
         currentEndpointName = null
         lastSuccessfulSendTime = 0L
         lastSuccessfulReceiveTime = 0L
+        if (!preserveCharacterGuid) {
+            currentCharacterGuid = null
+        }
     }
     
     /**
      * Stoppt die aktuelle Sync-Session und trennt alle Verbindungen.
      */
     fun stopSession() {
-        cancelCurrentJobs()
+        clearActiveDataPipelines(false)
+        receiveJob?.cancel()
+        receiveJob = null
+        sessionRole = null
         nearbyService.stopAllConnections()
         _syncStatus.value = SyncStatus.Idle
+    }
+
+    private fun handleHostDisconnect(deviceName: String) {
+        if (sessionRole != SessionRole.HOST) {
+            stopSession()
+            return
+        }
+        clearActiveDataPipelines(true)
+        _syncStatus.value = SyncStatus.Connecting(deviceName)
+    }
+
+    private fun handleClientDisconnect() {
+        if (sessionRole != SessionRole.CLIENT) {
+            stopSession()
+            return
+        }
+        clearActiveDataPipelines(false)
+        receiveJob?.cancel()
+        receiveJob = null
+        sessionRole = null
+        nearbyService.stopAllConnections()
+        _syncStatus.value = SyncStatus.Error("Verbindung zum Host verloren. Bitte erneut verbinden.")
     }
     
     /**

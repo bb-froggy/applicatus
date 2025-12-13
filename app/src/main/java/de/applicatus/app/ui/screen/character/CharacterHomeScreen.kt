@@ -34,6 +34,7 @@ import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.ui.component.EnergyChangeNotification
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModel
 import de.applicatus.app.ui.viewmodel.CharacterHomeViewModelFactory
+import de.applicatus.app.data.sync.CharacterRealtimeSyncManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +70,7 @@ fun CharacterHomeScreen(
     var showMoreMenu by remember { mutableStateOf(false) }
     var showRealtimeSyncDialog by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var previousSyncStatus by remember { mutableStateOf<CharacterRealtimeSyncManager.SyncStatus>(CharacterRealtimeSyncManager.SyncStatus.Idle) }
     
     // Get required permissions based on Android version
     val nearbyPermissions = remember {
@@ -111,6 +113,20 @@ fun CharacterHomeScreen(
         } else {
             permissionLauncher.launch(nearbyPermissions.toTypedArray())
         }
+    }
+
+    LaunchedEffect(syncStatus, showRealtimeSyncDialog) {
+        val connectionLost = previousSyncStatus is CharacterRealtimeSyncManager.SyncStatus.Syncing &&
+            syncStatus is CharacterRealtimeSyncManager.SyncStatus.Connecting
+        val shouldShowDialog = !showRealtimeSyncDialog && (
+            syncStatus is CharacterRealtimeSyncManager.SyncStatus.Error ||
+            syncStatus is CharacterRealtimeSyncManager.SyncStatus.Warning ||
+            connectionLost
+        )
+        if (shouldShowDialog) {
+            showRealtimeSyncDialog = true
+        }
+        previousSyncStatus = syncStatus
     }
     
     // File pickers

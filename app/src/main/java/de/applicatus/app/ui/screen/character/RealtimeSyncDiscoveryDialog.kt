@@ -39,9 +39,7 @@ fun RealtimeSyncDiscoveryDialog(
     
     AlertDialog(
         onDismissRequest = {
-            if (syncStatus is CharacterRealtimeSyncManager.SyncStatus.Idle) {
-                onDismiss()
-            }
+            onDismiss()
         },
         title = { 
             Row(
@@ -50,10 +48,8 @@ fun RealtimeSyncDiscoveryDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Echtzeit-Synchronisation")
-                if (syncStatus is CharacterRealtimeSyncManager.SyncStatus.Idle) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Schließen")
-                    }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Schließen")
                 }
             }
         },
@@ -249,6 +245,13 @@ fun RealtimeSyncDiscoveryDialog(
             if (syncStatus !is CharacterRealtimeSyncManager.SyncStatus.Idle) {
                 Button(onClick = onStopSync) {
                     Text("Sync beenden")
+                }
+            }
+        },
+        dismissButton = {
+            if (syncStatus !is CharacterRealtimeSyncManager.SyncStatus.Idle) {
+                TextButton(onClick = onDismiss) {
+                    Text("Im Hintergrund weiter")
                 }
             }
         }

@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
 /**
  * Service für die Nearby Connections API zur Synchronisation von Charakteren.
@@ -25,6 +29,7 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
     companion object {
         private const val SERVICE_ID = "de.applicatus.app.nearby"
         private val STRATEGY = Strategy.P2P_STAR
+        private const val MAX_PAYLOAD_BYTES = 1_047_552 // Nearby Connections limit (~1 MB)
     }
     
     /**
@@ -194,7 +199,12 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
     ) {
         try {
             val jsonString = json.encodeToString(characterData)
-            val payload = Payload.fromBytes(jsonString.toByteArray())
+            val compressedBytes = compressBytes(jsonString.toByteArray())
+            if (compressedBytes.size > MAX_PAYLOAD_BYTES) {
+                onFailure("Snapshot zu groß (${compressedBytes.size / 1024} KB). Kürze Journal oder Inventar und versuche es erneut.")
+                return
+            }
+            val payload = Payload.fromBytes(compressedBytes)
             
             onTransferSuccess = onSuccess
             onTransferFailure = onFailure
@@ -217,7 +227,17 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
     ) {
         this.onDataReceived = fun(data: ByteArray) {
             try {
-                val jsonString = String(data)
+                val decodedBytes = if (isGzipCompressed(data)) {
+                    try {
+                        decompressBytes(data)
+                    } catch (e: Exception) {
+                        onError("Komprimierte Daten konnten nicht entpackt werden: ${e.message}")
+                        return
+                    }
+                } else {
+                    data
+                }
+                val jsonString = String(decodedBytes)
                 val characterData = json.decodeFromString<CharacterExportDto>(jsonString)
                 
                 // Versionscheck
@@ -248,5 +268,23 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
         connectionsClient.stopAdvertising()
         connectionsClient.stopDiscovery()
         connectionsClient.stopAllEndpoints()
+    }
+
+    private fun compressBytes(input: ByteArray): ByteArray {
+        val output = ByteArrayOutputStream()
+        GZIPOutputStream(output).use { gzip ->
+            gzip.write(input)
+        }
+        return output.toByteArray()
+    }
+
+    private fun decompressBytes(input: ByteArray): ByteArray {
+        return GZIPInputStream(ByteArrayInputStream(input)).use { gzip ->
+            gzip.readBytes()
+        }
+    }
+
+    private fun isGzipCompressed(data: ByteArray): Boolean {
+        return data.size >= 2 && data[0] == 0x1f.toByte() && data[1] == 0x8b.toByte()
     }
 }
