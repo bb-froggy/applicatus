@@ -351,11 +351,11 @@ class CharacterExportManager(
             // Prüfe lastModifiedDate, wenn Charakter aktualisiert wird
             if (existingCharacter != null && existingCharacter.lastModifiedDate > exportDto.exportTimestamp) {
                 additionalWarnings += "WARNUNG: Der lokale Charakter wurde nach dem Export geändert (" +
-                    "Lokal: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(existingCharacter.lastModifiedDate)}, " +
-                    "Export: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(exportDto.exportTimestamp)}). " +
+                    "Lokal: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.GERMANY).format(existingCharacter.lastModifiedDate)}, " +
+                    "Export: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.GERMANY).format(exportDto.exportTimestamp)}). " +
                     "Beim Import gehen diese Änderungen verloren!"
             }
-            
+
             val characterId = if (existingCharacter != null) {
                 // Bestehenden Charakter aktualisieren (ID und GUID beibehalten)
                 // lastModifiedDate wird auf Export-Zeitstempel gesetzt (nicht aktuelle Zeit!)

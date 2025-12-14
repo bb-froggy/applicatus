@@ -334,8 +334,8 @@ fun MagicIndicatorDetailDialog(
 @Composable
 fun WeightWithReduction(
     weight: de.applicatus.app.data.model.inventory.Weight,
-    originalWeight: de.applicatus.app.data.model.inventory.Weight? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    originalWeight: de.applicatus.app.data.model.inventory.Weight? = null
 ) {
     if (originalWeight == null || originalWeight == weight) {
         // Keine Reduktion

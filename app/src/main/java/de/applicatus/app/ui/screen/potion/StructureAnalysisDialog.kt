@@ -486,6 +486,7 @@ fun StructureAnalysisDialog(
                             
                             // Journal-Eintrag für Strukturanalyse
                             val recipeName = if (isRecipeKnown || isGameMasterGroup) recipe.name else "Unbekannter Trank"
+                            @Suppress("DEPRECATION")
                             val analysisMethod = when (selectedMethod) {
                                 StructureAnalysisMethod.ANALYS_SPELL -> "Analys-Zauber"
                                 StructureAnalysisMethod.BY_SIGHT_ALCHEMY -> "Augenschein (Alchimie)"
