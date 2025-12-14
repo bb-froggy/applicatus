@@ -848,16 +848,13 @@ class ApplicatusRepository(
             )
             updateCharacter(updatedCharacter)
             
-            // Alte Slots, Items und nicht-Standard-Locations löschen
-            // Verwende Bulk-Delete für Items um bei großen Datenmengen effizient zu sein
-            val oldSlots = getSlotsByCharacter(existingCharacter.id).first()
-            oldSlots.forEach { deleteSlot(it) }
-            
-            // Bulk-Delete für alle Items des Charakters (effizienter bei vielen Items)
+            // Alte Slots, Items und Locations löschen
+            // WICHTIG: Verwende DAOs direkt um touchCharacter nicht zu triggern
+            // und um ALLE Daten zu löschen (inkl. Default-Locations, da sie neu importiert werden)
+            spellSlotDao.deleteSlotsByCharacter(existingCharacter.id)
             itemDao.deleteAllForCharacter(existingCharacter.id)
-            
-            val oldLocations = getLocationsForCharacter(existingCharacter.id).first()
-            oldLocations.filter { !it.isDefault }.forEach { deleteLocation(it) }
+            locationDao.deleteAllForCharacter(existingCharacter.id)
+            magicSignDao.deleteAllForCharacter(existingCharacter.id)
             
             existingCharacter.id
         } else if (allowCreateNew) {
@@ -881,6 +878,7 @@ class ApplicatusRepository(
         }
         
         // Tränke importieren
+        // WICHTIG: Verwende DAOs direkt um touchCharacter nicht zu triggern
         val allRecipes = allRecipes.first()
         val recipesById = allRecipes.associateBy { it.id }
         val recipesByName = allRecipes.associateBy { it.name }
@@ -901,9 +899,9 @@ class ApplicatusRepository(
                 if (existingPotion != null) {
                     // Merge mit besserem Analyse-Ergebnis
                     val mergedPotion = mergePotion(existingPotion, importedPotion)
-                    updatePotion(mergedPotion)
+                    potionDao.updatePotion(mergedPotion)
                 } else {
-                    insertPotion(importedPotion)
+                    potionDao.insertPotion(importedPotion)
                 }
             }
         }
@@ -919,12 +917,16 @@ class ApplicatusRepository(
         }
         
         // Locations importieren
+        // WICHTIG: Verwende insertLocationWithoutSelfItem, weil SelfItems
+        // bereits als normale Items im Snapshot enthalten sind
         snapshot.locations.forEach { locationDto ->
             val location = locationDto.toLocation(characterId)
-            insertLocation(location)
+            insertLocationWithoutSelfItem(location)
         }
         
         // Items importieren - auflöse locationName zu locationId, erstelle GUID-Map
+        // WICHTIG: Verwende itemDao.insert() direkt statt insertItem() um touchCharacter
+        // nicht für jedes einzelne Item aufzurufen (verhindert exponentielles Sync-Echo)
         val locationsByName = getLocationsForCharacter(characterId).first().associateBy { it.name }
         val itemIdsByGuid = mutableMapOf<String, Long>()
         snapshot.items.forEach { itemDto ->
@@ -943,12 +945,14 @@ class ApplicatusRepository(
                     isCountable = itemDto.isCountable,
                     quantity = itemDto.quantity
                 )
-                val newItemId = insertItem(item)
+                // Direkt DAO verwenden um touchCharacter nicht für jedes Item zu triggern
+                val newItemId = itemDao.insert(item)
                 itemIdsByGuid[itemDto.guid] = newItemId
             }
         }
         
         // Slots einfügen (nach Items, damit itemId aufgelöst werden kann)
+        // WICHTIG: Verwende DAO direkt um touchCharacter nicht zu triggern
         val allSpells = allSpells.first()
         val characterGuid = snapshot.character.guid
         val newSlots = snapshot.spellSlots.map { slotDto ->
@@ -958,16 +962,21 @@ class ApplicatusRepository(
             val resolvedItemId = slotDto.itemGuid?.let { itemIdsByGuid[it] }
             slotDto.toSpellSlot(characterId, resolvedSpellId, resolvedItemId, characterGuid)
         }
-        insertSlots(newSlots)
+        spellSlotDao.insertSlots(newSlots)
         
         // MagicSigns importieren (seit v6)
+        // WICHTIG: Verwende DAO direkt um touchCharacter nicht zu triggern
         snapshot.magicSigns.forEach { signDto ->
             val resolvedItemId = itemIdsByGuid[signDto.itemGuid]
             if (resolvedItemId != null) {
                 val magicSign = signDto.toMagicSign(characterId, resolvedItemId, characterGuid)
-                insertMagicSign(magicSign)
+                magicSignDao.insert(magicSign)
             }
         }
+        
+        // WICHTIG: Nur EINMAL am Ende touchCharacter aufrufen, um den Sync-Loop zu verhindern
+        // (nicht für jedes einzelne Item/Slot/MagicSign)
+        touchCharacter(characterId)
         
         characterId
     }

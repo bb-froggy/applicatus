@@ -11,20 +11,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.navigation.compose.rememberNavController
 import de.applicatus.app.ui.navigation.ApplicatusNavHost
-import de.applicatus.app.data.nearby.NearbyConnectionsService
 
 class MainActivity : ComponentActivity() {
     // Hält die URI einer zu importierenden Datei, wenn die App über einen Intent geöffnet wurde
     private val pendingImportUri = mutableStateOf<Uri?>(null)
     
-    // Nearby Connections Service (singleton per Activity)
-    private lateinit var nearbyService: NearbyConnectionsService
-    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val repository = (application as ApplicatusApplication).repository
-        nearbyService = NearbyConnectionsService(this)
+        val app = application as ApplicatusApplication
+        val repository = app.repository
+        val nearbyService = app.nearbyService
+        val syncSessionManager = app.syncSessionManager
         
         // Prüfe, ob die App zum Öffnen einer JSON-Datei gestartet wurde
         handleIncomingIntent(intent)
@@ -37,6 +35,7 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         repository = repository,
                         nearbyService = nearbyService,
+                        syncSessionManager = syncSessionManager,
                         pendingImportUri = pendingImportUri.value,
                         onImportHandled = { pendingImportUri.value = null }
                     )

@@ -30,6 +30,9 @@ interface LocationDao {
     @Query("DELETE FROM locations WHERE characterId = :characterId AND isDefault = 0")
     suspend fun deleteNonDefaultLocations(characterId: Long)
     
+    @Query("DELETE FROM locations WHERE characterId = :characterId")
+    suspend fun deleteAllForCharacter(characterId: Long)
+    
     /**
      * Erstellt die Standard-Orte für einen Charakter (Rüstung/Kleidung, Rucksack)
      */

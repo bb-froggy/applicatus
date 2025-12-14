@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.applicatus.app.data.repository.ApplicatusRepository
 import de.applicatus.app.data.nearby.NearbyConnectionsInterface
+import de.applicatus.app.data.sync.SyncSessionManager
 import de.applicatus.app.ui.screen.spell.SpellStorageScreen
 import de.applicatus.app.ui.screen.character.CharacterHomeScreen
 import de.applicatus.app.ui.screen.character.CharacterJournalScreen
@@ -42,6 +43,7 @@ fun ApplicatusNavHost(
     navController: NavHostController,
     repository: ApplicatusRepository,
     nearbyService: NearbyConnectionsInterface,
+    syncSessionManager: SyncSessionManager,
     pendingImportUri: Uri? = null,
     onImportHandled: () -> Unit = {}
 ) {
@@ -53,7 +55,7 @@ fun ApplicatusNavHost(
     ) {
         composable(Screen.CharacterList.route) {
             val viewModel: CharacterListViewModel = viewModel(
-                factory = CharacterListViewModelFactory(repository)
+                factory = CharacterListViewModelFactory(repository, syncSessionManager)
             )
             CharacterListScreen(
                 viewModel = viewModel,
@@ -77,7 +79,7 @@ fun ApplicatusNavHost(
             val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
             CharacterHomeScreen(
                 characterId = characterId,
-                viewModelFactory = CharacterHomeViewModelFactory(repository, characterId, nearbyService),
+                viewModelFactory = CharacterHomeViewModelFactory(repository, characterId, nearbyService, syncSessionManager),
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToSpellStorage = { charId ->
                     navController.navigate(Screen.SpellStorage.createRoute(charId))

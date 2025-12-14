@@ -70,7 +70,6 @@ fun CharacterHomeScreen(
     var showMoreMenu by remember { mutableStateOf(false) }
     var showRealtimeSyncDialog by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
-    var previousSyncStatus by remember { mutableStateOf<CharacterRealtimeSyncManager.SyncStatus>(CharacterRealtimeSyncManager.SyncStatus.Idle) }
     
     // Get required permissions based on Android version
     val nearbyPermissions = remember {
@@ -115,19 +114,8 @@ fun CharacterHomeScreen(
         }
     }
 
-    LaunchedEffect(syncStatus, showRealtimeSyncDialog) {
-        val connectionLost = previousSyncStatus is CharacterRealtimeSyncManager.SyncStatus.Syncing &&
-            syncStatus is CharacterRealtimeSyncManager.SyncStatus.Connecting
-        val shouldShowDialog = !showRealtimeSyncDialog && (
-            syncStatus is CharacterRealtimeSyncManager.SyncStatus.Error ||
-            syncStatus is CharacterRealtimeSyncManager.SyncStatus.Warning ||
-            connectionLost
-        )
-        if (shouldShowDialog) {
-            showRealtimeSyncDialog = true
-        }
-        previousSyncStatus = syncStatus
-    }
+    // Status-Änderungen werden nur in der Top-Bar angezeigt, nicht als automatischer Dialog.
+    // User kann auf den Status-Indikator klicken um Details zu sehen.
     
     // File pickers
     val exportLauncher = rememberLauncherForActivityResult(

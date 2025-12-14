@@ -93,7 +93,11 @@ class CharacterRealtimeSyncManager(
         private const val DEBOUNCE_MS = 500L // Debounce für Änderungen
         private const val WATCHDOG_INTERVAL_MS = 2000L // Watchdog-Check alle 2 Sekunden
         private const val STALE_THRESHOLD_MS = 15000L // 15 Sekunden Warnschwelle
+        private const val KEEP_ALIVE_INTERVAL_MS = 10000L // Keep-Alive alle 10 Sekunden
     }
+    
+    // Aktuelle Character-ID für Keep-Alive
+    private var currentCharacterId: Long? = null
     
     /**
      * Startet eine Host-Session (für einen einzelnen Charakter).
@@ -112,6 +116,7 @@ class CharacterRealtimeSyncManager(
             ?: throw IllegalArgumentException("Charakter mit ID $characterId nicht gefunden")
         
         currentCharacterGuid = character.guid
+        currentCharacterId = characterId
         _syncStatus.value = SyncStatus.Connecting(deviceName)
         
         // Advertising starten und auf Verbindung warten
@@ -173,6 +178,7 @@ class CharacterRealtimeSyncManager(
             ?: throw IllegalArgumentException("Charakter mit ID $characterId nicht gefunden")
         
         currentCharacterGuid = character.guid
+        currentCharacterId = characterId
         _syncStatus.value = SyncStatus.Connecting(deviceName)
         
         // Mit Host verbinden
@@ -227,6 +233,7 @@ class CharacterRealtimeSyncManager(
         watchdogJob = null
         
         currentCharacterGuid = null
+        currentCharacterId = null
         currentEndpointId = null
         currentEndpointName = null
         lastSuccessfulSendTime = 0L
@@ -251,6 +258,7 @@ class CharacterRealtimeSyncManager(
         lastSuccessfulReceiveTime = 0L
         if (!preserveCharacterGuid) {
             currentCharacterGuid = null
+            currentCharacterId = null
         }
     }
     
@@ -362,8 +370,9 @@ class CharacterRealtimeSyncManager(
                                     )
                                 }
                             } finally {
-                                // Kurze Verzögerung um sicherzustellen, dass alle DB-Flows abgefeuert haben
-                                delay(100)
+                                // Längere Verzögerung um sicherzustellen, dass alle DB-Flows abgefeuert haben
+                                // und der Debounce-Timer (500ms) abgelaufen ist bevor wir wieder senden
+                                delay(DEBOUNCE_MS + 200)
                                 isApplyingReceivedSnapshot = false
                             }
                         }
@@ -377,7 +386,8 @@ class CharacterRealtimeSyncManager(
     }
     
     /**
-     * Startet den Watchdog, der prüft, ob seit > 15 Sekunden keine Übertragung erfolgt ist
+     * Startet den Watchdog, der prüft, ob seit > 15 Sekunden keine Übertragung erfolgt ist.
+     * Sendet außerdem alle 10 Sekunden einen Keep-Alive (erneuter Snapshot), um die Verbindung aktiv zu halten.
      */
     private fun startWatchdog() {
         watchdogJob?.cancel()
@@ -389,6 +399,15 @@ class CharacterRealtimeSyncManager(
                 val timeSinceLastSend = now - lastSuccessfulSendTime
                 val timeSinceLastReceive = now - lastSuccessfulReceiveTime
                 val timeSinceLastActivity = minOf(timeSinceLastSend, timeSinceLastReceive)
+                
+                // Keep-Alive: Wenn seit 10 Sekunden nicht gesendet wurde, Snapshot erneut senden
+                val characterId = currentCharacterId
+                val endpointId = currentEndpointId
+                if (timeSinceLastSend >= KEEP_ALIVE_INTERVAL_MS && characterId != null && endpointId != null) {
+                    // Keep-Alive Snapshot senden (der Observer hat keine Änderung erkannt,
+                    // aber wir senden trotzdem um die Verbindung aktiv zu halten)
+                    sendSnapshot(characterId, endpointId)
+                }
                 
                 if (timeSinceLastActivity > STALE_THRESHOLD_MS) {
                     val currentGuid = currentCharacterGuid
@@ -402,11 +421,11 @@ class CharacterRealtimeSyncManager(
                 } else {
                     // Wenn wieder Aktivität, zurück zu Syncing
                     val currentGuid = currentCharacterGuid
-                    val endpointId = currentEndpointId
+                    val epId = currentEndpointId
                     val endpointName = currentEndpointName
-                    if (currentGuid != null && endpointId != null && endpointName != null 
+                    if (currentGuid != null && epId != null && endpointName != null 
                         && _syncStatus.value is SyncStatus.Warning) {
-                        _syncStatus.value = SyncStatus.Syncing(currentGuid, endpointId, endpointName)
+                        _syncStatus.value = SyncStatus.Syncing(currentGuid, epId, endpointName)
                     }
                 }
             }

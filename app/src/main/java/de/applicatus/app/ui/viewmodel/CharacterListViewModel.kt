@@ -15,6 +15,8 @@ import de.applicatus.app.data.export.DatabaseBackupManager
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.repository.ApplicatusRepository
+import de.applicatus.app.data.sync.CharacterRealtimeSyncManager
+import de.applicatus.app.data.sync.SyncSessionManager
 import de.applicatus.app.logic.DerianDateCalculator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,11 +25,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class CharacterListViewModel(
-    private val repository: ApplicatusRepository
+    private val repository: ApplicatusRepository,
+    private val syncSessionManager: SyncSessionManager
 ) : ViewModel() {
     
     private val exportManager = CharacterExportManager(repository)
     private val backupManager = DatabaseBackupManager(repository)
+    
+    // Sync Status für alle Charaktere (characterId -> Status)
+    val activeSyncStatuses: StateFlow<Map<Long, CharacterRealtimeSyncManager.SyncStatus>> = 
+        syncSessionManager.activeSyncStatuses
     
     // Import State
     var importState by mutableStateOf<ImportState>(ImportState.Idle)
@@ -730,12 +737,13 @@ class CharacterListViewModel(
 
 
 class CharacterListViewModelFactory(
-    private val repository: ApplicatusRepository
+    private val repository: ApplicatusRepository,
+    private val syncSessionManager: SyncSessionManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CharacterListViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return CharacterListViewModel(repository) as T
+            return CharacterListViewModel(repository, syncSessionManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

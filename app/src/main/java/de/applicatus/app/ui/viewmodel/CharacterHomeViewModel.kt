@@ -17,6 +17,7 @@ import de.applicatus.app.logic.RegenerationCalculator
 import de.applicatus.app.logic.RegenerationResult
 import de.applicatus.app.logic.ProbeChecker
 import de.applicatus.app.data.sync.CharacterRealtimeSyncManager
+import de.applicatus.app.data.sync.SyncSessionManager
 import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,21 +30,20 @@ import kotlinx.coroutines.delay
 class CharacterHomeViewModel(
     private val repository: ApplicatusRepository,
     private val characterId: Long,
-    private val nearbyService: NearbyConnectionsInterface
+    private val nearbyService: NearbyConnectionsInterface,
+    private val syncSessionManager: SyncSessionManager
 ) : ViewModel() {
     
     private val exportManager = CharacterExportManager(repository)
     
-    // Real-Time Sync Manager
-    private val realtimeSyncManager = CharacterRealtimeSyncManager(
-        repository = repository,
-        nearbyService = nearbyService,
-        exportManager = exportManager,
-        scope = viewModelScope
-    )
+    // Real-Time Sync Manager - aus SyncSessionManager holen, NICHT im ViewModel erstellen
+    // Dadurch überlebt die Session die Navigation zwischen Screens
+    private val realtimeSyncManager: CharacterRealtimeSyncManager
+        get() = syncSessionManager.getOrCreateSyncManager(characterId)
     
-    // Expose Sync Status
-    val syncStatus: StateFlow<CharacterRealtimeSyncManager.SyncStatus> = realtimeSyncManager.syncStatus
+    // Expose Sync Status - direkt aus dem SyncManager
+    val syncStatus: StateFlow<CharacterRealtimeSyncManager.SyncStatus>
+        get() = realtimeSyncManager.syncStatus
     
     // Discovered Endpoints (for client mode)
     private val _discoveredEndpoints = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -633,24 +633,21 @@ class CharacterHomeViewModel(
         }
     }
     
-    override fun onCleared() {
-        super.onCleared()
-        // Clean up sync session when ViewModel is destroyed
-        viewModelScope.launch {
-            realtimeSyncManager.stopSession()
-        }
-    }
+    // KEIN onCleared() - wir wollen die Sync-Session NICHT beenden wenn das ViewModel
+    // zerstört wird. Die Session wird vom SyncSessionManager verwaltet und überlebt
+    // die Navigation zwischen Screens.
 }
 
 class CharacterHomeViewModelFactory(
     private val repository: ApplicatusRepository,
     private val characterId: Long,
-    private val nearbyService: NearbyConnectionsInterface
+    private val nearbyService: NearbyConnectionsInterface,
+    private val syncSessionManager: SyncSessionManager
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CharacterHomeViewModel::class.java)) {
-            return CharacterHomeViewModel(repository, characterId, nearbyService) as T
+            return CharacterHomeViewModel(repository, characterId, nearbyService, syncSessionManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

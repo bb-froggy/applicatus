@@ -40,6 +40,7 @@ import de.applicatus.app.R
 import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.character.Group
+import de.applicatus.app.data.sync.CharacterRealtimeSyncManager
 import de.applicatus.app.ui.viewmodel.CharacterListViewModel
 import kotlinx.coroutines.launch
 
@@ -56,6 +57,7 @@ fun CharacterListScreen(
     val characters by viewModel.characters.collectAsState()
     val groups by viewModel.groups.collectAsState()
     val currentGroup by viewModel.currentGroup.collectAsState()
+    val activeSyncStatuses by viewModel.activeSyncStatuses.collectAsState()
     val importState = viewModel.importState
     val exportState = viewModel.exportState
     val backupImportState = viewModel.backupImportState
@@ -382,7 +384,8 @@ fun CharacterListScreen(
                                     ).show()
                                 }
                             }
-                        }
+                        },
+                        syncStatus = activeSyncStatuses[character.id]
                     )
                 }
                 
@@ -952,7 +955,8 @@ fun CharacterListItem(
     onDelete: () -> Unit,
     onLongPress: () -> Unit,
     onExport: () -> Unit = {},
-    onShare: () -> Unit = {}
+    onShare: () -> Unit = {},
+    syncStatus: CharacterRealtimeSyncManager.SyncStatus? = null
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showExportMenu by remember { mutableStateOf(false) }
@@ -1011,6 +1015,24 @@ fun CharacterListItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Sync-Status-Indikator (wenn aktiv)
+                    if (syncStatus != null && syncStatus !is CharacterRealtimeSyncManager.SyncStatus.Idle) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(
+                                    color = when (syncStatus) {
+                                        is CharacterRealtimeSyncManager.SyncStatus.Syncing -> Color(0xFF4CAF50) // Grün
+                                        is CharacterRealtimeSyncManager.SyncStatus.Warning -> Color(0xFFFF9800) // Orange
+                                        is CharacterRealtimeSyncManager.SyncStatus.Connecting -> Color(0xFF2196F3) // Blau
+                                        is CharacterRealtimeSyncManager.SyncStatus.Error -> Color(0xFFF44336) // Rot
+                                        else -> Color.Gray
+                                    },
+                                    shape = MaterialTheme.shapes.small
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = character.name,
