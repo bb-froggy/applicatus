@@ -159,7 +159,10 @@ class CharacterRealtimeSyncManager(
      * @param deviceName Name dieses Geräts
      */
     suspend fun startClientSession(characterId: Long, hostEndpointId: String, deviceName: String) {
-        stopSession()
+        // NICHT stopSession() aufrufen - das würde stopAllConnections() aufrufen,
+        // was zu STATUS_OUT_OF_ORDER_API_CALL führt, da Discovery bereits vom
+        // ViewModel gestoppt wurde. Stattdessen nur Jobs aufräumen.
+        cancelAllJobs()
         sessionRole = SessionRole.CLIENT
         
         // Charakter laden und GUID ermitteln
@@ -203,6 +206,28 @@ class CharacterRealtimeSyncManager(
                 }
             }
         }
+    }
+    
+    /**
+     * Bricht alle Jobs ab, ohne Nearby-Verbindungen zu beeinflussen.
+     * Wird verwendet, wenn eine neue Client-Session gestartet wird
+     * (Discovery wurde bereits vom ViewModel gestoppt).
+     */
+    private fun cancelAllJobs() {
+        observeJob?.cancel()
+        observeJob = null
+        sendJob?.cancel()
+        sendJob = null
+        receiveJob?.cancel()
+        receiveJob = null
+        watchdogJob?.cancel()
+        watchdogJob = null
+        
+        currentCharacterGuid = null
+        currentEndpointId = null
+        currentEndpointName = null
+        lastSuccessfulSendTime = 0L
+        lastSuccessfulReceiveTime = 0L
     }
     
     /**

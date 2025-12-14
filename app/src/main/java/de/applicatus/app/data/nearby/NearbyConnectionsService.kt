@@ -199,9 +199,14 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
     ) {
         try {
             val jsonString = json.encodeToString(characterData)
-            val compressedBytes = compressBytes(jsonString.toByteArray())
+            val rawBytes = jsonString.toByteArray()
+            val compressedBytes = compressBytes(rawBytes)
+            
+            android.util.Log.d("NearbySync", "Payload size: raw=${rawBytes.size} bytes, compressed=${compressedBytes.size} bytes")
+            android.util.Log.d("NearbySync", "Character: ${characterData.character.name}, spellSlots=${characterData.spellSlots.size}, potions=${characterData.potions.size}, items=${characterData.items.size}, journal=${characterData.journalEntries.size}")
+            
             if (compressedBytes.size > MAX_PAYLOAD_BYTES) {
-                onFailure("Snapshot zu groß (${compressedBytes.size / 1024} KB). Kürze Journal oder Inventar und versuche es erneut.")
+                onFailure("Snapshot zu groß (${compressedBytes.size / 1024} KB, unkomprimiert ${rawBytes.size / 1024} KB). Kürze Journal oder Inventar und versuche es erneut.")
                 return
             }
             val payload = Payload.fromBytes(compressedBytes)

@@ -120,6 +120,14 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         }
         
         try {
+            // Payload-Größe für Tests tracken
+            val jsonString = kotlinx.serialization.json.Json.encodeToString(
+                CharacterExportDto.serializer(), 
+                characterData
+            )
+            lastSentPayloadSize = jsonString.toByteArray().size
+            sentPayloadCount++
+            
             // Direkte Übertragung zum verbundenen Peer
             connectedPeer?.receiveData(characterData)
             onSuccess()
@@ -176,6 +184,49 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         _connectionState.value = NearbyConnectionsInterface.ConnectionState.Disconnected("Verbindung verloren")
         connectedEndpoint = null
         connectedPeer = null
+    }
+    
+    /**
+     * Hilfsmethode für Tests: Simuliert einen einseitigen Verbindungsabbruch 
+     * (nur diese Seite verliert Verbindung, Peer bleibt verbunden).
+     * Nützlich zum Testen von Reconnect-Szenarien.
+     */
+    fun simulateOneSidedDisconnect() {
+        _connectionState.value = NearbyConnectionsInterface.ConnectionState.Disconnected("Verbindung verloren")
+        // connectedPeer und connectedEndpoint NICHT auf null setzen,
+        // damit bei Wiederverbindung der alte Zustand noch da ist
+    }
+    
+    /**
+     * Hilfsmethode für Tests: Stellt eine zuvor unterbrochene Verbindung wieder her.
+     */
+    fun simulateReconnect() {
+        if (connectedPeer != null && connectedEndpoint != null) {
+            _connectionState.value = NearbyConnectionsInterface.ConnectionState.Connected(
+                connectedEndpoint!!,
+                connectedEndpoint!!
+            )
+        }
+    }
+    
+    /**
+     * Hilfsmethode für Tests: Gibt die Größe des zuletzt gesendeten Payloads zurück.
+     */
+    var lastSentPayloadSize: Int = 0
+        private set
+    
+    /**
+     * Hilfsmethode für Tests: Gibt die Anzahl der gesendeten Payloads zurück.
+     */
+    var sentPayloadCount: Int = 0
+        private set
+    
+    /**
+     * Hilfsmethode für Tests: Setzt Payload-Statistiken zurück.
+     */
+    fun resetPayloadStats() {
+        lastSentPayloadSize = 0
+        sentPayloadCount = 0
     }
     
     /**

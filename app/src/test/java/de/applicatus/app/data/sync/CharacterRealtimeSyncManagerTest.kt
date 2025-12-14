@@ -316,4 +316,146 @@ class CharacterRealtimeSyncManagerTest {
         val status = syncManager.syncStatus.value
         assertTrue("Initial status should be Idle", status is CharacterRealtimeSyncManager.SyncStatus.Idle)
     }
+    
+    /**
+     * Test: Nach einseitigem Disconnect und Reconnect bleibt Payload-Größe konstant.
+     * Stellt sicher, dass keine Daten akkumuliert werden.
+     */
+    @Test
+    fun `payload size stays constant after reconnect`() = runTest {
+        val testCharacterDto = CharacterDto(
+            guid = "test-guid-123",
+            name = "Test Charakter",
+            groupName = "Test Gruppe",
+            mu = 10,
+            kl = 12,
+            inValue = 11,
+            ch = 10,
+            ff = 13,
+            ge = 14,
+            ko = 12,
+            kk = 11,
+            maxLe = 30,
+            currentLe = 30,
+            hasAe = true,
+            maxAe = 25,
+            currentAe = 25,
+            hasKe = false,
+            maxKe = 0,
+            currentKe = 0
+        )
+        
+        val testExportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = testCharacterDto,
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = emptyList(),
+            exportTimestamp = System.currentTimeMillis()
+        )
+        
+        // Erstes Senden
+        hostService.resetPayloadStats()
+        hostService.startAdvertising("Host")
+        clientService.startDiscovery { _, _ -> }
+        clientService.connectToEndpoint("Host", "Client")
+        
+        advanceUntilIdle()
+        
+        // Sende Charakter
+        hostService.sendCharacterData(
+            "Client",
+            testExportDto,
+            onSuccess = {},
+            onFailure = { fail("Send should succeed: $it") }
+        )
+        
+        val firstPayloadSize = hostService.lastSentPayloadSize
+        assertTrue("First payload should have reasonable size", firstPayloadSize > 0)
+        assertTrue("First payload should be under 10KB for empty character", firstPayloadSize < 10_000)
+        
+        // Simuliere einseitigen Disconnect
+        clientService.simulateOneSidedDisconnect()
+        advanceUntilIdle()
+        
+        // Reconnect
+        clientService.simulateReconnect()
+        advanceUntilIdle()
+        
+        // Erneut senden (gleicher Charakter, keine Änderungen)
+        hostService.sendCharacterData(
+            "Client",
+            testExportDto,
+            onSuccess = {},
+            onFailure = { fail("Send should succeed: $it") }
+        )
+        
+        val secondPayloadSize = hostService.lastSentPayloadSize
+        
+        // Payload-Größe sollte gleich bleiben
+        assertEquals(
+            "Payload size should remain constant after reconnect",
+            firstPayloadSize,
+            secondPayloadSize
+        )
+        assertEquals("Should have sent exactly 2 payloads", 2, hostService.sentPayloadCount)
+    }
+    
+    /**
+     * Test: Mehrfaches Senden ohne Änderungen akkumuliert keine Daten.
+     */
+    @Test
+    fun `multiple sends without changes do not accumulate data`() = runTest {
+        val testCharacterDto = CharacterDto(
+            guid = "test-guid-123",
+            name = "Test Charakter",
+            groupName = "Test Gruppe",
+            mu = 10
+        )
+        
+        val testExportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = testCharacterDto,
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = emptyList(),
+            exportTimestamp = System.currentTimeMillis()
+        )
+        
+        hostService.resetPayloadStats()
+        hostService.startAdvertising("Host")
+        clientService.connectToEndpoint("Host", "Client")
+        advanceUntilIdle()
+        
+        val payloadSizes = mutableListOf<Int>()
+        
+        // Sende 5 mal den gleichen Charakter
+        repeat(5) {
+            hostService.sendCharacterData(
+                "Client",
+                testExportDto,
+                onSuccess = {},
+                onFailure = { fail("Send $it should succeed") }
+            )
+            payloadSizes.add(hostService.lastSentPayloadSize)
+        }
+        
+        // Alle Payload-Größen sollten identisch sein
+        val firstSize = payloadSizes.first()
+        payloadSizes.forEachIndexed { index, size ->
+            assertEquals(
+                "Payload $index should have same size as first",
+                firstSize,
+                size
+            )
+        }
+        
+        assertEquals("Should have sent exactly 5 payloads", 5, hostService.sentPayloadCount)
+    }
 }

@@ -177,7 +177,7 @@ fun SpellSlotCardUsageMode(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (slot.isFilled) 
                                     MaterialTheme.colorScheme.primary 
-                                else 
+                                   else
                                     MaterialTheme.colorScheme.error
                             )
                         }
