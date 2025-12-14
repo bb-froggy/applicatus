@@ -20,8 +20,8 @@ class RecipeSyncTest {
         assertNotNull("Zauberkreide recipe should exist", zauberkreide)
         assertEquals(12, zauberkreide?.quantityProduced)
         
-        val beschwörungskerzen = initialRecipes.find { it.name == "Beschörungskerzen" }
-        assertNotNull("Beschörungskerzen recipe should exist", beschwörungskerzen)
+        val beschwörungskerzen = initialRecipes.find { it.name == "Beschwörungskerzen" }
+        assertNotNull("Beschwörungskerzen recipe should exist", beschwörungskerzen)
         assertEquals(7, beschwörungskerzen?.quantityProduced)
         
         val hauchDerWeissagung = initialRecipes.find { it.name == "Hauch der Weissagung" }

@@ -233,7 +233,7 @@ object InitialRecipes {
             quantityProduced = 3
         ),
         Recipe(
-            name = "Beschörungskerzen",
+            name = "Beschwörungskerzen",
             gruppe = "Magika",
             lab = Laboratory.ARCANE,
             preis = 5,
