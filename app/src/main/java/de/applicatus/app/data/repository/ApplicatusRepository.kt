@@ -905,6 +905,16 @@ class ApplicatusRepository(
         val existingPotions = getPotionsForCharacter(characterId).first()
         val existingPotionsByGuid = existingPotions.associate { it.potion.guid to it.potion }
         
+        // Ermittle GUIDs der Tränke im Snapshot
+        val snapshotPotionGuids = snapshot.potions.map { it.guid }.toSet()
+        
+        // Lösche Tränke, die nicht mehr im Snapshot sind
+        existingPotions.forEach { potionWithRecipe ->
+            if (potionWithRecipe.potion.guid !in snapshotPotionGuids) {
+                potionDao.deletePotion(potionWithRecipe.potion)
+            }
+        }
+        
         // Rezeptwissen zurücksetzen
         deleteRecipeKnowledgeForCharacter(characterId)
         
@@ -937,7 +947,7 @@ class ApplicatusRepository(
         
         // Locations importieren
         // WICHTIG: Verwende insertLocationWithoutSelfItem, weil SelfItems
-        // bereits als normale Items im Snapshot enthalten sind
+        // bereits als Items im Snapshot enthalten sind (mit isSelfItem=true)
         snapshot.locations.forEach { locationDto ->
             val location = locationDto.toLocation(characterId)
             insertLocationWithoutSelfItem(location)
@@ -951,6 +961,11 @@ class ApplicatusRepository(
         snapshot.items.forEach { itemDto ->
             val resolvedLocationId = itemDto.locationName?.let { locationsByName[it]?.id }
             if (resolvedLocationId != null) {
+                // Für SelfItems: Ermittle die neue Location-ID über den Namen
+                val resolvedSelfItemForLocationId = itemDto.selfItemForLocationName?.let { 
+                    locationsByName[it]?.id 
+                }
+                
                 val item = Item(
                     id = 0,
                     guid = itemDto.guid,
@@ -962,11 +977,21 @@ class ApplicatusRepository(
                     isPurse = itemDto.isPurse,
                     kreuzerAmount = itemDto.kreuzerAmount,
                     isCountable = itemDto.isCountable,
-                    quantity = itemDto.quantity
+                    quantity = itemDto.quantity,
+                    isSelfItem = itemDto.isSelfItem,
+                    selfItemForLocationId = resolvedSelfItemForLocationId
                 )
                 // Direkt DAO verwenden um touchCharacter nicht für jedes Item zu triggern
                 val newItemId = itemDao.insert(item)
                 itemIdsByGuid[itemDto.guid] = newItemId
+                
+                // Wenn es ein SelfItem ist, aktualisiere hasSelfItem auf der Location
+                if (itemDto.isSelfItem && resolvedSelfItemForLocationId != null) {
+                    val location = locationsByName[itemDto.selfItemForLocationName]
+                    if (location != null) {
+                        locationDao.update(location.copy(hasSelfItem = true))
+                    }
+                }
             }
         }
         

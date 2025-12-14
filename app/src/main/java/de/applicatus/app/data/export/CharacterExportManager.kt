@@ -78,6 +78,8 @@ class CharacterExportManager(
             
             val items = allItemsPaged.map { item ->
                 val locationName = item.locationId?.let { locationsById[it]?.name }
+                // Für SelfItems: Ermittle den Namen der zugehörigen Location
+                val selfItemForLocationName = item.selfItemForLocationId?.let { locationsById[it]?.name }
                 ItemDto(
                     guid = item.guid,
                     locationName = locationName,
@@ -88,7 +90,9 @@ class CharacterExportManager(
                     isPurse = item.isPurse,
                     kreuzerAmount = item.kreuzerAmount,
                     isCountable = item.isCountable,
-                    quantity = item.quantity
+                    quantity = item.quantity,
+                    isSelfItem = item.isSelfItem,
+                    selfItemForLocationName = selfItemForLocationName
                 )
             }
             
@@ -503,9 +507,23 @@ class CharacterExportManager(
             val itemIdsByGuid = mutableMapOf<String, Long>()
             exportDto.items.forEach { itemDto ->
                 val resolvedLocationId = itemDto.locationName?.let { locationIdsByName[it] }
+                // Für SelfItems: Ermittle die neue Location-ID über den Namen
+                val resolvedSelfItemForLocationId = itemDto.selfItemForLocationName?.let { 
+                    locationIdsByName[it] 
+                }
                 try {
-                    val newItemId = repository.insertItem(itemDto.toItem(characterId, resolvedLocationId))
+                    val newItemId = repository.insertItem(
+                        itemDto.toItem(characterId, resolvedLocationId, resolvedSelfItemForLocationId)
+                    )
                     itemIdsByGuid[itemDto.guid] = newItemId
+                    
+                    // Wenn es ein SelfItem ist, aktualisiere hasSelfItem auf der Location
+                    if (itemDto.isSelfItem && resolvedSelfItemForLocationId != null) {
+                        val location = repository.getLocationById(resolvedSelfItemForLocationId)
+                        if (location != null && !location.hasSelfItem) {
+                            repository.updateLocation(location.copy(hasSelfItem = true))
+                        }
+                    }
                 } catch (e: Exception) {
                     val locationInfo = itemDto.locationName?.let { " in Location '$it'" } ?: " ohne Location"
                     throw Exception("Fehler beim Einfügen des Items '${itemDto.name}'$locationInfo (Foreign Key: Character oder Location): ${e.message}", e)
@@ -513,6 +531,7 @@ class CharacterExportManager(
             }
             
             // Stelle sicher, dass alle Locations ein Eigenobjekt haben (auch bestehende)
+            // HINWEIS: Nur für Locations die noch kein SelfItem haben (nicht aus Import)
             val allLocationsAfterImport = repository.getLocationsForCharacter(characterId).first()
             allLocationsAfterImport.forEach { location ->
                 if (!location.hasSelfItem) {

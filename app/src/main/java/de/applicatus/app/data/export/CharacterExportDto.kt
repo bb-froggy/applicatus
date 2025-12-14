@@ -380,10 +380,17 @@ data class ItemDto(
     val isPurse: Boolean = false,
     val kreuzerAmount: Int = 0,
     val isCountable: Boolean = false,
-    val quantity: Int = 1
+    val quantity: Int = 1,
+    // SelfItem-Felder (seit Version 7)
+    val isSelfItem: Boolean = false,
+    val selfItemForLocationName: String? = null  // Referenz zur Location (via Name statt ID)
 ) {
     companion object {
-        fun fromItem(item: de.applicatus.app.data.model.inventory.Item, locationName: String?) = ItemDto(
+        fun fromItem(
+            item: de.applicatus.app.data.model.inventory.Item, 
+            locationName: String?,
+            selfItemForLocationName: String? = null
+        ) = ItemDto(
             guid = item.guid,
             locationName = locationName,
             name = item.name,
@@ -393,11 +400,17 @@ data class ItemDto(
             isPurse = item.isPurse,
             kreuzerAmount = item.kreuzerAmount,
             isCountable = item.isCountable,
-            quantity = item.quantity
+            quantity = item.quantity,
+            isSelfItem = item.isSelfItem,
+            selfItemForLocationName = selfItemForLocationName
         )
     }
 
-    fun toItem(characterId: Long, resolvedLocationId: Long?) = de.applicatus.app.data.model.inventory.Item(
+    fun toItem(
+        characterId: Long, 
+        resolvedLocationId: Long?,
+        resolvedSelfItemForLocationId: Long? = null
+    ) = de.applicatus.app.data.model.inventory.Item(
         id = 0, // Neue ID wird bei Insert generiert
         guid = guid,  // GUID übernehmen
         characterId = characterId,
@@ -411,7 +424,9 @@ data class ItemDto(
         isPurse = isPurse,
         kreuzerAmount = kreuzerAmount,
         isCountable = isCountable,
-        quantity = quantity
+        quantity = quantity,
+        isSelfItem = isSelfItem,
+        selfItemForLocationId = resolvedSelfItemForLocationId
     )
 }
 
