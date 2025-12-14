@@ -59,18 +59,7 @@ class CharacterHomeScreenTest {
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
-        repository = ApplicatusRepository(
-            database.spellDao(),
-            database.characterDao(),
-            database.spellSlotDao(),
-            database.recipeDao(),
-            database.potionDao(),
-            database.globalSettingsDao(),
-            database.recipeKnowledgeDao(),
-            database.groupDao(),
-            database.itemDao(),
-            database.locationDao()
-        )
+        repository = ApplicatusRepository(database)
 
         runBlocking {
             // Initialisiere Initial-Daten (Zauber und Rezepte)

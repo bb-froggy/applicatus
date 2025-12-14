@@ -11,6 +11,7 @@ import de.applicatus.app.data.ApplicatusDatabase
 import de.applicatus.app.data.InitialRecipes
 import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.model.character.Character
+import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.spell.Spell
 import de.applicatus.app.data.model.spell.SlotType
 import de.applicatus.app.data.model.spell.SpellSlot
@@ -27,6 +28,10 @@ import org.junit.runner.RunWith
 
 /**
  * UI-Tests für die Spieler/Spielleiter-Funktionalität
+ * 
+ * Das isGameMasterGroup-Feld ist auf der Gruppe definiert.
+ * Charaktere in einer Spielleiter-Gruppe sehen alle Details,
+ * Charaktere in einer Spieler-Gruppe sehen nur eingeschränkte Informationen.
  */
 @RunWith(AndroidJUnit4::class)
 class GameMasterModeUITest {
@@ -37,6 +42,8 @@ class GameMasterModeUITest {
     private lateinit var context: Context
     private lateinit var database: ApplicatusDatabase
     private lateinit var repository: ApplicatusRepository
+    private var playerGroupId: Long = -1L
+    private var gameMasterGroupId: Long = -1L
     private var playerCharacterId: Long = -1L
     private var gameMasterCharacterId: Long = -1L
     private var testSpellId: Long = -1L
@@ -48,43 +55,48 @@ class GameMasterModeUITest {
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
-        repository = ApplicatusRepository(
-            database.spellDao(),
-            database.characterDao(),
-            database.spellSlotDao(),
-            database.recipeDao(),
-            database.potionDao(),
-            database.globalSettingsDao(),
-            database.recipeKnowledgeDao(),
-            database.groupDao(),
-            database.itemDao(),
-            database.locationDao()
-        )
+        repository = ApplicatusRepository(database)
 
         runBlocking {
             // Initialisiere Initial-Daten (Zauber und Rezepte)
             database.spellDao().insertSpells(InitialSpells.getDefaultSpells())
             database.recipeDao().insertRecipes(InitialRecipes.getDefaultRecipes())
             
-            // Erstelle einen Spieler-Charakter
+            // Erstelle eine Spieler-Gruppe (isGameMasterGroup = false)
+            playerGroupId = repository.insertGroup(
+                Group(
+                    name = "Spieler Gruppe",
+                    isGameMasterGroup = false
+                )
+            )
+            
+            // Erstelle eine Spielleiter-Gruppe (isGameMasterGroup = true)
+            gameMasterGroupId = repository.insertGroup(
+                Group(
+                    name = "Spielleiter Gruppe",
+                    isGameMasterGroup = true
+                )
+            )
+            
+            // Erstelle einen Spieler-Charakter in der Spieler-Gruppe
             playerCharacterId = repository.insertCharacter(
                 Character(
                     name = "Spieler Held",
                     mu = 12,
                     kl = 13,
                     inValue = 14,
-                    isGameMaster = false
+                    groupId = playerGroupId
                 )
             )
 
-            // Erstelle einen Spielleiter-Charakter
+            // Erstelle einen Spielleiter-Charakter in der Spielleiter-Gruppe
             gameMasterCharacterId = repository.insertCharacter(
                 Character(
                     name = "Spielleiter Held",
                     mu = 12,
                     kl = 13,
                     inValue = 14,
-                    isGameMaster = true
+                    groupId = gameMasterGroupId
                 )
             )
 

@@ -93,8 +93,12 @@ class CharacterRealtimeSyncManager(
         private const val DEBOUNCE_MS = 500L // Debounce für Änderungen
         private const val WATCHDOG_INTERVAL_MS = 2000L // Watchdog-Check alle 2 Sekunden
         private const val STALE_THRESHOLD_MS = 15000L // 15 Sekunden Warnschwelle
-        private const val KEEP_ALIVE_INTERVAL_MS = 10000L // Keep-Alive alle 10 Sekunden
+        private const val KEEP_ALIVE_INTERVAL_HOST_MS = 11000L // Keep-Alive für Host alle 11 Sekunden
+        private const val KEEP_ALIVE_INTERVAL_CLIENT_MS = 9000L // Keep-Alive für Client alle 9 Sekunden
     }
+    
+    // Zeitpunkt des letzten Keep-Alive-Empfangs (setzt den Timer zurück)
+    private var lastKeepAliveTime: Long = 0L
     
     // Aktuelle Character-ID für Keep-Alive
     private var currentCharacterId: Long? = null
@@ -238,6 +242,7 @@ class CharacterRealtimeSyncManager(
         currentEndpointName = null
         lastSuccessfulSendTime = 0L
         lastSuccessfulReceiveTime = 0L
+        lastKeepAliveTime = 0L
     }
     
     /**
@@ -348,7 +353,7 @@ class CharacterRealtimeSyncManager(
     }
     
     /**
-     * Startet den Empfang von Snapshots
+     * Startet den Empfang von Snapshots und Keep-Alive-Nachrichten
      */
     private fun startReceiving() {
         sendJob?.cancel()
@@ -364,6 +369,8 @@ class CharacterRealtimeSyncManager(
                                 val result = repository.applySnapshotFromSync(snapshot, allowCreateNew = false)
                                 if (result.isSuccess) {
                                     lastSuccessfulReceiveTime = System.currentTimeMillis()
+                                    // Keep-Alive-Timer zurücksetzen (wir haben Daten empfangen)
+                                    lastKeepAliveTime = System.currentTimeMillis()
                                 } else {
                                     _syncStatus.value = SyncStatus.Error(
                                         "Snapshot-Import fehlgeschlagen: ${result.exceptionOrNull()?.message}"
@@ -378,6 +385,12 @@ class CharacterRealtimeSyncManager(
                         }
                     }
                 },
+                onKeepAliveReceived = {
+                    // Keep-Alive empfangen - nur Timer zurücksetzen, keine Daten verarbeiten
+                    lastSuccessfulReceiveTime = System.currentTimeMillis()
+                    lastKeepAliveTime = System.currentTimeMillis()
+                    android.util.Log.d("NearbySync", "Keep-Alive empfangen, Timer zurückgesetzt")
+                },
                 onError = { error ->
                     _syncStatus.value = SyncStatus.Error("Empfang fehlgeschlagen: $error")
                 }
@@ -387,11 +400,15 @@ class CharacterRealtimeSyncManager(
     
     /**
      * Startet den Watchdog, der prüft, ob seit > 15 Sekunden keine Übertragung erfolgt ist.
-     * Sendet außerdem alle 10 Sekunden einen Keep-Alive (erneuter Snapshot), um die Verbindung aktiv zu halten.
+     * Sendet außerdem Keep-Alive-Nachrichten (Host alle 11s, Client alle 9s), um die Verbindung aktiv zu halten.
+     * Der Timer wird bei Empfang eines Keep-Alive oder Snapshots zurückgesetzt.
      */
     private fun startWatchdog() {
         watchdogJob?.cancel()
         watchdogJob = scope.launch {
+            // Initialisiere Keep-Alive-Timer
+            lastKeepAliveTime = System.currentTimeMillis()
+            
             while (true) {
                 delay(WATCHDOG_INTERVAL_MS)
                 
@@ -399,14 +416,30 @@ class CharacterRealtimeSyncManager(
                 val timeSinceLastSend = now - lastSuccessfulSendTime
                 val timeSinceLastReceive = now - lastSuccessfulReceiveTime
                 val timeSinceLastActivity = minOf(timeSinceLastSend, timeSinceLastReceive)
+                val timeSinceLastKeepAlive = now - lastKeepAliveTime
                 
-                // Keep-Alive: Wenn seit 10 Sekunden nicht gesendet wurde, Snapshot erneut senden
-                val characterId = currentCharacterId
+                // Keep-Alive-Intervall basierend auf Rolle (Host 11s, Client 9s)
+                val keepAliveInterval = when (sessionRole) {
+                    SessionRole.HOST -> KEEP_ALIVE_INTERVAL_HOST_MS
+                    SessionRole.CLIENT -> KEEP_ALIVE_INTERVAL_CLIENT_MS
+                    null -> KEEP_ALIVE_INTERVAL_HOST_MS // Fallback
+                }
+                
+                // Keep-Alive: Wenn seit dem Intervall nicht empfangen wurde, eigenes Keep-Alive senden
                 val endpointId = currentEndpointId
-                if (timeSinceLastSend >= KEEP_ALIVE_INTERVAL_MS && characterId != null && endpointId != null) {
-                    // Keep-Alive Snapshot senden (der Observer hat keine Änderung erkannt,
-                    // aber wir senden trotzdem um die Verbindung aktiv zu halten)
-                    sendSnapshot(characterId, endpointId)
+                if (timeSinceLastKeepAlive >= keepAliveInterval && endpointId != null) {
+                    // Keep-Alive senden (leichte Nachricht ohne Payload)
+                    nearbyService.sendKeepAlive(
+                        endpointId = endpointId,
+                        onSuccess = {
+                            lastSuccessfulSendTime = System.currentTimeMillis()
+                            // Keep-Alive-Timer NICHT zurücksetzen beim Senden, nur beim Empfangen
+                            android.util.Log.d("NearbySync", "Keep-Alive gesendet (${sessionRole?.name})")
+                        },
+                        onFailure = { error ->
+                            android.util.Log.w("NearbySync", "Keep-Alive senden fehlgeschlagen: $error")
+                        }
+                    )
                 }
                 
                 if (timeSinceLastActivity > STALE_THRESHOLD_MS) {

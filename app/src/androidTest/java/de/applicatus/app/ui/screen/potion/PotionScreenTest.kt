@@ -43,18 +43,7 @@ class PotionScreenTest {
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
-        repository = ApplicatusRepository(
-            database.spellDao(),
-            database.characterDao(),
-            database.spellSlotDao(),
-            database.recipeDao(),
-            database.potionDao(),
-            database.globalSettingsDao(),
-            database.recipeKnowledgeDao(),
-            database.groupDao(),
-            database.itemDao(),
-            database.locationDao()
-        )
+        repository = ApplicatusRepository(database)
 
         runBlocking {
             // Initialisiere Initial-Daten (nur Zauber, keine Rezepte, da diese Tests eigene Rezepte erstellen)
@@ -110,6 +99,7 @@ class PotionScreenTest {
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
                     actualQuality = PotionQuality.C,
+                    createdDate = "1049 BF, Praios",
                     expiryDate = "1050 BF, Praios",
                     shelfLifeKnown = true  // Haltbarkeit ist bekannt, damit sie angezeigt wird
                 )
@@ -414,6 +404,7 @@ class PotionScreenTest {
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
                     actualQuality = PotionQuality.A,
+                    createdDate = "1049 BF, Praios",
                     expiryDate = "1050 BF, Praios"
                 )
             )
@@ -423,6 +414,7 @@ class PotionScreenTest {
                     characterId = testCharacterId,
                     recipeId = testRecipeId,
                     actualQuality = PotionQuality.B,
+                    createdDate = "1049 BF, Praios",
                     expiryDate = "1050 BF, Praios"
                 )
             )

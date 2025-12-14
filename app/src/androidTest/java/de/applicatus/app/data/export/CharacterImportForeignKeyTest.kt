@@ -5,8 +5,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.applicatus.app.data.ApplicatusDatabase
-import de.applicatus.app.data.DataModelVersion
+import de.applicatus.app.data.model.inventory.Item
+import de.applicatus.app.data.model.inventory.Weight
 import de.applicatus.app.data.repository.ApplicatusRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
@@ -76,19 +78,18 @@ class CharacterImportForeignKeyTest {
         val rucksackLocation = locations.find { it.name == "Rucksack" }
         assertNotNull("Rucksack should exist", rucksackLocation)
         
-        // Item erstellen
-        val item = de.applicatus.app.data.model.item.Item(
+        // Item erstellen (mit korrekter Item-API)
+        val item = Item(
             characterId = characterId,
             locationId = rucksackLocation!!.id,
             name = "TestSchwert",
-            weightStone = 1,
-            weightUnzen = 0,
+            weight = Weight.fromOunces(40), // 1 Stein = 40 Unzen
             isPurse = false,
             kreuzerAmount = 0,
             isCountable = false,
             quantity = 1
         )
-        sourceDatabase.itemDao().insertItem(item)
+        sourceRepository.insertItem(item)
         
         // Export erstellen
         val jsonResult = sourceExportManager.exportCharacter(characterId)
@@ -126,12 +127,9 @@ class CharacterImportForeignKeyTest {
     
     @Test
     fun importCharacterWithSpells_onEmptyDevice_shouldSucceed() = runBlocking {
-        // Auf Quell-Gerät: Spell-Datenbank initialisieren
-        sourceRepository.initializeSpellsFromAssets()
-        val spells = sourceRepository.allSpells.first()
-        assertTrue("Should have spells in source database", spells.isNotEmpty())
+        // Auf Quell-Gerät: Zauber synchronisieren und Charakter mit SpellSlots erstellen
+        sourceRepository.syncMissingSpells()
         
-        // Charakter mit Spell-Slot erstellen
         val character = de.applicatus.app.data.model.character.Character(
             guid = "test-fk-spell-char",
             name = "SpellCharacter",
@@ -140,14 +138,40 @@ class CharacterImportForeignKeyTest {
         )
         val characterId = sourceDatabase.characterDao().insertCharacter(character)
         
-        // Spell-Slot erstellen
+        // Standard-Locations erstellen (benötigt für Applicatus-Items)
+        sourceRepository.createDefaultLocationsForCharacter(characterId)
+        val locations = sourceRepository.getLocationsForCharacter(characterId).first()
+        val rucksackLocation = locations.find { it.name == "Rucksack" }
+        
+        // Item für Applicatus erstellen
+        val applicatusItem = Item(
+            characterId = characterId,
+            locationId = rucksackLocation!!.id,
+            name = "Test-Applicatus",
+            weight = Weight.fromOunces(10),
+            isPurse = false,
+            kreuzerAmount = 0,
+            isCountable = false,
+            quantity = 1
+        )
+        val applicatusItemId = sourceRepository.insertItem(applicatusItem)
+        
+        // Einen Zauber finden
+        val spells = sourceDatabase.spellDao().getAllSpellsOnce()
+        assertTrue("Should have spells", spells.isNotEmpty())
         val testSpell = spells.first()
+        
+        // SpellSlot erstellen
         val spellSlot = de.applicatus.app.data.model.spell.SpellSlot(
             characterId = characterId,
+            slotNumber = 0,
+            slotType = de.applicatus.app.data.model.spell.SlotType.APPLICATUS,
             spellId = testSpell.id,
-            slotType = de.applicatus.app.data.model.spell.SlotType.SPELL,
-            currentZfp = 0,
-            zfpBonus = 0
+            zfw = 10,
+            isFilled = true,
+            zfpStar = 5,
+            itemId = applicatusItemId,
+            creatorGuid = character.guid
         )
         sourceDatabase.spellSlotDao().insertSlot(spellSlot)
         
@@ -156,33 +180,36 @@ class CharacterImportForeignKeyTest {
         assertTrue("Export should succeed", jsonResult.isSuccess)
         val jsonString = jsonResult.getOrThrow()
         
-        // Auf Ziel-Gerät: Spell-Datenbank NICHT initialisieren (simuliert fehlendes Asset)
-        // oder nur teilweise initialisiert
+        // Auf Ziel-Gerät: Zauber synchronisieren, dann importieren
+        targetRepository.syncMissingSpells()
         
-        // Import sollte trotzdem funktionieren (Spell-Slot wird übersprungen, wenn Spell nicht gefunden)
         val importResult = targetExportManager.importCharacter(jsonString, targetCharacterId = null)
         
-        // Import sollte nicht komplett fehlschlagen
-        assertTrue("Import should not fail completely even if spell is missing", importResult.isSuccess)
-        val (importedCharacterId, warning) = importResult.getOrThrow()
+        if (importResult.isFailure) {
+            val exception = importResult.exceptionOrNull()
+            fail("Import should succeed but failed with: ${exception?.message}")
+        }
         
-        // Warnung sollte vorhanden sein
-        assertNotNull("Should have warning about missing spell", warning)
+        assertTrue("Import should succeed on empty device", importResult.isSuccess)
+        val (importedCharacterId, _) = importResult.getOrThrow()
         
-        // Charakter sollte trotzdem existieren
+        // Verifizieren: Charakter existiert
         val importedCharacter = targetRepository.getCharacterById(importedCharacterId)
         assertNotNull("Character should exist", importedCharacter)
         assertEquals("SpellCharacter", importedCharacter!!.name)
+        
+        // Verifizieren: SpellSlots wurden erstellt
+        val importedSlots = targetDatabase.spellSlotDao().getSlotsByCharacter(importedCharacterId).first()
+        assertEquals("Should have 1 spell slot", 1, importedSlots.size)
+        assertEquals(10, importedSlots[0].zfw)
+        assertTrue("Slot should be filled", importedSlots[0].isFilled)
     }
     
     @Test
     fun importCharacterWithPotions_onEmptyDevice_shouldSucceed() = runBlocking {
-        // Auf Quell-Gerät: Recipe-Datenbank initialisieren
-        sourceRepository.initializeRecipesFromAssets()
-        val recipes = sourceRepository.allRecipes.first()
-        assertTrue("Should have recipes in source database", recipes.isNotEmpty())
+        // Auf Quell-Gerät: Rezepte synchronisieren und Charakter mit Potions erstellen
+        sourceRepository.syncMissingRecipes()
         
-        // Charakter mit Potion erstellen
         val character = de.applicatus.app.data.model.character.Character(
             guid = "test-fk-potion-char",
             name = "PotionCharacter",
@@ -191,37 +218,47 @@ class CharacterImportForeignKeyTest {
         )
         val characterId = sourceDatabase.characterDao().insertCharacter(character)
         
-        // Potion erstellen
+        // Ein Rezept finden
+        val recipes = sourceDatabase.recipeDao().getAllRecipes().first()
+        assertTrue("Should have recipes", recipes.isNotEmpty())
         val testRecipe = recipes.first()
+        
+        // Potion erstellen (mit aktuellem Datenmodell)
         val potion = de.applicatus.app.data.model.potion.Potion(
             characterId = characterId,
             recipeId = testRecipe.id,
-            guid = "test-potion-guid",
-            quality = de.applicatus.app.data.model.potion.PotionQuality.NORMAL,
-            currentDurability = 10,
-            maxDurability = 10
+            actualQuality = de.applicatus.app.data.model.potion.PotionQuality.C,
+            createdDate = "1 Praios 1040 BF",
+            expiryDate = "30 Praios 1040 BF"
         )
-        sourceDatabase.potionDao().insertPotion(potion)
+        sourceRepository.insertPotion(potion)
         
         // Export erstellen
         val jsonResult = sourceExportManager.exportCharacter(characterId)
         assertTrue("Export should succeed", jsonResult.isSuccess)
         val jsonString = jsonResult.getOrThrow()
         
-        // Auf Ziel-Gerät: Recipe-Datenbank NICHT initialisieren
+        // Auf Ziel-Gerät: Rezepte synchronisieren, dann importieren
+        targetRepository.syncMissingRecipes()
         
-        // Import sollte mit Warnung funktionieren
         val importResult = targetExportManager.importCharacter(jsonString, targetCharacterId = null)
         
-        assertTrue("Import should not fail completely even if recipe is missing", importResult.isSuccess)
-        val (importedCharacterId, warning) = importResult.getOrThrow()
+        if (importResult.isFailure) {
+            val exception = importResult.exceptionOrNull()
+            fail("Import should succeed but failed with: ${exception?.message}")
+        }
         
-        // Warnung sollte vorhanden sein
-        assertNotNull("Should have warning about missing recipe", warning)
+        assertTrue("Import should succeed on empty device", importResult.isSuccess)
+        val (importedCharacterId, _) = importResult.getOrThrow()
         
-        // Charakter sollte trotzdem existieren
+        // Verifizieren: Charakter existiert
         val importedCharacter = targetRepository.getCharacterById(importedCharacterId)
         assertNotNull("Character should exist", importedCharacter)
         assertEquals("PotionCharacter", importedCharacter!!.name)
+        
+        // Verifizieren: Potions wurden erstellt
+        val importedPotions = targetRepository.getPotionsForCharacter(importedCharacterId).first()
+        assertEquals("Should have 1 potion", 1, importedPotions.size)
+        assertEquals(de.applicatus.app.data.model.potion.PotionQuality.C, importedPotions[0].potion.actualQuality)
     }
 }

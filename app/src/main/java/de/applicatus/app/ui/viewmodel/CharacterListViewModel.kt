@@ -26,15 +26,17 @@ import kotlinx.coroutines.launch
 
 class CharacterListViewModel(
     private val repository: ApplicatusRepository,
-    private val syncSessionManager: SyncSessionManager
+    private val syncSessionManager: SyncSessionManager? = null
 ) : ViewModel() {
     
     private val exportManager = CharacterExportManager(repository)
     private val backupManager = DatabaseBackupManager(repository)
     
     // Sync Status für alle Charaktere (characterId -> Status)
+    // Fallback auf leere Map wenn kein SyncSessionManager verfügbar (z.B. in Tests)
+    private val _emptySyncStatuses = kotlinx.coroutines.flow.MutableStateFlow<Map<Long, CharacterRealtimeSyncManager.SyncStatus>>(emptyMap())
     val activeSyncStatuses: StateFlow<Map<Long, CharacterRealtimeSyncManager.SyncStatus>> = 
-        syncSessionManager.activeSyncStatuses
+        syncSessionManager?.activeSyncStatuses ?: _emptySyncStatuses
     
     // Import State
     var importState by mutableStateOf<ImportState>(ImportState.Idle)
@@ -738,7 +740,7 @@ class CharacterListViewModel(
 
 class CharacterListViewModelFactory(
     private val repository: ApplicatusRepository,
-    private val syncSessionManager: SyncSessionManager
+    private val syncSessionManager: SyncSessionManager? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CharacterListViewModel::class.java)) {

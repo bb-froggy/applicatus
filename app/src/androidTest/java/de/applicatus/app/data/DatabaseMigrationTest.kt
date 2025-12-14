@@ -152,11 +152,11 @@ class DatabaseMigrationTest {
         // Teste zusätzliche Talente (Migration 9->10)
         assertEquals("SelfControlSkill sollte 0 sein", 0, retrievedChar.selfControlSkill)
         
-        // Teste Spielleiter-Modus (Migration 10->11)
-        assertFalse("IsGameMaster sollte false sein", retrievedChar.isGameMaster)
+        // Teste Spielleiter-Modus (Migration 10->11) - isGameMaster entfernt in späteren Versionen
+        // assertFalse("IsGameMaster sollte false sein", retrievedChar.isGameMaster)
         
-        // Teste Gruppen-Feld (Migration 12->13)
-        assertEquals("Group sollte Default haben", "Meine Gruppe", retrievedChar.group)
+        // Teste Gruppen-Feld (Migration 12->13) - group-Feld entfernt, durch groupId ersetzt
+        // assertEquals("Group sollte Default haben", "Meine Gruppe", retrievedChar.group)
         
         // Teste Magisches Meisterhandwerk (Migration 13->14)
         assertFalse("AlchemyIsMagicalMastery sollte false sein", retrievedChar.alchemyIsMagicalMastery)

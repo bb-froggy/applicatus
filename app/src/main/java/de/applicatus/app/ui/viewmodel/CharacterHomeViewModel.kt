@@ -30,20 +30,22 @@ import kotlinx.coroutines.delay
 class CharacterHomeViewModel(
     private val repository: ApplicatusRepository,
     private val characterId: Long,
-    private val nearbyService: NearbyConnectionsInterface,
-    private val syncSessionManager: SyncSessionManager
+    private val nearbyService: NearbyConnectionsInterface?,
+    private val syncSessionManager: SyncSessionManager?
 ) : ViewModel() {
     
     private val exportManager = CharacterExportManager(repository)
     
     // Real-Time Sync Manager - aus SyncSessionManager holen, NICHT im ViewModel erstellen
     // Dadurch überlebt die Session die Navigation zwischen Screens
-    private val realtimeSyncManager: CharacterRealtimeSyncManager
-        get() = syncSessionManager.getOrCreateSyncManager(characterId)
+    // Null wenn keine Sync-Funktionalität verfügbar (z.B. in Tests)
+    private val realtimeSyncManager: CharacterRealtimeSyncManager?
+        get() = syncSessionManager?.getOrCreateSyncManager(characterId)
     
-    // Expose Sync Status - direkt aus dem SyncManager
+    // Expose Sync Status - direkt aus dem SyncManager, oder Idle wenn kein Manager
+    private val _syncStatusFallback = MutableStateFlow(CharacterRealtimeSyncManager.SyncStatus.Idle)
     val syncStatus: StateFlow<CharacterRealtimeSyncManager.SyncStatus>
-        get() = realtimeSyncManager.syncStatus
+        get() = realtimeSyncManager?.syncStatus ?: _syncStatusFallback
     
     // Discovered Endpoints (for client mode)
     private val _discoveredEndpoints = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -567,8 +569,9 @@ class CharacterHomeViewModel(
      * The character will be advertised and synced bidirectionally with connected clients.
      */
     fun startHostSession(deviceName: String) {
+        val manager = realtimeSyncManager ?: return
         viewModelScope.launch {
-            realtimeSyncManager.startHostSession(characterId, deviceName)
+            manager.startHostSession(characterId, deviceName)
         }
     }
     
@@ -577,8 +580,9 @@ class CharacterHomeViewModel(
      * Discovered devices will be added to discoveredEndpoints.
      */
     fun startDiscovery() {
+        val service = nearbyService ?: return
         viewModelScope.launch {
-            nearbyService.startDiscovery { endpointId, endpointName ->
+            service.startDiscovery { endpointId, endpointName ->
                 _discoveredEndpoints.value = _discoveredEndpoints.value + (endpointId to endpointName)
             }.collect { connectionState ->
                 when (connectionState) {
@@ -595,7 +599,7 @@ class CharacterHomeViewModel(
      * Stops discovery and clears discovered endpoints.
      */
     fun stopDiscovery() {
-        nearbyService.stopDiscovery()
+        nearbyService?.stopDiscovery()
         _discoveredEndpoints.value = emptyMap()
     }
     
@@ -607,9 +611,11 @@ class CharacterHomeViewModel(
      * STATUS_OUT_OF_ORDER_API_CALL (8009) from Nearby Connections API.
      */
     fun startClientSession(endpointId: String, endpointName: String) {
+        val manager = realtimeSyncManager ?: return
+        val service = nearbyService ?: return
         viewModelScope.launch {
             // Stop discovery first - required by Nearby Connections API
-            nearbyService.stopDiscovery()
+            service.stopDiscovery()
             
             // Small delay to ensure the API has processed the stop call
             // This is necessary because stopDiscovery() is asynchronous internally
@@ -619,7 +625,7 @@ class CharacterHomeViewModel(
             _discoveredEndpoints.value = emptyMap()
             
             // Start client session with the selected host
-            realtimeSyncManager.startClientSession(characterId, endpointId, endpointName)
+            manager.startClientSession(characterId, endpointId, endpointName)
         }
     }
     
@@ -627,8 +633,9 @@ class CharacterHomeViewModel(
      * Stops the current sync session (host or client).
      */
     fun stopSyncSession() {
+        val manager = realtimeSyncManager ?: return
         viewModelScope.launch {
-            realtimeSyncManager.stopSession()
+            manager.stopSession()
             _discoveredEndpoints.value = emptyMap()
         }
     }
@@ -641,8 +648,8 @@ class CharacterHomeViewModel(
 class CharacterHomeViewModelFactory(
     private val repository: ApplicatusRepository,
     private val characterId: Long,
-    private val nearbyService: NearbyConnectionsInterface,
-    private val syncSessionManager: SyncSessionManager
+    private val nearbyService: NearbyConnectionsInterface? = null,
+    private val syncSessionManager: SyncSessionManager? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

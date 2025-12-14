@@ -1,5 +1,6 @@
 package de.applicatus.app.data.repository
 
+import de.applicatus.app.data.ApplicatusDatabase
 import de.applicatus.app.data.InitialSpells
 import de.applicatus.app.data.DataModelVersion
 import de.applicatus.app.data.dao.CharacterDao
@@ -53,6 +54,24 @@ class ApplicatusRepository(
     private val characterJournalDao: CharacterJournalDao,
     private val magicSignDao: MagicSignDao
 ) {
+    /**
+     * Secondary constructor that accepts a database instance.
+     * Useful for tests and simplified initialization.
+     */
+    constructor(database: ApplicatusDatabase) : this(
+        spellDao = database.spellDao(),
+        characterDao = database.characterDao(),
+        spellSlotDao = database.spellSlotDao(),
+        recipeDao = database.recipeDao(),
+        potionDao = database.potionDao(),
+        globalSettingsDao = database.globalSettingsDao(),
+        recipeKnowledgeDao = database.recipeKnowledgeDao(),
+        groupDao = database.groupDao(),
+        itemDao = database.itemDao(),
+        locationDao = database.locationDao(),
+        characterJournalDao = database.characterJournalDao(),
+        magicSignDao = database.magicSignDao()
+    )
     // Spells
     val allSpells: Flow<List<Spell>> = spellDao.getAllSpells()
     

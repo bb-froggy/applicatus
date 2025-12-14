@@ -66,18 +66,7 @@ class RecipeKnowledgeScreenTest {
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()
             .build()
-        repository = ApplicatusRepository(
-            database.spellDao(),
-            database.characterDao(),
-            database.spellSlotDao(),
-            database.recipeDao(),
-            database.potionDao(),
-            database.globalSettingsDao(),
-            database.recipeKnowledgeDao(),
-            database.groupDao(),
-            database.itemDao(),
-            database.locationDao()
-        )
+        repository = ApplicatusRepository(database)
 
         runBlocking {
             // Initialisiere Initial-Daten (nur Zauber, keine Rezepte, da diese Tests eigene Rezepte erstellen)

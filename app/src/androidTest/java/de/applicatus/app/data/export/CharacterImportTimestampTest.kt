@@ -148,6 +148,9 @@ class CharacterImportTimestampTest {
     
     @Test
     fun importWithSlots_preservesExportTimestamp() = runBlocking {
+        // Zuerst Zauber synchronisieren (damit der Zaubername aufgelöst werden kann)
+        repository.syncMissingSpells()
+        
         // Test mit Zauber-Slots, um sicherzustellen dass insertSlots nicht touchCharacter aufruft
         val exportTime = 1700000000000L
         
@@ -162,10 +165,12 @@ class CharacterImportTimestampTest {
             ),
             spellSlots = listOf(
                 SpellSlotDto(
-                    spellName = "TestSpell",
-                    slotType = "SPELL",
-                    currentZfp = 0,
-                    zfpBonus = 0
+                    slotNumber = 0,
+                    slotType = "APPLICATUS",
+                    spellId = null,
+                    spellName = null,
+                    zfw = 0,
+                    isFilled = false
                 )
             ),
             exportTimestamp = exportTime,

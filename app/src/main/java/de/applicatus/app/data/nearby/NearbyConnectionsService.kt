@@ -30,6 +30,7 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
         private const val SERVICE_ID = "de.applicatus.app.nearby"
         private val STRATEGY = Strategy.P2P_STAR
         private const val MAX_PAYLOAD_BYTES = 1_047_552 // Nearby Connections limit (~1 MB)
+        private const val KEEP_ALIVE_MARKER = "KEEP_ALIVE" // Marker für Keep-Alive-Nachrichten
     }
     
     /**
@@ -224,14 +225,46 @@ class NearbyConnectionsService(private val context: Context) : NearbyConnections
     }
     
     /**
+     * Sendet eine Keep-Alive-Nachricht ohne Payload.
+     */
+    override fun sendKeepAlive(
+        endpointId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        try {
+            val payload = Payload.fromBytes(KEEP_ALIVE_MARKER.toByteArray())
+            
+            onTransferSuccess = onSuccess
+            onTransferFailure = onFailure
+            
+            connectionsClient.sendPayload(endpointId, payload)
+                .addOnFailureListener { e ->
+                    onFailure("Keep-Alive senden fehlgeschlagen: ${e.message}")
+                }
+        } catch (e: Exception) {
+            onFailure("Fehler beim Senden des Keep-Alive: ${e.message}")
+        }
+    }
+    
+    /**
      * Empfängt Charakterdaten von einem verbundenen Gerät.
      */
     override fun receiveCharacterData(
         onDataReceived: (CharacterExportDto) -> Unit,
+        onKeepAliveReceived: () -> Unit,
         onError: (String) -> Unit
     ) {
         this.onDataReceived = fun(data: ByteArray) {
             try {
+                // Prüfe auf Keep-Alive-Nachricht
+                val rawString = String(data)
+                if (rawString == KEEP_ALIVE_MARKER) {
+                    android.util.Log.d("NearbySync", "Keep-Alive empfangen")
+                    onKeepAliveReceived()
+                    return
+                }
+                
                 val decodedBytes = if (isGzipCompressed(data)) {
                     try {
                         decompressBytes(data)

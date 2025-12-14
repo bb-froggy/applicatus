@@ -136,11 +136,35 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         }
     }
     
+    override fun sendKeepAlive(
+        endpointId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        if (connectedPeer == null) {
+            onFailure("Keine Verbindung")
+            return
+        }
+        
+        try {
+            // Keep-Alive an Peer weiterleiten
+            connectedPeer?.receiveKeepAlive()
+            keepAliveSentCount++
+            onSuccess()
+        } catch (e: Exception) {
+            onFailure("Fehler beim Senden des Keep-Alive: ${e.message}")
+        }
+    }
+    
+    private var keepAliveReceivedCallback: (() -> Unit)? = null
+    
     override fun receiveCharacterData(
         onDataReceived: (CharacterExportDto) -> Unit,
+        onKeepAliveReceived: () -> Unit,
         onError: (String) -> Unit
     ) {
         this.dataReceivedCallback = onDataReceived
+        this.keepAliveReceivedCallback = onKeepAliveReceived
         this.errorCallback = onError
     }
     
@@ -156,6 +180,13 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         }
         
         dataReceivedCallback?.invoke(characterData)
+    }
+    
+    /**
+     * Interne Methode zum Empfangen von Keep-Alive (wird vom Sender aufgerufen).
+     */
+    private fun receiveKeepAlive() {
+        keepAliveReceivedCallback?.invoke()
     }
     
     override fun stopDiscovery() {
@@ -222,11 +253,18 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         private set
     
     /**
+     * Hilfsmethode für Tests: Gibt die Anzahl der gesendeten Keep-Alives zurück.
+     */
+    var keepAliveSentCount: Int = 0
+        private set
+    
+    /**
      * Hilfsmethode für Tests: Setzt Payload-Statistiken zurück.
      */
     fun resetPayloadStats() {
         lastSentPayloadSize = 0
         sentPayloadCount = 0
+        keepAliveSentCount = 0
     }
     
     /**

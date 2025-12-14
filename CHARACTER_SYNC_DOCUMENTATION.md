@@ -6,6 +6,8 @@ Das Character Synchronisation System ermöglicht die Echtzeit-Synchronisation vo
 
 **Wichtig**: Synchronisation funktioniert nur, solange beide Apps aktiv sind. Bei App-Beendigung wird die Session getrennt und beim Neustart durch einen Full-Sync wiederhergestellt.
 
+**Neu**: Sessions überleben jetzt die Navigation zwischen Screens! Der Spielleiter kann mehrere Charaktere gleichzeitig im Sync haben und zwischen ihnen wechseln, ohne dass die Verbindungen unterbrochen werden.
+
 ## Architektur
 
 ### Star-Topologie
@@ -27,7 +29,42 @@ Das Character Synchronisation System ermöglicht die Echtzeit-Synchronisation vo
 
 ### Komponenten
 
-#### 1. CharacterRealtimeSyncManager
+#### 1. SyncSessionManager (NEU)
+
+Singleton-Manager auf Application-Ebene, der Sync-Sessions über Navigation hinweg verwaltet:
+
+```kotlin
+// Singleton-Zugriff
+val syncManager = SyncSessionManager.getInstance()
+
+// Initialisierung (einmalig in Application.onCreate)
+syncManager.initialize(repository, nearbyService)
+
+// SyncManager für einen Charakter holen/erstellen
+val charSyncManager = syncManager.getOrCreateSyncManager(characterId)
+
+// Alle aktiven Sync-Statuses beobachten (für UI)
+val statuses: StateFlow<Map<Long, SyncStatus>> = syncManager.activeSyncStatuses
+
+// Prüfen ob Charakter im Sync ist
+val isActive = syncManager.hasActiveSession(characterId)
+
+// Anzahl aktiver Sessions
+val count = syncManager.getActiveSyncCount()
+
+// Session beenden
+syncManager.removeSession(characterId)
+
+// Alle Sessions beenden
+syncManager.stopAllSessions()
+```
+
+**Vorteile:**
+- Sessions überleben Navigation zwischen Screens
+- Spielleiter kann mehrere Charaktere gleichzeitig synchronisieren
+- Zentrale Status-Verwaltung für UI-Anzeige in CharacterListScreen
+
+#### 2. CharacterRealtimeSyncManager
 
 Zentrale Verwaltung der Synchronisation mit vereinfachtem Protokoll:
 
@@ -37,6 +74,7 @@ Zentrale Verwaltung der Synchronisation mit vereinfachtem Protokoll:
 - Update-Debouncing (500ms) zur Performance-Optimierung
 - Last-Write-Wins Konfliktauflösung (GUID-basiert)
 - Watchdog für Verbindungsüberwachung (Warnung nach 15s ohne Aktivität)
+- **Keep-Alive**: Sendet alle 10 Sekunden einen Snapshot, auch ohne Änderungen
 
 **API:**
 ```kotlin
@@ -197,10 +235,19 @@ t=800ms:  Debounce abgelaufen -> FullSync mit LE=27 wird gesendet
 Alle 2 Sekunden prüft ein Watchdog:
 - Wann war das letzte erfolgreiche Senden? (`lastSuccessfulSendTime`)
 - Wann war das letzte erfolgreiche Empfangen? (`lastSuccessfulReceiveTime`)
+- **Keep-Alive**: Falls > 10 Sekunden seit letztem Senden, wird automatisch ein Snapshot gesendet
 - Falls > 15 Sekunden seit letzter Aktivität:
   - Status wechselt zu `SyncStatus.Warning`
   - UI kann Warnung anzeigen: "Sync möglicherweise veraltet"
 - Bei erneutem Erfolg: Status zurück zu `SyncStatus.Syncing`
+
+**Konstanten:**
+```kotlin
+DEBOUNCE_MS = 500L           // Debounce für Änderungen
+WATCHDOG_INTERVAL_MS = 2000L // Watchdog-Check alle 2 Sekunden
+STALE_THRESHOLD_MS = 15000L  // 15 Sekunden Warnschwelle
+KEEP_ALIVE_INTERVAL_MS = 10000L // Keep-Alive alle 10 Sekunden
+```
 
 ## Performance-Optimierungen
 
@@ -232,9 +279,12 @@ Kotlin Serialization mit JSON:
 ### 3. Repository-Optimierungen
 
 `applySnapshotFromSync` nutzt effiziente Bulk-Operationen:
-- Batch-Delete für alte Slots/Items/Locations
-- Batch-Insert für neue Daten
+- **Bulk-Delete via DAOs**: Alle Slots, Items, Locations, MagicSigns werden direkt via DAO gelöscht
+- **Kein `touchCharacter()` pro Item**: Inserts verwenden DAOs direkt, um Echo-Loops zu verhindern
+- **Einmaliges `touchCharacter()`**: Nur am Ende des Imports wird der Charakter "touched"
 - Transaktionale Updates vermeiden inkonsistente Zustände
+
+**Wichtig für Sync**: Die direkte DAO-Nutzung verhindert, dass jeder einzelne Item-Insert einen neuen Sync-Trigger auslöst, was bei 12.000+ Items zu exponentieller Duplizierung führen würde.
 
 ### 4. Zukünftige Optimierungen (optional)
 
@@ -440,14 +490,25 @@ fun `test host and client sync character changes`() = runTest {
 
 ## Integration in die App
 
-### 1. CharacterRealtimeSyncManager erstellen
+### 1. SyncSessionManager initialisieren (in Application)
 
 ```kotlin
-val syncManager = CharacterRealtimeSyncManager(
-    repository = applicatusRepository,
-    nearbyService = nearbyConnectionsService, // oder FakeNearbyConnectionsService für Tests
-    exportManager = characterExportManager,
-    scope = viewModelScope
+class ApplicatusApplication : Application() {
+    val repository by lazy { ... }
+    val nearbyService by lazy { NearbyConnectionsService(this) }
+    val syncSessionManager by lazy { 
+        SyncSessionManager.getInstance().also { manager ->
+            manager.initialize(repository, nearbyService)
+        }
+    }
+}
+```
+
+### 2. CharacterRealtimeSyncManager verwenden (über SyncSessionManager)
+
+```kotlin
+// In ViewModel oder Screen
+val syncManager = syncSessionManager.getOrCreateSyncManager(characterId)
 )
 ```
 

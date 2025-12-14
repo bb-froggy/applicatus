@@ -38,18 +38,7 @@ class LocationTransferTest {
             .allowMainThreadQueries()
             .build()
         
-        repository = ApplicatusRepository(
-            spellDao = database.spellDao(),
-            characterDao = database.characterDao(),
-            spellSlotDao = database.spellSlotDao(),
-            recipeDao = database.recipeDao(),
-            potionDao = database.potionDao(),
-            globalSettingsDao = database.globalSettingsDao(),
-            recipeKnowledgeDao = database.recipeKnowledgeDao(),
-            groupDao = database.groupDao(),
-            itemDao = database.itemDao(),
-            locationDao = database.locationDao()
-        )
+        repository = ApplicatusRepository(database)
     }
     
     @After

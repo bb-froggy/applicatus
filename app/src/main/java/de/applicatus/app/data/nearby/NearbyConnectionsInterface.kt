@@ -51,10 +51,24 @@ interface NearbyConnectionsInterface {
     )
     
     /**
+     * Sendet eine Keep-Alive-Nachricht ohne Payload.
+     * Dient nur dazu, die Verbindung aktiv zu halten.
+     */
+    fun sendKeepAlive(
+        endpointId: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    )
+    
+    /**
      * Empfängt Charakterdaten von einem verbundenen Gerät.
+     * @param onDataReceived Callback für empfangene Charakterdaten
+     * @param onKeepAliveReceived Callback für empfangene Keep-Alive-Nachrichten
+     * @param onError Callback für Fehler
      */
     fun receiveCharacterData(
         onDataReceived: (CharacterExportDto) -> Unit,
+        onKeepAliveReceived: () -> Unit = {},
         onError: (String) -> Unit
     )
     
