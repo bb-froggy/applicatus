@@ -25,6 +25,12 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE characterId = :characterId ORDER BY locationId, sortOrder, name")
     suspend fun getItemsListForCharacter(characterId: Long): List<Item>
     
+    @Query("SELECT COUNT(*) FROM items WHERE characterId = :characterId")
+    suspend fun getItemCountForCharacter(characterId: Long): Int
+    
+    @Query("SELECT * FROM items WHERE characterId = :characterId ORDER BY locationId, sortOrder, name LIMIT :limit OFFSET :offset")
+    suspend fun getItemsPagedForCharacter(characterId: Long, limit: Int, offset: Int): List<Item>
+    
     @Transaction
     @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("""

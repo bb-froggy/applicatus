@@ -428,6 +428,29 @@ class ApplicatusRepository(
     suspend fun getItemsForCharacterOnce(characterId: Long): List<Item> =
         itemDao.getItemsListForCharacter(characterId)
     
+    /**
+     * Lädt Items in Batches um CursorWindow-Overflow bei großen Datenmengen zu vermeiden.
+     * Das CursorWindow hat ein Limit von 2MB, bei vielen Items (>5000) kann dies überschritten werden.
+     */
+    suspend fun getItemsForCharacterPaged(characterId: Long, batchSize: Int = 1000): List<Item> {
+        val totalCount = itemDao.getItemCountForCharacter(characterId)
+        if (totalCount == 0) return emptyList()
+        
+        val result = mutableListOf<Item>()
+        var offset = 0
+        
+        while (offset < totalCount) {
+            val batch = itemDao.getItemsPagedForCharacter(characterId, batchSize, offset)
+            result.addAll(batch)
+            offset += batchSize
+        }
+        
+        return result
+    }
+    
+    suspend fun getItemCountForCharacter(characterId: Long): Int =
+        itemDao.getItemCountForCharacter(characterId)
+    
     fun getItemsWithLocationForCharacter(characterId: Long): Flow<List<ItemWithLocation>> =
         itemDao.getItemsWithLocationForCharacter(characterId)
     
@@ -826,11 +849,12 @@ class ApplicatusRepository(
             updateCharacter(updatedCharacter)
             
             // Alte Slots, Items und nicht-Standard-Locations löschen
+            // Verwende Bulk-Delete für Items um bei großen Datenmengen effizient zu sein
             val oldSlots = getSlotsByCharacter(existingCharacter.id).first()
             oldSlots.forEach { deleteSlot(it) }
             
-            val oldItems = getItemsForCharacter(existingCharacter.id).first()
-            oldItems.forEach { deleteItem(it) }
+            // Bulk-Delete für alle Items des Charakters (effizienter bei vielen Items)
+            itemDao.deleteAllForCharacter(existingCharacter.id)
             
             val oldLocations = getLocationsForCharacter(existingCharacter.id).first()
             oldLocations.filter { !it.isDefault }.forEach { deleteLocation(it) }

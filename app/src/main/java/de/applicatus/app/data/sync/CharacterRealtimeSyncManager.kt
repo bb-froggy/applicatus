@@ -86,6 +86,9 @@ class CharacterRealtimeSyncManager(
     private var lastSuccessfulReceiveTime: Long = 0L
     private var sessionRole: SessionRole? = null
     
+    // Flag um Echo-Loops zu verhindern: true wenn wir gerade einen empfangenen Snapshot anwenden
+    private var isApplyingReceivedSnapshot: Boolean = false
+    
     companion object {
         private const val DEBOUNCE_MS = 500L // Debounce für Änderungen
         private const val WATCHDOG_INTERVAL_MS = 2000L // Watchdog-Check alle 2 Sekunden
@@ -295,8 +298,12 @@ class CharacterRealtimeSyncManager(
                 .debounce(DEBOUNCE_MS)
                 .collectLatest { character ->
                     if (character != null) {
-                        currentEndpointId?.let { endpointId ->
-                            sendSnapshot(characterId, endpointId)
+                        // Nicht senden, wenn wir gerade einen empfangenen Snapshot anwenden
+                        // (verhindert Echo-Loops)
+                        if (!isApplyingReceivedSnapshot) {
+                            currentEndpointId?.let { endpointId ->
+                                sendSnapshot(characterId, endpointId)
+                            }
                         }
                     }
                 }
@@ -343,13 +350,21 @@ class CharacterRealtimeSyncManager(
                     scope.launch {
                         // Snapshot anwenden (nur wenn GUID übereinstimmt)
                         if (snapshot.character.guid == currentCharacterGuid) {
-                            val result = repository.applySnapshotFromSync(snapshot, allowCreateNew = false)
-                            if (result.isSuccess) {
-                                lastSuccessfulReceiveTime = System.currentTimeMillis()
-                            } else {
-                                _syncStatus.value = SyncStatus.Error(
-                                    "Snapshot-Import fehlgeschlagen: ${result.exceptionOrNull()?.message}"
-                                )
+                            // Setze Flag um Echo-Back zu verhindern
+                            isApplyingReceivedSnapshot = true
+                            try {
+                                val result = repository.applySnapshotFromSync(snapshot, allowCreateNew = false)
+                                if (result.isSuccess) {
+                                    lastSuccessfulReceiveTime = System.currentTimeMillis()
+                                } else {
+                                    _syncStatus.value = SyncStatus.Error(
+                                        "Snapshot-Import fehlgeschlagen: ${result.exceptionOrNull()?.message}"
+                                    )
+                                }
+                            } finally {
+                                // Kurze Verzögerung um sicherzustellen, dass alle DB-Flows abgefeuert haben
+                                delay(100)
+                                isApplyingReceivedSnapshot = false
                             }
                         }
                     }

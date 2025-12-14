@@ -64,9 +64,33 @@ class CharacterExportManager(
                 repository.getGroupByIdOnce(gId)?.name
             }
             
-            // Sammle alle Items für GUID-Auflösung
-            val allItems = repository.getItemsForCharacterOnce(characterId)
-            val itemsById = allItems.associateBy { it.id }
+            // Sammle Inventar: Locations und Items
+            // Verwende paginierte Abfrage um CursorWindow-Overflow bei großen Item-Mengen zu vermeiden
+            val locations = repository.getLocationsForCharacter(characterId).first()
+            val locationDtos = locations.map { location ->
+                LocationDto.fromLocation(location)
+            }
+            val locationsById = locations.associateBy { it.id }
+            
+            // Lade Items paginiert (einmal für GUID-Auflösung und Export)
+            val allItemsPaged = repository.getItemsForCharacterPaged(characterId)
+            val itemsById = allItemsPaged.associateBy { it.id }
+            
+            val items = allItemsPaged.map { item ->
+                val locationName = item.locationId?.let { locationsById[it]?.name }
+                ItemDto(
+                    guid = item.guid,
+                    locationName = locationName,
+                    name = item.name,
+                    weightStone = item.weight.stone,
+                    weightOunces = item.weight.ounces,
+                    sortOrder = item.sortOrder,
+                    isPurse = item.isPurse,
+                    kreuzerAmount = item.kreuzerAmount,
+                    isCountable = item.isCountable,
+                    quantity = item.quantity
+                )
+            }
             
             // Sammle Slots und zugehörige Zauber
             val slotsWithSpells = repository.getSlotsWithSpellsByCharacter(characterId).first()
@@ -91,27 +115,6 @@ class CharacterExportManager(
                 RecipeKnowledgeDto.fromModel(knowledge, recipeNamesById[knowledge.recipeId]?.name)
             }
             
-            // Sammle Inventar: Locations und Items
-            val locations = repository.getLocationsForCharacter(characterId).first().map { location ->
-                LocationDto.fromLocation(location)
-            }
-            
-            val itemsWithLocation = repository.getItemsWithLocationForCharacter(characterId).first()
-            val items = itemsWithLocation.map { itemWithLocation ->
-                ItemDto(
-                    guid = itemWithLocation.guid,
-                    locationName = itemWithLocation.locationName,
-                    name = itemWithLocation.name,
-                    weightStone = itemWithLocation.stone,
-                    weightOunces = itemWithLocation.ounces,
-                    sortOrder = itemWithLocation.sortOrder,
-                    isPurse = itemWithLocation.isPurse,
-                    kreuzerAmount = itemWithLocation.kreuzerAmount,
-                    isCountable = itemWithLocation.isCountable,
-                    quantity = itemWithLocation.quantity
-                )
-            }
-            
             // Sammle MagicSigns (seit v6)
             val magicSignsWithItems = repository.getMagicSignsWithItemsForCharacter(characterId).first()
             val magicSigns = magicSignsWithItems.mapNotNull { signWithItem ->
@@ -131,7 +134,7 @@ class CharacterExportManager(
                 spellSlots = slots,
                 potions = potions,
                 recipeKnowledge = recipeKnowledge,
-                locations = locations,
+                locations = locationDtos,
                 items = items,
                 journalEntries = journalEntries,
                 magicSigns = magicSigns,
