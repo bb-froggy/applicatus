@@ -94,12 +94,12 @@ object RegenerationCalculator {
                 val aeDice = ProbeChecker.rollD6()
                 aeDetailsParts.add("W6=$aeDice")
                 aeGain += aeDice
-                
-                // AE-Modifikator
-                if (clampedModifier != 0) {
-                    aeGain += clampedModifier
-                    aeDetailsParts.add("Mod=$clampedModifier")
-                }
+            }
+            
+            // AE-Modifikator (gilt für beide Regenerationsarten)
+            if (clampedModifier != 0) {
+                aeGain += clampedModifier
+                aeDetailsParts.add("Mod=$clampedModifier")
             }
             
             // AE-Bonus

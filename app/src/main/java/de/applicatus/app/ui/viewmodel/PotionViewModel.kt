@@ -560,10 +560,23 @@ class PotionViewModel(
         // Trank aktualisieren: Qualität ändern und Menge anpassen
         // Neue Menge = alte Menge * Anzahl der neuen Tränke pro Original
         val newQuantity = potion.quantity * result.numberOfPotions
+        
+        // FIX: Bei erfolgreicher Verdünnung auch knownExactQuality aktualisieren
+        // wenn die Qualität vorher bekannt war
+        val updatedKnownExactQuality = if (result.success && potion.knownExactQuality != null) {
+            result.newQuality
+        } else if (!result.success) {
+            // Bei Misserfolg (Qualität M) auch die bekannte Qualität aktualisieren
+            result.newQuality
+        } else {
+            potion.knownExactQuality
+        }
+        
         val updatedPotion = potion.copy(
             actualQuality = result.newQuality,
-            quantity = newQuantity
-            // Aussehen, Haltbarkeit und Analyse-Status bleiben erhalten
+            quantity = newQuantity,
+            knownExactQuality = updatedKnownExactQuality
+            // Aussehen, Haltbarkeit und restlicher Analyse-Status bleiben erhalten
         )
         repository.updatePotion(updatedPotion)
         

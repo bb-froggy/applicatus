@@ -392,14 +392,26 @@ class CharacterExportManager(
                 
                 // GroupId über Gruppennamen auflösen
                 val allGroups = repository.allGroups.first()
-                val resolvedGroupId = exportDto.character.groupName?.let { groupName ->
+                var resolvedGroupId = exportDto.character.groupName?.let { groupName ->
                     // Suche Group nach Namen
                     allGroups.find { it.name == groupName }?.id
-                        ?: allGroups.find { it.name == "Unbekannte Gruppe" }?.id  // Fallback
                 }
                 
+                // Wenn Gruppe nicht gefunden, erstelle sie neu
                 if (exportDto.character.groupName != null && resolvedGroupId == null) {
-                    additionalWarnings += "Die Gruppe '${exportDto.character.groupName}' wurde nicht gefunden. Charakter wird in 'Unbekannte Gruppe' eingefügt."
+                    val newGroup = de.applicatus.app.data.model.character.Group(
+                        name = exportDto.character.groupName!!,
+                        currentDerianDate = "1 Praios 1040 BF",
+                        isGameMasterGroup = false
+                    )
+                    resolvedGroupId = repository.insertGroup(newGroup)
+                    additionalWarnings += "Die Gruppe '${exportDto.character.groupName}' wurde neu angelegt."
+                }
+                
+                // Fallback auf erste existierende Gruppe wenn keine Gruppe angegeben war
+                if (resolvedGroupId == null && allGroups.isNotEmpty()) {
+                    resolvedGroupId = allGroups.first().id
+                    additionalWarnings += "Charakter wurde der Gruppe '${allGroups.first().name}' zugeordnet."
                 }
                 
                 val newCharacter = exportDto.character.toCharacter().copy(

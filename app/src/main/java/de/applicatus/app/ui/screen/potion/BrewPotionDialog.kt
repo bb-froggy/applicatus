@@ -36,11 +36,19 @@ fun BrewPotionDialog(
 ) {
     val scope = rememberCoroutineScope()
     val brewableRecipes by viewModel.getBrewableRecipes().collectAsState(initial = emptyList())
-    val availableTalents = viewModel.getAvailableBrewingTalents()
+    
+    // FIX: Berechne Talente direkt vom übergebenen Character-Parameter
+    // statt vom ViewModel, um Race-Conditions bei Sync zu vermeiden
+    val availableTalents = remember(character) {
+        buildList {
+            if (character.hasAlchemy) add(Talent.ALCHEMY)
+            if (character.hasCookingPotions) add(Talent.COOKING_POTIONS)
+        }
+    }
     
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
     var selectedRecipeKnowledgeLevel by remember { mutableStateOf<RecipeKnowledgeLevel?>(null) }
-    var selectedTalent by remember { mutableStateOf<Talent?>(availableTalents.firstOrNull()) }
+    var selectedTalent by remember(availableTalents) { mutableStateOf<Talent?>(availableTalents.firstOrNull()) }
     var selectedLaboratory by remember { mutableStateOf(character.defaultLaboratory ?: Laboratory.ARCANE) }
     var voluntaryHandicap by remember { mutableStateOf(0) }
     var substitutions by remember { mutableStateOf(listOf<Substitution>()) }
