@@ -126,6 +126,7 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
                 characterData
             )
             lastSentPayloadSize = jsonString.toByteArray().size
+            lastSentPayloadJson = jsonString
             sentPayloadCount++
             
             // Direkte Übertragung zum verbundenen Peer
@@ -247,11 +248,17 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
         private set
     
     /**
+     * Hilfsmethode für Tests: Gibt den zuletzt gesendeten Payload als JSON zurück.
+     */
+    var lastSentPayloadJson: String = ""
+        private set
+
+    /**
      * Hilfsmethode für Tests: Gibt die Anzahl der gesendeten Payloads zurück.
      */
     var sentPayloadCount: Int = 0
         private set
-    
+
     /**
      * Hilfsmethode für Tests: Gibt die Anzahl der gesendeten Keep-Alives zurück.
      */
@@ -263,6 +270,7 @@ class FakeNearbyConnectionsService : NearbyConnectionsInterface {
      */
     fun resetPayloadStats() {
         lastSentPayloadSize = 0
+        lastSentPayloadJson = ""
         sentPayloadCount = 0
         keepAliveSentCount = 0
     }

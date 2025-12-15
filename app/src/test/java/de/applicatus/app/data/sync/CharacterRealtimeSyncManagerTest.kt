@@ -320,88 +320,117 @@ class CharacterRealtimeSyncManagerTest {
     /**
      * Test: Nach einseitigem Disconnect und Reconnect bleibt Payload-Größe konstant.
      * Stellt sicher, dass keine Daten akkumuliert werden.
+     * 
+     * Dieser Test wird mehrfach wiederholt, um flaky Behavior zu erkennen.
      */
     @Test
     fun `payload size stays constant after reconnect`() = runTest {
-        val testCharacterDto = CharacterDto(
-            guid = "test-guid-123",
-            name = "Test Charakter",
-            groupName = "Test Gruppe",
-            mu = 10,
-            kl = 12,
-            inValue = 11,
-            ch = 10,
-            ff = 13,
-            ge = 14,
-            ko = 12,
-            kk = 11,
-            maxLe = 30,
-            currentLe = 30,
-            hasAe = true,
-            maxAe = 25,
-            currentAe = 25,
-            hasKe = false,
-            maxKe = 0,
-            currentKe = 0
-        )
-        
-        val testExportDto = CharacterExportDto(
-            version = DataModelVersion.CURRENT_VERSION,
-            character = testCharacterDto,
-            spellSlots = emptyList(),
-            potions = emptyList(),
-            recipeKnowledge = emptyList(),
-            locations = emptyList(),
-            items = emptyList(),
-            journalEntries = emptyList(),
-            exportTimestamp = System.currentTimeMillis()
-        )
-        
-        // Erstes Senden
-        hostService.resetPayloadStats()
-        hostService.startAdvertising("Host")
-        clientService.startDiscovery { _, _ -> }
-        clientService.connectToEndpoint("Host", "Client")
-        
-        advanceUntilIdle()
-        
-        // Sende Charakter
-        hostService.sendCharacterData(
-            "Client",
-            testExportDto,
-            onSuccess = {},
-            onFailure = { fail("Send should succeed: $it") }
-        )
-        
-        val firstPayloadSize = hostService.lastSentPayloadSize
-        assertTrue("First payload should have reasonable size", firstPayloadSize > 0)
-        assertTrue("First payload should be under 10KB for empty character", firstPayloadSize < 10_000)
-        
-        // Simuliere einseitigen Disconnect
-        clientService.simulateOneSidedDisconnect()
-        advanceUntilIdle()
-        
-        // Reconnect
-        clientService.simulateReconnect()
-        advanceUntilIdle()
-        
-        // Erneut senden (gleicher Charakter, keine Änderungen)
-        hostService.sendCharacterData(
-            "Client",
-            testExportDto,
-            onSuccess = {},
-            onFailure = { fail("Send should succeed: $it") }
-        )
-        
-        val secondPayloadSize = hostService.lastSentPayloadSize
-        
-        // Payload-Größe sollte gleich bleiben
-        assertEquals(
-            "Payload size should remain constant after reconnect",
-            firstPayloadSize,
-            secondPayloadSize
-        )
-        assertEquals("Should have sent exactly 2 payloads", 2, hostService.sentPayloadCount)
+        // Test mehrfach wiederholen, um Race Conditions zu erkennen
+        repeat(20) { iteration ->
+            // Registry vor jeder Iteration leeren!
+            FakeNearbyConnectionsService.clearRegistry()
+            
+            // Für jede Iteration neue Services erstellen, um Isolation zu gewährleisten
+            val testHostService = FakeNearbyConnectionsService()
+            val testClientService = FakeNearbyConnectionsService()
+            
+            try {
+                // Fester Timestamp für lastModifiedDate - WICHTIG für konsistente Serialisierung!
+                val fixedModifiedDate = 1700000000000L
+                val testCharacterDto = CharacterDto(
+                    guid = "test-guid-123",
+                    name = "Test Charakter",
+                    groupName = "Test Gruppe",
+                    mu = 10,
+                    kl = 12,
+                    inValue = 11,
+                    ch = 10,
+                    ff = 13,
+                    ge = 14,
+                    ko = 12,
+                    kk = 11,
+                    maxLe = 30,
+                    currentLe = 30,
+                    hasAe = true,
+                    maxAe = 25,
+                    currentAe = 25,
+                    hasKe = false,
+                    maxKe = 0,
+                    currentKe = 0,
+                    lastModifiedDate = fixedModifiedDate
+                )
+                
+                // Fester Timestamp für Reproduzierbarkeit
+                val fixedTimestamp = 1700000000000L
+                val testExportDto = CharacterExportDto(
+                    version = DataModelVersion.CURRENT_VERSION,
+                    character = testCharacterDto,
+                    spellSlots = emptyList(),
+                    potions = emptyList(),
+                    recipeKnowledge = emptyList(),
+                    locations = emptyList(),
+                    items = emptyList(),
+                    journalEntries = emptyList(),
+                    exportTimestamp = fixedTimestamp
+                )
+                
+                // Erstes Senden
+                testHostService.resetPayloadStats()
+                testHostService.startAdvertising("Host")
+                testClientService.startDiscovery { _, _ -> }
+                testClientService.connectToEndpoint("Host", "Client")
+                
+                advanceUntilIdle()
+                
+                // Sende Charakter
+                testHostService.sendCharacterData(
+                    "Client",
+                    testExportDto,
+                    onSuccess = {},
+                    onFailure = { fail("Iteration $iteration: Send should succeed: $it") }
+                )
+                
+                val firstPayloadSize = testHostService.lastSentPayloadSize
+                val firstPayloadJson = testHostService.lastSentPayloadJson
+                assertTrue("Iteration $iteration: First payload should have reasonable size", firstPayloadSize > 0)
+                assertTrue("Iteration $iteration: First payload should be under 10KB for empty character", firstPayloadSize < 10_000)
+                
+                // Simuliere einseitigen Disconnect
+                testClientService.simulateOneSidedDisconnect()
+                advanceUntilIdle()
+                
+                // Reconnect
+                testClientService.simulateReconnect()
+                advanceUntilIdle()
+                
+                // Erneut senden (gleicher Charakter, keine Änderungen)
+                testHostService.sendCharacterData(
+                    "Client",
+                    testExportDto,
+                    onSuccess = {},
+                    onFailure = { fail("Iteration $iteration: Send should succeed: $it") }
+                )
+                
+                val secondPayloadSize = testHostService.lastSentPayloadSize
+                val secondPayloadJson = testHostService.lastSentPayloadJson
+                
+                // Payload-Größe sollte gleich bleiben - bei Fehler beide Payloads ausgeben
+                if (firstPayloadSize != secondPayloadSize) {
+                    println("=== PAYLOAD MISMATCH in Iteration $iteration ===")
+                    println("First payload ($firstPayloadSize bytes):")
+                    println(firstPayloadJson)
+                    println("---")
+                    println("Second payload ($secondPayloadSize bytes):")
+                    println(secondPayloadJson)
+                    println("===")
+                    fail("Iteration $iteration: Payload size should remain constant after reconnect (first=$firstPayloadSize, second=$secondPayloadSize)")
+                }
+                assertEquals("Iteration $iteration: Should have sent exactly 2 payloads", 2, testHostService.sentPayloadCount)
+            } finally {
+                testHostService.stopAllConnections()
+                testClientService.stopAllConnections()
+            }
+        }
     }
     
     /**
@@ -409,11 +438,16 @@ class CharacterRealtimeSyncManagerTest {
      */
     @Test
     fun `multiple sends without changes do not accumulate data`() = runTest {
+        // Feste Timestamps für konsistente Serialisierung!
+        val fixedModifiedDate = 1700000000000L
+        val fixedExportTimestamp = 1700000000000L
+        
         val testCharacterDto = CharacterDto(
             guid = "test-guid-123",
             name = "Test Charakter",
             groupName = "Test Gruppe",
-            mu = 10
+            mu = 10,
+            lastModifiedDate = fixedModifiedDate
         )
         
         val testExportDto = CharacterExportDto(
@@ -425,7 +459,7 @@ class CharacterRealtimeSyncManagerTest {
             locations = emptyList(),
             items = emptyList(),
             journalEntries = emptyList(),
-            exportTimestamp = System.currentTimeMillis()
+            exportTimestamp = fixedExportTimestamp
         )
         
         hostService.resetPayloadStats()
@@ -434,6 +468,7 @@ class CharacterRealtimeSyncManagerTest {
         advanceUntilIdle()
         
         val payloadSizes = mutableListOf<Int>()
+        val payloadJsons = mutableListOf<String>()
         
         // Sende 5 mal den gleichen Charakter
         repeat(5) {
@@ -444,13 +479,24 @@ class CharacterRealtimeSyncManagerTest {
                 onFailure = { fail("Send $it should succeed") }
             )
             payloadSizes.add(hostService.lastSentPayloadSize)
+            payloadJsons.add(hostService.lastSentPayloadJson)
         }
         
         // Alle Payload-Größen sollten identisch sein
         val firstSize = payloadSizes.first()
+        val firstJson = payloadJsons.first()
         payloadSizes.forEachIndexed { index, size ->
+            if (firstSize != size) {
+                println("=== PAYLOAD MISMATCH at send $index ===")
+                println("First payload ($firstSize bytes):")
+                println(firstJson)
+                println("---")
+                println("Payload $index ($size bytes):")
+                println(payloadJsons[index])
+                println("===")
+            }
             assertEquals(
-                "Payload $index should have same size as first",
+                "Payload $index should have same size as first (first=$firstSize, current=$size)",
                 firstSize,
                 size
             )
