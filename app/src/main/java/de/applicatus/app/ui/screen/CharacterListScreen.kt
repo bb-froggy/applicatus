@@ -956,6 +956,7 @@ fun CharacterListItem(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showExportMenu by remember { mutableStateOf(false) }
     
+    @Suppress("DEPRECATION")
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.EndToStart) {

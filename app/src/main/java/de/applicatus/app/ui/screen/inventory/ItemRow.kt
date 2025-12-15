@@ -52,6 +52,7 @@ fun ItemRow(
     // Self-Items können nicht per Swipe gelöscht werden
     val canSwipeToDelete = !item.isSelfItem
     
+    @Suppress("DEPRECATION")
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {

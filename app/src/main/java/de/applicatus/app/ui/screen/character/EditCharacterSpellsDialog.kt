@@ -55,7 +55,7 @@ fun EditCharacterSpellsDialog(
                     item {
                         OutlinedTextField(
                             value = applicatusZfw,
-                            onValueChange = { applicatusZfw = it },
+                            onValueChange = { newValue -> applicatusZfw = newValue },
                             label = { Text("${stringResource(R.string.applicatus)} ZfW") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
@@ -65,7 +65,7 @@ fun EditCharacterSpellsDialog(
                     item {
                         OutlinedTextField(
                             value = applicatusModifier,
-                            onValueChange = { applicatusModifier = it },
+                            onValueChange = { newValue -> applicatusModifier = newValue },
                             label = { Text("${stringResource(R.string.applicatus)} Modifikator") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()

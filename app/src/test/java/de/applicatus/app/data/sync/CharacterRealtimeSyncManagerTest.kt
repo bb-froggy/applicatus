@@ -134,19 +134,19 @@ class CharacterRealtimeSyncManagerTest {
      */
     @Test
     fun `test SyncStatus sealed class`() {
-        val idleStatus = CharacterRealtimeSyncManager.SyncStatus.Idle
-        val connectingStatus = CharacterRealtimeSyncManager.SyncStatus.Connecting("Test Device")
-        val syncingStatus = CharacterRealtimeSyncManager.SyncStatus.Syncing(
+        val idleStatus: CharacterRealtimeSyncManager.SyncStatus = CharacterRealtimeSyncManager.SyncStatus.Idle
+        val connectingStatus: CharacterRealtimeSyncManager.SyncStatus = CharacterRealtimeSyncManager.SyncStatus.Connecting("Test Device")
+        val syncingStatus: CharacterRealtimeSyncManager.SyncStatus = CharacterRealtimeSyncManager.SyncStatus.Syncing(
             "test-guid",
             "endpoint-123",
             "Test Device"
         )
-        val warningStatus = CharacterRealtimeSyncManager.SyncStatus.Warning(
+        val warningStatus: CharacterRealtimeSyncManager.SyncStatus = CharacterRealtimeSyncManager.SyncStatus.Warning(
             "test-guid",
             "Test warning",
             System.currentTimeMillis() - 20000
         )
-        val errorStatus = CharacterRealtimeSyncManager.SyncStatus.Error("Test error message")
+        val errorStatus: CharacterRealtimeSyncManager.SyncStatus = CharacterRealtimeSyncManager.SyncStatus.Error("Test error message")
         
         assertTrue(idleStatus is CharacterRealtimeSyncManager.SyncStatus.Idle)
         assertTrue(connectingStatus is CharacterRealtimeSyncManager.SyncStatus.Connecting)

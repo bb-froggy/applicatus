@@ -144,7 +144,7 @@ fun DilutionDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTalent) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                         )
                         

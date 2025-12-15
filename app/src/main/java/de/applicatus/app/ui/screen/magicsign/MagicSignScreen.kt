@@ -540,7 +540,7 @@ private fun AddMagicSignDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTargetDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
                         ExposedDropdownMenu(
                             expanded = showTargetDropdown,
@@ -577,7 +577,7 @@ private fun AddMagicSignDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showEffectDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
                         ExposedDropdownMenu(
                             expanded = showEffectDropdown,
@@ -618,7 +618,7 @@ private fun AddMagicSignDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDurationDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
                         ExposedDropdownMenu(
                             expanded = showDurationDropdown,

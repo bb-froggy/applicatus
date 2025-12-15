@@ -91,7 +91,7 @@ fun AddSlotDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemDropdownExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                             isError = selectedType == SlotType.APPLICATUS && selectedItem == null
                         )
                         ExposedDropdownMenu(

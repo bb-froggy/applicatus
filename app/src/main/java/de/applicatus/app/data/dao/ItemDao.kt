@@ -32,7 +32,7 @@ interface ItemDao {
     suspend fun getItemsPagedForCharacter(characterId: Long, limit: Int, offset: Int): List<Item>
     
     @Transaction
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query("""
         SELECT items.id, items.guid, items.characterId, items.locationId, items.name, 
                items.stone, items.ounces, items.sortOrder,

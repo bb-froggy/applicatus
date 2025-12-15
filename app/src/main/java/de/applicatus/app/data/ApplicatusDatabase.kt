@@ -60,28 +60,28 @@ abstract class ApplicatusDatabase : RoomDatabase() {
         private var INSTANCE: ApplicatusDatabase? = null
         
         val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Character-Tabelle erweitern
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasApplicatus INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN applicatusZfw INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN applicatusModifier INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasApplicatus INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN applicatusZfw INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN applicatusModifier INTEGER NOT NULL DEFAULT 0")
                 
                 // SpellSlot-Tabelle erweitern
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN slotType TEXT NOT NULL DEFAULT 'APPLICATUS'")
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN volumePoints INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN applicatusRollResult TEXT")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN slotType TEXT NOT NULL DEFAULT 'APPLICATUS'")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN volumePoints INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN applicatusRollResult TEXT")
             }
         }
         
         val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // GUID-Spalte zu Character-Tabelle hinzufügen
                 // Generiere UUIDs für bestehende Charaktere
-                database.execSQL("ALTER TABLE characters ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE characters ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
                 
                 // Update bestehende Charaktere mit neuen GUIDs
                 // Leider kann SQLite keine UUID-Funktion direkt aufrufen, daher werden sie in Code generiert
-                val cursor = database.query("SELECT id FROM characters")
+                val cursor = db.query("SELECT id FROM characters")
                 val updates = mutableListOf<String>()
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(0)
@@ -89,24 +89,24 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     updates.add("UPDATE characters SET guid = '$guid' WHERE id = $id")
                 }
                 cursor.close()
-                updates.forEach { database.execSQL(it) }
+                updates.forEach { db.execSQL(it) }
             }
         }
         
         val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Energie-Spalten zu Character-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE characters ADD COLUMN currentLe INTEGER NOT NULL DEFAULT 30")
-                database.execSQL("ALTER TABLE characters ADD COLUMN maxLe INTEGER NOT NULL DEFAULT 30")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasAe INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN currentAe INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN maxAe INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasKe INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN currentKe INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN maxKe INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN currentLe INTEGER NOT NULL DEFAULT 30")
+                db.execSQL("ALTER TABLE characters ADD COLUMN maxLe INTEGER NOT NULL DEFAULT 30")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasAe INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN currentAe INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN maxAe INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasKe INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN currentKe INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN maxKe INTEGER NOT NULL DEFAULT 0")
                 
                 // Recipe-Tabelle erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS recipes (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         name TEXT NOT NULL
@@ -114,7 +114,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Potion-Tabelle erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS potions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -127,38 +127,38 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Indices für Potions erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
             }
         }
         
         val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Regenerations-Felder zu Character-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE characters ADD COLUMN leRegenBonus INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN aeRegenBonus INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasMasteryRegeneration INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN leRegenBonus INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN aeRegenBonus INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasMasteryRegeneration INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_5_6 = object : Migration(5, 6) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Recipe-Tabelle erweitern
-                database.execSQL("ALTER TABLE recipes ADD COLUMN brewingDifficulty INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN analysisDifficulty INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN appearance TEXT NOT NULL DEFAULT ''")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN shelfLife TEXT NOT NULL DEFAULT '1 Mond'")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN brewingDifficulty INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN analysisDifficulty INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN appearance TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN shelfLife TEXT NOT NULL DEFAULT '1 Mond'")
                 
                 // Potion-Tabelle erweitern
-                database.execSQL("ALTER TABLE potions ADD COLUMN appearance TEXT NOT NULL DEFAULT ''")
-                database.execSQL("ALTER TABLE potions ADD COLUMN analysisStatus TEXT NOT NULL DEFAULT 'NOT_ANALYZED'")
+                db.execSQL("ALTER TABLE potions ADD COLUMN appearance TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE potions ADD COLUMN analysisStatus TEXT NOT NULL DEFAULT 'NOT_ANALYZED'")
                 
                 // Character-Tabelle erweitern (Alchemie-Talente)
-                database.execSQL("ALTER TABLE characters ADD COLUMN alchemySkill INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN cookingPotionsSkill INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN alchemySkill INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN cookingPotionsSkill INTEGER NOT NULL DEFAULT 0")
                 
                 // GlobalSettings-Tabelle erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS global_settings (
                         id INTEGER PRIMARY KEY NOT NULL,
                         currentDerianDate TEXT NOT NULL DEFAULT '1 Praios 1040 BF'
@@ -166,18 +166,18 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Standard-Settings einfügen
-                database.execSQL("INSERT INTO global_settings (id, currentDerianDate) VALUES (1, '1 Praios 1040 BF')")
+                db.execSQL("INSERT INTO global_settings (id, currentDerianDate) VALUES (1, '1 Praios 1040 BF')")
             }
         }
         
         val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Character-Tabelle erweitern (Zauber für Alchemie)
-                database.execSQL("ALTER TABLE characters ADD COLUMN odemZfw INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN analysZfw INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN odemZfw INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN analysZfw INTEGER NOT NULL DEFAULT 0")
                 
                 // RecipeKnowledge-Tabelle erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS recipe_knowledge (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -189,42 +189,42 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Indices für RecipeKnowledge erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_recipe_knowledge_characterId ON recipe_knowledge(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_recipe_knowledge_recipeId ON recipe_knowledge(recipeId)")
-                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_recipe_knowledge_characterId_recipeId ON recipe_knowledge(characterId, recipeId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_recipe_knowledge_characterId ON recipe_knowledge(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_recipe_knowledge_recipeId ON recipe_knowledge(recipeId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_recipe_knowledge_characterId_recipeId ON recipe_knowledge(characterId, recipeId)")
             }
         }
         
         val MIGRATION_7_8 = object : Migration(7, 8) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Boolean-Felder hinzufügen, um zu tracken ob Talente/Zauber überhaupt beherrscht werden
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasAlchemy INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasCookingPotions INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasOdem INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasAnalys INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasAlchemy INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasCookingPotions INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasOdem INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasAnalys INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_8_9 = object : Migration(8, 9) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Recipe-Tabelle erweitern mit Feldern aus Rezepte.csv
-                database.execSQL("ALTER TABLE recipes ADD COLUMN gruppe TEXT NOT NULL DEFAULT ''")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN lab TEXT NOT NULL DEFAULT ''")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN preis INTEGER")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN zutatenPreis INTEGER")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN zutatenVerbreitung INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE recipes ADD COLUMN verbreitung INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN gruppe TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN lab TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN preis INTEGER")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN zutatenPreis INTEGER")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN zutatenVerbreitung INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recipes ADD COLUMN verbreitung INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_9_10 = object : Migration(9, 10) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // WICHTIG: Da es noch keine Anwender mit Elixieren gibt, erstellen wir die Potion-Tabelle neu
                 // Alte Potion-Tabelle löschen
-                database.execSQL("DROP TABLE IF EXISTS potions")
+                db.execSQL("DROP TABLE IF EXISTS potions")
                 
                 // Neue Potion-Tabelle mit erweiterten Analyse-Feldern erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS potions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -247,35 +247,35 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Indices für Potions erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
                 
                 // Character-Tabelle erweitern mit zusätzlichen Talenten für Alchemie
-                database.execSQL("ALTER TABLE characters ADD COLUMN selfControlSkill INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN sensoryAcuitySkill INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN magicalLoreSkill INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN herbalLoreSkill INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN selfControlSkill INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN sensoryAcuitySkill INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN magicalLoreSkill INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN herbalLoreSkill INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_10_11 = object : Migration(10, 11) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Character-Tabelle erweitern mit Spieler/Spielleiter-Flag
-                database.execSQL("ALTER TABLE characters ADD COLUMN isGameMaster INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN isGameMaster INTEGER NOT NULL DEFAULT 0")
                 
                 // SpellSlot-Tabelle erweitern mit Patzer-Flag
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN isBotched INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN isBotched INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_11_12 = object : Migration(11, 12) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Entferne nur accumulatedStructureAnalysisTap aus Potion-Tabelle
                 // bestStructureAnalysisFacilitation bleibt erhalten!
                 // Da SQLite keine ALTER TABLE DROP COLUMN unterstützt, müssen wir die Tabelle neu erstellen
                 
                 // 1. Temporäre Tabelle mit neuer Struktur erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS potions_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -297,7 +297,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 2. Daten von alter Tabelle in neue Tabelle kopieren (ohne accumulatedStructureAnalysisTap)
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO potions_new (
                         id, characterId, recipeId, actualQuality, appearance, expiryDate,
                         categoryKnown, knownQualityLevel, intensityQuality, refinedQuality,
@@ -313,27 +313,27 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 3. Alte Tabelle löschen
-                database.execSQL("DROP TABLE potions")
+                db.execSQL("DROP TABLE potions")
                 
                 // 4. Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE potions_new RENAME TO potions")
+                db.execSQL("ALTER TABLE potions_new RENAME TO potions")
                 
                 // 5. Indices neu erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_recipeId ON potions(recipeId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_characterId ON potions(characterId)")
             }
         }
         
         val MIGRATION_12_13 = object : Migration(12, 13) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Gruppen-Feld zu Character-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE characters ADD COLUMN 'group' TEXT NOT NULL DEFAULT 'Meine Gruppe'")
+                db.execSQL("ALTER TABLE characters ADD COLUMN 'group' TEXT NOT NULL DEFAULT 'Meine Gruppe'")
                 
                 // GUID-Feld zu Potion-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE potions ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE potions ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
                 
                 // Generiere UUIDs für bestehende Tränke
-                val cursor = database.query("SELECT id FROM potions")
+                val cursor = db.query("SELECT id FROM potions")
                 val updates = mutableListOf<String>()
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(0)
@@ -341,36 +341,36 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     updates.add("UPDATE potions SET guid = '$guid' WHERE id = $id")
                 }
                 cursor.close()
-                updates.forEach { database.execSQL(it) }
+                updates.forEach { db.execSQL(it) }
             }
         }
         
         val MIGRATION_13_14 = object : Migration(13, 14) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Magisches Meisterhandwerk-Felder zu Character-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE characters ADD COLUMN alchemyIsMagicalMastery INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN cookingPotionsIsMagicalMastery INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN alchemyIsMagicalMastery INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN cookingPotionsIsMagicalMastery INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_14_15 = object : Migration(14, 15) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Default-Labor-Feld zu Character-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE characters ADD COLUMN defaultLaboratory TEXT")
+                db.execSQL("ALTER TABLE characters ADD COLUMN defaultLaboratory TEXT")
             }
         }
         
         val MIGRATION_15_16 = object : Migration(15, 16) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // nameKnown-Feld zu Potion-Tabelle hinzufügen
-                database.execSQL("ALTER TABLE potions ADD COLUMN nameKnown INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE potions ADD COLUMN nameKnown INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_16_17 = object : Migration(16, 17) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Groups-Tabelle erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS groups (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         name TEXT NOT NULL,
@@ -379,8 +379,8 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 2. Standard-Gruppe erstellen und deren ID ermitteln
-                database.execSQL("INSERT INTO groups (name, currentDerianDate) VALUES ('Meine Gruppe', '1 Praios 1040 BF')")
-                val cursor = database.query("SELECT last_insert_rowid()")
+                db.execSQL("INSERT INTO groups (name, currentDerianDate) VALUES ('Meine Gruppe', '1 Praios 1040 BF')")
+                val cursor = db.query("SELECT last_insert_rowid()")
                 var defaultGroupId: Long = 1
                 if (cursor.moveToFirst()) {
                     defaultGroupId = cursor.getLong(0)
@@ -388,15 +388,15 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 cursor.close()
                 
                 // 3. Für jede eindeutige Gruppe aus characters eine neue Group erstellen
-                val groupCursor = database.query("SELECT DISTINCT 'group' FROM characters WHERE 'group' != 'Meine Gruppe'")
+                val groupCursor = db.query("SELECT DISTINCT 'group' FROM characters WHERE 'group' != 'Meine Gruppe'")
                 val groupMapping = mutableMapOf<String, Long>()
                 groupMapping["Meine Gruppe"] = defaultGroupId
                 
                 while (groupCursor.moveToNext()) {
                     val groupName = groupCursor.getString(0)
                     if (groupName.isNotEmpty()) {
-                        database.execSQL("INSERT INTO groups (name, currentDerianDate) VALUES (?, '1 Praios 1040 BF')", arrayOf(groupName))
-                        val idCursor = database.query("SELECT last_insert_rowid()")
+                        db.execSQL("INSERT INTO groups (name, currentDerianDate) VALUES (?, '1 Praios 1040 BF')", arrayOf(groupName))
+                        val idCursor = db.query("SELECT last_insert_rowid()")
                         if (idCursor.moveToFirst()) {
                             groupMapping[groupName] = idCursor.getLong(0)
                         }
@@ -406,7 +406,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 groupCursor.close()
                 
                 // 4. Hole aktuelles derisches Datum aus global_settings
-                val settingsCursor = database.query("SELECT currentDerianDate FROM global_settings WHERE id = 1")
+                val settingsCursor = db.query("SELECT currentDerianDate FROM global_settings WHERE id = 1")
                 var currentDate = "1 Praios 1040 BF"
                 if (settingsCursor.moveToFirst()) {
                     currentDate = settingsCursor.getString(0)
@@ -414,22 +414,22 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 settingsCursor.close()
                 
                 // 5. Setze das globale Datum auf die Standard-Gruppe
-                database.execSQL("UPDATE groups SET currentDerianDate = ? WHERE id = ?", arrayOf(currentDate, defaultGroupId))
+                db.execSQL("UPDATE groups SET currentDerianDate = ? WHERE id = ?", arrayOf<Any>(currentDate, defaultGroupId))
                 
                 // 6. Temporäre groupId-Spalte zu characters hinzufügen
-                database.execSQL("ALTER TABLE characters ADD COLUMN groupId INTEGER")
+                db.execSQL("ALTER TABLE characters ADD COLUMN groupId INTEGER")
                 
                 // 7. groupId für bestehende Charaktere setzen
                 groupMapping.forEach { (groupName, groupId) ->
-                    database.execSQL("UPDATE characters SET groupId = ? WHERE 'group' = ?", arrayOf(groupId, groupName))
+                    db.execSQL("UPDATE characters SET groupId = ? WHERE 'group' = ?", arrayOf<Any>(groupId, groupName))
                 }
                 
                 // 8. Charaktere ohne groupId auf Standard-Gruppe setzen
-                database.execSQL("UPDATE characters SET groupId = ? WHERE groupId IS NULL", arrayOf(defaultGroupId))
+                db.execSQL("UPDATE characters SET groupId = ? WHERE groupId IS NULL", arrayOf(defaultGroupId))
                 
                 // 9. Tabelle neu erstellen mit Foreign Key (SQLite unterstützt kein ALTER TABLE für FK)
                 // 9.1. Neue Tabelle mit Foreign Key erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS characters_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         guid TEXT NOT NULL,
@@ -479,7 +479,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 9.2. Daten von alter Tabelle kopieren
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO characters_new (
                         id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
                         hasApplicatus, applicatusZfw, applicatusModifier,
@@ -513,20 +513,20 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 9.3. Alte Tabelle löschen
-                database.execSQL("DROP TABLE characters")
+                db.execSQL("DROP TABLE characters")
                 
                 // 9.4. Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE characters_new RENAME TO characters")
+                db.execSQL("ALTER TABLE characters_new RENAME TO characters")
                 
                 // 9.5. Index für groupId erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
             }
         }
         
         val MIGRATION_17_18 = object : Migration(17, 18) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Locations-Tabelle erstellen (OHNE DEFAULT-Werte in der Tabellendefinition)
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS locations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -538,10 +538,10 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Index für characterId erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_locations_characterId ON locations(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_locations_characterId ON locations(characterId)")
                 
                 // 2. Items-Tabelle erstellen (OHNE DEFAULT-Werte in der Tabellendefinition)
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS items (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -556,25 +556,25 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Indices für items erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
                 
                 // 3. Potion-Tabelle erweitern mit locationId
-                database.execSQL("ALTER TABLE potions ADD COLUMN locationId INTEGER")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_potions_locationId ON potions(locationId)")
+                db.execSQL("ALTER TABLE potions ADD COLUMN locationId INTEGER")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_potions_locationId ON potions(locationId)")
                 
                 // 4. Standard-Locations für alle bestehenden Charaktere erstellen
-                val charactersCursor = database.query("SELECT id FROM characters")
+                val charactersCursor = db.query("SELECT id FROM characters")
                 while (charactersCursor.moveToNext()) {
                     val characterId = charactersCursor.getLong(0)
                     
                     // "Am Körper" Location
-                    database.execSQL("""
+                    db.execSQL("""
                         INSERT INTO locations (characterId, name, isDefault, sortOrder) 
                         VALUES (?, 'Am Körper', 1, 0)
                     """.trimIndent(), arrayOf(characterId))
                     
-                    val bodyLocationIdCursor = database.query("SELECT last_insert_rowid()")
+                    val bodyLocationIdCursor = db.query("SELECT last_insert_rowid()")
                     var bodyLocationId: Long = 0
                     if (bodyLocationIdCursor.moveToFirst()) {
                         bodyLocationId = bodyLocationIdCursor.getLong(0)
@@ -582,12 +582,12 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     bodyLocationIdCursor.close()
                     
                     // "Rucksack" Location
-                    database.execSQL("""
+                    db.execSQL("""
                         INSERT INTO locations (characterId, name, isDefault, sortOrder) 
                         VALUES (?, 'Rucksack', 1, 1)
                     """.trimIndent(), arrayOf(characterId))
                     
-                    val backpackLocationIdCursor = database.query("SELECT last_insert_rowid()")
+                    val backpackLocationIdCursor = db.query("SELECT last_insert_rowid()")
                     var backpackLocationId: Long = 0
                     if (backpackLocationIdCursor.moveToFirst()) {
                         backpackLocationId = backpackLocationIdCursor.getLong(0)
@@ -595,7 +595,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     backpackLocationIdCursor.close()
                     
                     // Alle bestehenden Tränke des Charakters in "Rucksack" legen
-                    database.execSQL("""
+                    db.execSQL("""
                         UPDATE potions SET locationId = ? WHERE characterId = ?
                     """.trimIndent(), arrayOf(backpackLocationId, characterId))
                 }
@@ -604,19 +604,19 @@ abstract class ApplicatusDatabase : RoomDatabase() {
         }
         
         val MIGRATION_18_19 = object : Migration(18, 19) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Locations-Tabelle erweitern um isCarried
-                database.execSQL("ALTER TABLE locations ADD COLUMN isCarried INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE locations ADD COLUMN isCarried INTEGER NOT NULL DEFAULT 0")
                 
                 // 2. "Am Körper" umbenennen zu "Rüstung/Kleidung" und als getragen markieren
-                database.execSQL("""
+                db.execSQL("""
                     UPDATE locations 
                     SET name = 'Rüstung/Kleidung', isCarried = 1 
                     WHERE name = 'Am Körper' AND isDefault = 1
                 """)
                 
                 // 3. "Rucksack" als getragen markieren
-                database.execSQL("""
+                db.execSQL("""
                     UPDATE locations 
                     SET isCarried = 1 
                     WHERE name = 'Rucksack' AND isDefault = 1
@@ -625,32 +625,32 @@ abstract class ApplicatusDatabase : RoomDatabase() {
         }
         
         val MIGRATION_19_20 = object : Migration(19, 20) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Items-Tabelle um Geldbeutel-Felder erweitern
-                database.execSQL("ALTER TABLE items ADD COLUMN isPurse INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE items ADD COLUMN kreuzerAmount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE items ADD COLUMN isPurse INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE items ADD COLUMN kreuzerAmount INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_20_21 = object : Migration(20, 21) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Potions-Tabelle um Haltbarmachen-Felder erweitern
-                database.execSQL("ALTER TABLE potions ADD COLUMN createdDate TEXT NOT NULL DEFAULT ''")
-                database.execSQL("ALTER TABLE potions ADD COLUMN preservationAttempted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE potions ADD COLUMN createdDate TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE potions ADD COLUMN preservationAttempted INTEGER NOT NULL DEFAULT 0")
                 
                 // Setze createdDate für bestehende Tränke auf "unbekannt"
                 // In der Praxis sollte dies das aktuelle Datum sein, aber wir können das nicht rekonstruieren
-                database.execSQL("UPDATE potions SET createdDate = 'Unbekannt'")
+                db.execSQL("UPDATE potions SET createdDate = 'Unbekannt'")
             }
         }
         
         val MIGRATION_21_22 = object : Migration(21, 22) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Recipes-Tabelle neu erstellen mit lab als nullable
                 // SQLite unterstützt kein ALTER COLUMN, daher müssen wir die Tabelle neu erstellen
                 
                 // 1. Temporäre Tabelle mit korrektem Schema erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS recipes_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         name TEXT NOT NULL,
@@ -669,7 +669,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 
                 // 2. Daten von alter Tabelle kopieren
                 // Konvertiere leere lab-Strings zu NULL
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO recipes_new (
                         id, name, brewingDifficulty, analysisDifficulty, appearance, shelfLife,
                         gruppe, lab, preis, zutatenPreis, zutatenVerbreitung, verbreitung
@@ -681,20 +681,20 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 3. Alte Tabelle löschen
-                database.execSQL("DROP TABLE recipes")
+                db.execSQL("DROP TABLE recipes")
                 
                 // 4. Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE recipes_new RENAME TO recipes")
+                db.execSQL("ALTER TABLE recipes_new RENAME TO recipes")
             }
         }
         
         val MIGRATION_22_23 = object : Migration(22, 23) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Entferne das veraltete 'group'-String-Feld aus der characters-Tabelle
                 // SQLite unterstützt kein ALTER TABLE DROP COLUMN, daher müssen wir die Tabelle neu erstellen
                 
                 // 1. Temporäre Tabelle ohne 'group'-Spalte erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS characters_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         guid TEXT NOT NULL,
@@ -743,7 +743,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 2. Daten von alter Tabelle kopieren (ohne 'group'-Spalte)
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO characters_new (
                         id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
                         hasApplicatus, applicatusZfw, applicatusModifier,
@@ -775,24 +775,24 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 3. Alte Tabelle löschen
-                database.execSQL("DROP TABLE characters")
+                db.execSQL("DROP TABLE characters")
                 
                 // 4. Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE characters_new RENAME TO characters")
+                db.execSQL("ALTER TABLE characters_new RENAME TO characters")
                 
                 // 5. Index für groupId erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
             }
         }
         
         val MIGRATION_23_24 = object : Migration(23, 24) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge quantity und isCountable Felder zur items-Tabelle hinzu
                 // Füge quantityProduced Feld zur recipes-Tabelle hinzu
                 
                 // 1. Items-Tabelle erweitern
                 // Temporäre Tabelle mit neuen Feldern erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS items_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -811,7 +811,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Daten kopieren
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO items_new (
                         id, characterId, locationId, name, stone, ounces, 
                         sortOrder, isPurse, kreuzerAmount, isCountable, quantity
@@ -823,16 +823,16 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Alte Tabelle löschen und neue umbenennen
-                database.execSQL("DROP TABLE items")
-                database.execSQL("ALTER TABLE items_new RENAME TO items")
+                db.execSQL("DROP TABLE items")
+                db.execSQL("ALTER TABLE items_new RENAME TO items")
                 
                 // Indizes neu erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_items_characterId ON items(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_items_locationId ON items(locationId)")
                 
                 // 2. Recipes-Tabelle erweitern
                 // Temporäre Tabelle mit neuem Feld erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS recipes_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         name TEXT NOT NULL,
@@ -851,7 +851,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Daten kopieren mit Standard-Mengen
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO recipes_new (
                         id, name, gruppe, lab, preis, zutatenPreis, zutatenVerbreitung,
                         verbreitung, brewingDifficulty, analysisDifficulty, appearance, 
@@ -879,67 +879,67 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Alte Tabelle löschen und neue umbenennen
-                database.execSQL("DROP TABLE recipes")
-                database.execSQL("ALTER TABLE recipes_new RENAME TO recipes")
+                db.execSQL("DROP TABLE recipes")
+                db.execSQL("ALTER TABLE recipes_new RENAME TO recipes")
             }
         }
         
         val MIGRATION_24_25 = object : Migration(24, 25) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge quantity Feld zur potions-Tabelle hinzu
-                database.execSQL("ALTER TABLE potions ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE potions ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1")
             }
         }
         
         val MIGRATION_25_26 = object : Migration(25, 26) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge lastModifiedDate zur characters-Tabelle hinzu
                 // Setze initial auf aktuelle Zeit
                 val currentTime = System.currentTimeMillis()
-                database.execSQL("ALTER TABLE characters ADD COLUMN lastModifiedDate INTEGER NOT NULL DEFAULT $currentTime")
+                db.execSQL("ALTER TABLE characters ADD COLUMN lastModifiedDate INTEGER NOT NULL DEFAULT $currentTime")
             }
         }
         
         val MIGRATION_26_27 = object : Migration(26, 27) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge expiryDate zur spell_slots-Tabelle hinzu
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN expiryDate TEXT")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN expiryDate TEXT")
                 
                 // Füge applicatusDuration zur characters-Tabelle hinzu
-                database.execSQL("ALTER TABLE characters ADD COLUMN applicatusDuration TEXT NOT NULL DEFAULT 'DAY'")
+                db.execSQL("ALTER TABLE characters ADD COLUMN applicatusDuration TEXT NOT NULL DEFAULT 'DAY'")
             }
         }
         
         val MIGRATION_27_28 = object : Migration(27, 28) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge langwirkende Zauberformel zur spell_slots-Tabelle hinzu
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN longDurationFormula TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN longDurationFormula TEXT NOT NULL DEFAULT ''")
             }
         }
         
         val MIGRATION_28_29 = object : Migration(28, 29) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge AsP-Kosten-Verwaltung zu Character und SpellSlot hinzu
                 
                 // Character: Kraftkontrolle, Kraftfokus und Applicatus-Kostenersparnis
-                database.execSQL("ALTER TABLE characters ADD COLUMN applicatusAspSavingPercent INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN kraftkontrolle INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasStaffWithKraftfokus INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN applicatusAspSavingPercent INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN kraftkontrolle INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasStaffWithKraftfokus INTEGER NOT NULL DEFAULT 0")
                 
                 // SpellSlot: AsP-Kosten und Hexenrepräsentation
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN aspCostBase INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN aspCostFormula TEXT NOT NULL DEFAULT ''")
-                database.execSQL("ALTER TABLE spell_slots ADD COLUMN useHexenRepresentation INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN aspCostBase INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN aspCostFormula TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE spell_slots ADD COLUMN useHexenRepresentation INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_29_30 = object : Migration(29, 30) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Führe aspCostBase und aspCostFormula zu einem Feld aspCost zusammen
                 // SQLite unterstützt kein DROP COLUMN, daher müssen wir die Tabelle neu erstellen
                 
                 // 1. Temporäre Tabelle mit neuer Struktur erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS spell_slots_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -965,7 +965,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """)
                 
                 // 2. Daten migrieren: aspCostFormula hat Priorität, sonst aspCostBase als String
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO spell_slots_new (
                         id, characterId, slotNumber, slotType, volumePoints, spellId,
                         zfw, modifier, variant, isFilled, zfpStar, lastRollResult,
@@ -986,32 +986,32 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """)
                 
                 // 3. Alte Tabelle löschen
-                database.execSQL("DROP TABLE spell_slots")
+                db.execSQL("DROP TABLE spell_slots")
                 
                 // 4. Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE spell_slots_new RENAME TO spell_slots")
+                db.execSQL("ALTER TABLE spell_slots_new RENAME TO spell_slots")
                 
                 // 5. Indices neu erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_characterId ON spell_slots(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_spellId ON spell_slots(spellId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_characterId ON spell_slots(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_spellId ON spell_slots(spellId)")
             }
         }
         
         val MIGRATION_30_31 = object : Migration(30, 31) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge isGameMasterGroup zur groups-Tabelle hinzu
-                database.execSQL("ALTER TABLE groups ADD COLUMN isGameMasterGroup INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE groups ADD COLUMN isGameMasterGroup INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_31_32 = object : Migration(31, 32) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Entferne isGameMaster aus characters-Tabelle (migriert zu Group.isGameMasterGroup)
                 // SQLite unterstützt ALTER TABLE DROP COLUMN erst ab Version 3.35.0 (Android API 30+)
                 // Daher verwenden wir die klassische Methode: neue Tabelle erstellen, Daten kopieren, alte Tabelle löschen
                 
                 // 1. Neue Tabelle ohne isGameMaster erstellen
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS characters_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         guid TEXT NOT NULL,
@@ -1064,7 +1064,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 2. Daten kopieren (ohne isGameMaster)
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO characters_new (
                         id, guid, name, mu, kl, inValue, ch, ff, ge, ko, kk,
                         hasApplicatus, applicatusZfw, applicatusModifier,
@@ -1100,32 +1100,32 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 3. Alte Tabelle löschen
-                database.execSQL("DROP TABLE characters")
+                db.execSQL("DROP TABLE characters")
                 
                 // 4. Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE characters_new RENAME TO characters")
+                db.execSQL("ALTER TABLE characters_new RENAME TO characters")
                 
                 // 5. Indices neu erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_characters_groupId ON characters(groupId)")
             }
         }
         
         val MIGRATION_32_33 = object : Migration(32, 33) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge ritualKnowledgeValue und hasKonzentrationsstärke hinzu
-                database.execSQL("""
+                db.execSQL("""
                     ALTER TABLE characters ADD COLUMN ritualKnowledgeValue INTEGER NOT NULL DEFAULT 0
                 """.trimIndent())
-                database.execSQL("""
+                db.execSQL("""
                     ALTER TABLE characters ADD COLUMN hasKonzentrationsstärke INTEGER NOT NULL DEFAULT 0
                 """.trimIndent())
             }
         }
         
         val MIGRATION_33_34 = object : Migration(33, 34) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Erstelle character_journal_entries Tabelle
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS character_journal_entries (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -1139,32 +1139,32 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Erstelle Indices für bessere Query-Performance
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_character_journal_entries_characterId ON character_journal_entries(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_character_journal_entries_timestamp ON character_journal_entries(timestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_character_journal_entries_characterId ON character_journal_entries(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_character_journal_entries_timestamp ON character_journal_entries(timestamp)")
             }
         }
         
         val MIGRATION_34_35 = object : Migration(34, 35) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Füge applicatusExtendedDuration zu characters hinzu
-                database.execSQL("ALTER TABLE characters ADD COLUMN applicatusExtendedDuration INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN applicatusExtendedDuration INTEGER NOT NULL DEFAULT 0")
             }
         }
         
         val MIGRATION_35_36 = object : Migration(35, 36) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Füge hasZauberzeichen zu characters hinzu
-                database.execSQL("ALTER TABLE characters ADD COLUMN hasZauberzeichen INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE characters ADD COLUMN hasZauberzeichen INTEGER NOT NULL DEFAULT 0")
                 
                 // 2. Füge isSelfItem und selfItemForLocationId zu items hinzu
-                database.execSQL("ALTER TABLE items ADD COLUMN isSelfItem INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE items ADD COLUMN selfItemForLocationId INTEGER")
+                db.execSQL("ALTER TABLE items ADD COLUMN isSelfItem INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE items ADD COLUMN selfItemForLocationId INTEGER")
                 
                 // 3. Füge hasSelfItem zu locations hinzu
-                database.execSQL("ALTER TABLE locations ADD COLUMN hasSelfItem INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE locations ADD COLUMN hasSelfItem INTEGER NOT NULL DEFAULT 0")
                 
                 // 4. Erstelle magic_signs Tabelle
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS magic_signs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         guid TEXT NOT NULL,
@@ -1186,8 +1186,8 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 5. Erstelle Indices für magic_signs
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_characterId ON magic_signs(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_itemId ON magic_signs(itemId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_characterId ON magic_signs(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_magic_signs_itemId ON magic_signs(itemId)")
             }
         }
         
@@ -1196,10 +1196,10 @@ abstract class ApplicatusDatabase : RoomDatabase() {
          * Jeder Ort bekommt ein Self-Item, das mit Zauberzeichen versehen werden kann.
          */
         val MIGRATION_36_37 = object : Migration(36, 37) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Erstelle Self-Items für alle Locations, die noch keine haben
                 // Self-Items werden vor allen anderen Items sortiert (sortOrder = -1000)
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO items (characterId, locationId, name, stone, ounces, sortOrder, isPurse, kreuzerAmount, isCountable, quantity, isSelfItem, selfItemForLocationId)
                     SELECT 
                         l.characterId,
@@ -1222,7 +1222,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // Markiere alle Locations als hasSelfItem = true
-                database.execSQL("UPDATE locations SET hasSelfItem = 1")
+                db.execSQL("UPDATE locations SET hasSelfItem = 1")
             }
         }
 
@@ -1233,24 +1233,24 @@ abstract class ApplicatusDatabase : RoomDatabase() {
          * - Fügt itemId und creatorGuid zu spell_slots hinzu
          */
         val MIGRATION_37_38 = object : Migration(37, 38) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Items-Tabelle erweitern mit GUID
-                database.execSQL("ALTER TABLE items ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE items ADD COLUMN guid TEXT NOT NULL DEFAULT ''")
                 
                 // GUIDs für bestehende Items generieren
-                val itemsCursor = database.query("SELECT id FROM items")
+                val itemsCursor = db.query("SELECT id FROM items")
                 while (itemsCursor.moveToNext()) {
                     val id = itemsCursor.getLong(0)
                     val guid = java.util.UUID.randomUUID().toString()
-                    database.execSQL("UPDATE items SET guid = '$guid' WHERE id = $id")
+                    db.execSQL("UPDATE items SET guid = '$guid' WHERE id = $id")
                 }
                 itemsCursor.close()
                 
                 // 2. MagicSigns-Tabelle erweitern mit creatorGuid
-                database.execSQL("ALTER TABLE magic_signs ADD COLUMN creatorGuid TEXT")
+                db.execSQL("ALTER TABLE magic_signs ADD COLUMN creatorGuid TEXT")
                 
                 // Setze creatorGuid für bestehende magic_signs auf die GUID des aktuellen Besitzer-Charakters
-                database.execSQL("""
+                db.execSQL("""
                     UPDATE magic_signs 
                     SET creatorGuid = (
                         SELECT guid FROM characters WHERE characters.id = magic_signs.characterId
@@ -1258,7 +1258,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """.trimIndent())
                 
                 // 3. SpellSlots-Tabelle neu erstellen mit itemId und creatorGuid
-                database.execSQL("""
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS spell_slots_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         characterId INTEGER NOT NULL,
@@ -1287,7 +1287,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """)
                 
                 // Daten migrieren und creatorGuid auf Besitzer-Character-GUID setzen
-                database.execSQL("""
+                db.execSQL("""
                     INSERT INTO spell_slots_new (
                         id, characterId, slotNumber, slotType, volumePoints, spellId,
                         zfw, modifier, variant, isFilled, zfpStar, lastRollResult,
@@ -1304,15 +1304,15 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 """)
                 
                 // Alte Tabelle löschen
-                database.execSQL("DROP TABLE spell_slots")
+                db.execSQL("DROP TABLE spell_slots")
                 
                 // Neue Tabelle umbenennen
-                database.execSQL("ALTER TABLE spell_slots_new RENAME TO spell_slots")
+                db.execSQL("ALTER TABLE spell_slots_new RENAME TO spell_slots")
                 
                 // Indices neu erstellen
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_characterId ON spell_slots(characterId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_spellId ON spell_slots(spellId)")
-                database.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_itemId ON spell_slots(itemId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_characterId ON spell_slots(characterId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_spellId ON spell_slots(spellId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_spell_slots_itemId ON spell_slots(itemId)")
             }
         }
 
@@ -1321,9 +1321,9 @@ abstract class ApplicatusDatabase : RoomDatabase() {
          * Die SelfItems bekommen einen aussagekräftigeren Namen.
          */
         val MIGRATION_38_39 = object : Migration(38, 39) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Aktualisiere alle SelfItem-Namen von "(Eigengewicht)" zu "(Eigenobjekt)"
-                database.execSQL("""
+                db.execSQL("""
                     UPDATE items 
                     SET name = REPLACE(name, '(Eigengewicht)', '(Eigenobjekt)')
                     WHERE isSelfItem = 1 AND name LIKE '%(Eigengewicht)'
@@ -1358,3 +1358,4 @@ abstract class ApplicatusDatabase : RoomDatabase() {
         }
     }
 }
+

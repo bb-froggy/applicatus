@@ -213,7 +213,7 @@ fun BrewPotionDialog(
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                                 )
                                 ExposedDropdownMenu(
                                     expanded = expanded,
@@ -427,7 +427,7 @@ fun BrewPotionDialog(
                                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = expanded,
