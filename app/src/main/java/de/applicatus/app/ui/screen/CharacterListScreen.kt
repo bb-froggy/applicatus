@@ -10,11 +10,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.DismissDirection
-import androidx.compose.material.DismissValue
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.SwipeToDismiss
-import androidx.compose.material.rememberDismissState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
@@ -947,7 +942,7 @@ fun CharacterListScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterListItem(
     character: Character,
@@ -961,9 +956,9 @@ fun CharacterListItem(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showExportMenu by remember { mutableStateOf(false) }
     
-    val dismissState = rememberDismissState(
-        confirmStateChange = { dismissValue ->
-            if (dismissValue == DismissValue.DismissedToStart) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                 showDeleteConfirmation = true
                 false // Verhindert automatisches Löschen, wir warten auf Bestätigung
             } else {
@@ -972,12 +967,13 @@ fun CharacterListItem(
         }
     )
     
-    SwipeToDismiss(
+    SwipeToDismissBox(
         state = dismissState,
-        directions = setOf(DismissDirection.EndToStart), // Nur von rechts nach links
-        background = {
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
             // Roter Hintergrund mit Lösch-Icon beim Swipen
-            val color = if (dismissState.dismissDirection == DismissDirection.EndToStart) {
+            val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
                 Color.Red
             } else {
                 Color.Transparent
@@ -990,7 +986,7 @@ fun CharacterListItem(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                if (dismissState.dismissDirection == DismissDirection.EndToStart) {
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Löschen",
@@ -999,7 +995,7 @@ fun CharacterListItem(
                 }
             }
         },
-        dismissContent = {
+        content = {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1115,7 +1111,7 @@ fun CharacterListItem(
     // Reset des Swipe-States wenn Dialog geschlossen wird
     LaunchedEffect(showDeleteConfirmation) {
         if (!showDeleteConfirmation) {
-            dismissState.reset()
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
         }
     }
 }

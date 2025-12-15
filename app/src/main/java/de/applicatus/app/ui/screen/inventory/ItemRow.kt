@@ -4,11 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.DismissDirection
-import androidx.compose.material.DismissValue
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.SwipeToDismiss
-import androidx.compose.material.rememberDismissState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -28,7 +23,7 @@ import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.ItemWithMagic
 import de.applicatus.app.data.model.inventory.MagicIndicator
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemRow(
     item: ItemWithLocation,
@@ -57,9 +52,9 @@ fun ItemRow(
     // Self-Items können nicht per Swipe gelöscht werden
     val canSwipeToDelete = !item.isSelfItem
     
-    val dismissState = rememberDismissState(
-        confirmStateChange = { dismissValue ->
-            if (dismissValue == DismissValue.DismissedToStart && canSwipeToDelete) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {
                 showDeleteConfirmation = true
                 false // Warten auf Bestätigung
             } else {
@@ -68,11 +63,12 @@ fun ItemRow(
         }
     )
     
-    SwipeToDismiss(
+    SwipeToDismissBox(
         state = dismissState,
-        directions = if (canSwipeToDelete) setOf(DismissDirection.EndToStart) else emptySet(),
-        background = {
-            val color = if (dismissState.dismissDirection == DismissDirection.EndToStart && canSwipeToDelete) {
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = canSwipeToDelete,
+        backgroundContent = {
+            val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {
                 Color.Red
             } else {
                 Color.Transparent
@@ -85,7 +81,7 @@ fun ItemRow(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                if (dismissState.dismissDirection == DismissDirection.EndToStart && canSwipeToDelete) {
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Löschen",
@@ -94,7 +90,7 @@ fun ItemRow(
                 }
             }
         },
-        dismissContent = {
+        content = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -402,7 +398,7 @@ fun ItemRow(
     // Reset des Swipe-States
     LaunchedEffect(showDeleteConfirmation) {
         if (!showDeleteConfirmation) {
-            dismissState.reset()
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
         }
     }
 }
