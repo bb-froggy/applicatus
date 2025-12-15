@@ -197,3 +197,11 @@ Das Gesamtgewicht wird automatisch berechnet:
 - [ ] Wert von Gegenständen (Preis)
 - [ ] Export/Import von Inventar
 - [ ] Drag & Drop zwischen Orten
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[POTION_BREWING_DOCUMENTATION.md](POTION_BREWING_DOCUMENTATION.md)** - Trank-Brauen (Tränke im Inventar)
+- **[EXPORT_IMPORT_GUIDE.md](EXPORT_IMPORT_GUIDE.md)** - Export/Import (Inventar wird mit exportiert)

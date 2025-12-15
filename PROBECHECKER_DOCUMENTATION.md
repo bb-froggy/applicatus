@@ -202,5 +202,8 @@ val result = ProbeChecker.performThreeAttributeProbe(
 
 Siehe auch:
 - `app/src/main/java/de/applicatus/app/logic/ProbeChecker.kt` - Quellcode
-- `IMPLEMENTATION.md` - Gesamtübersicht der Implementierung
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[TALENT_SYSTEM_DOCUMENTATION.md](TALENT_SYSTEM_DOCUMENTATION.md)** - Talent- und System-Zauber-System
+- **[POTION_BREWING_DOCUMENTATION.md](POTION_BREWING_DOCUMENTATION.md)** - Trank-Brauen (nutzt ProbeChecker)
 - DSA 4.1 Regelwerk - Offizielle Regelreferenz

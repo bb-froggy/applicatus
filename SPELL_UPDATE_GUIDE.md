@@ -106,3 +106,9 @@ Dies kann passieren, wenn:
 - **Version Tracking**: Zauber mit Versionsnummern versehen und nur neuere Versionen synchronisieren
 - **Changelog**: Anzeige, welche Zauber konkret hinzugefügt wurden
 - **Benachrichtigungen**: Push-Benachrichtigung, wenn neue Zauber verfügbar sind
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung

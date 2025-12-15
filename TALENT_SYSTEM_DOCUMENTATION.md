@@ -215,3 +215,11 @@ fun testAlchemyProbe() {
     assertTrue(result.success)
 }
 ```
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[PROBECHECKER_DOCUMENTATION.md](PROBECHECKER_DOCUMENTATION.md)** - Zentrale Proben-Logik
+- **[POTION_BREWING_DOCUMENTATION.md](POTION_BREWING_DOCUMENTATION.md)** - Trank-Brauen mit Talentproben

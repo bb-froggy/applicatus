@@ -319,3 +319,11 @@ fun testJournalEntry() = runTest {
 5. ⏳ Journal-Logging in existierende ViewModels integrieren
 6. ⏳ Export/Import erweitern
 7. ⏳ UI-Tests erstellen
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[POTION_BREWING_DOCUMENTATION.md](POTION_BREWING_DOCUMENTATION.md)** - Trank-Brauen (Journal-Einträge)
+- **[EXPORT_IMPORT_GUIDE.md](EXPORT_IMPORT_GUIDE.md)** - Export/Import (Journal wird exportiert)

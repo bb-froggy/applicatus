@@ -226,3 +226,11 @@ Beim Überschreiben eines existierenden Charakters mit einer älteren Version we
 - Nearby Connections verwendet eine verschlüsselte Verbindung
 - Keine Daten werden ins Internet übertragen
 - Alle Daten bleiben auf Ihren Geräten
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[CHARACTER_SYNC_DOCUMENTATION.md](CHARACTER_SYNC_DOCUMENTATION.md)** - Echtzeit-Synchronisation
+- **[NEARBY_TEST_INFRASTRUCTURE.md](NEARBY_TEST_INFRASTRUCTURE.md)** - Test-Infrastruktur für Nearby Connections

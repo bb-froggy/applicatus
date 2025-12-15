@@ -306,3 +306,13 @@ Umfangreiche Unit-Tests für alle Berechnungen:
 3. **Brau-Historie**: Statistik über gebraute Tränke
 4. **Rezept-Details**: Anzeige von Zutaten und Beschreibung
 5. **Batch-Brauen**: Mehrere Tränke auf einmal brauen
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[PROBECHECKER_DOCUMENTATION.md](PROBECHECKER_DOCUMENTATION.md)** - Zentrale Proben-Logik (von PotionBrewer genutzt)
+- **[TALENT_SYSTEM_DOCUMENTATION.md](TALENT_SYSTEM_DOCUMENTATION.md)** - Talent-System (Alchimie, Kochen)
+- **[PACKESEL_DOCUMENTATION.md](PACKESEL_DOCUMENTATION.md)** - Inventar (Tränke als Items)
+- **[JOURNAL_INTEGRATION_GUIDE.md](JOURNAL_INTEGRATION_GUIDE.md)** - Journal-Einträge beim Brauen

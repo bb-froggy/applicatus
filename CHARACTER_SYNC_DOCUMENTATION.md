@@ -730,3 +730,11 @@ repository.getCharacterByIdFlow(playerCharacterId).collect { character ->
 ---
 
 **Hinweis:** Diese Dokumentation beschreibt die aktuelle vereinfachte Implementierung (Phase 1). Full-Snapshot-Protokoll mit Last-Write-Wins, keine inkrementellen Updates.
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[EXPORT_IMPORT_GUIDE.md](EXPORT_IMPORT_GUIDE.md)** - Export/Import und Nearby Sync
+- **[NEARBY_TEST_INFRASTRUCTURE.md](NEARBY_TEST_INFRASTRUCTURE.md)** - Test-Infrastruktur für Nearby Connections

@@ -179,3 +179,11 @@ Mögliche Erweiterungen der Test-Suite:
 3. Performance-Tests für Listen mit vielen Items
 4. Accessibility-Tests (TalkBack, Kontrast)
 5. End-to-End Tests über mehrere Screens hinweg
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[NEARBY_TEST_INFRASTRUCTURE.md](NEARBY_TEST_INFRASTRUCTURE.md)** - Test-Infrastruktur für Nearby Connections
+- **[app/src/androidTest/java/de/applicatus/app/data/DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/app/data/DATABASE_MIGRATION_TEST.md)** - Datenbank-Migrationstest

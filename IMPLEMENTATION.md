@@ -216,6 +216,10 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - Pflanzenkunde (KL/FF/KK), Selbstbeherrschung (MU/MU/KO), Sinnenschärfe (KL/IN/IN)
 - ✅ **Character**: Charakter mit 8 Eigenschaftswerten (MU, KL, IN, CH, FF, GE, KO, KK)
   - ✅ Applicatus-Support (hasApplicatus, applicatusZfw, applicatusModifier)
+  - ✅ **Applicatus-Wirkdauer** (applicatusDuration: DAY/MOON/QUARTER/WINTER_SOLSTICE)
+  - ✅ **Verlängerte Zauberdauer** (applicatusExtendedDuration) und **AsP-Kostenersparnis** (applicatusAspSavingPercent)
+  - ✅ **Kraftkontrolle & Kraftfokus** (kraftkontrolle, hasStaffWithKraftfokus)
+  - ✅ **Zauberzeichen-Support** (ritualKnowledgeValue, hasZauberzeichen, hasKonzentrationsstärke)
   - ✅ Alchimie-Talente (hasAlchemy, alchemySkill, alchemyIsMagicalMastery, hasCookingPotions, cookingPotionsSkill, cookingPotionsIsMagicalMastery, etc.)
   - ✅ System-Zauber (hasOdem, odemZfw, hasAnalys, analysZfw)
   - ✅ Labor-System (defaultLaboratory für Brauproben)
@@ -224,6 +228,7 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - ✅ Gruppen-System (groupId, group)
   - ✅ GUID für Import/Export
 - ✅ **SlotType**: Enum für Slot-Typen (APPLICATUS, SPELL_STORAGE)
+- ✅ **ApplicatusDuration**: Enum für Applicatus-Wirkdauer (DAY, MOON, QUARTER, WINTER_SOLSTICE) mit Erschwernis-Modifikatoren
 - ✅ **SpellSlot**: Zauberslot mit ZfW, Modifikator, Variante, Füllstatus, ZfP*
   - ✅ SlotType (Applicatus oder Zauberspeicher)
   - ✅ Volumenpunkte für Zauberspeicher (1-100, max. 100 gesamt)
@@ -250,16 +255,24 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
 - ✅ **ItemWithLocation**: View-Objekt für Items mit Location-Namen
 - ✅ **Group**: Spielgruppe mit eigenem derischen Datum
 - ✅ **GlobalSettings**: Globale App-Einstellungen (derisches Datum)
+- ✅ **CharacterJournalEntry**: Journaleintrag mit Timestamp, derischem Datum, Kategorie und Nachrichten
+- ✅ **MagicSign**: Zauberzeichen auf Inventar-Gegenständen
+  - ✅ Aktivierungsmodifikator und RkP*
+  - ✅ Wirkdauer und Ablaufdatum
+  - ✅ Spezialeffekte (MagicSignEffect)
+- ✅ **MagicSignEffect**: Enum für Zauberzeichen-Effekte (NONE, WEIGHT_REDUCTION)
+- ✅ **MagicSignDuration**: Enum für Wirkdauern (HALF_RKW_DAYS, ONE_MONTH, ONE_QUARTER, UNTIL_WINTER_SOLSTICE)
+- ✅ **MagicSignWithItem**: View-Objekt für Join zwischen MagicSign und Item
 
 ### 3. Datenbank (data/)
-- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao, **ItemDao, LocationDao, GroupDao, GlobalSettingsDao**
-- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter, **Weight-Converter, Currency-Converter, Laboratory-Converter**
-- ✅ **ApplicatusDatabase**: Room-Datenbank mit automatischer Initialisierung
+- ✅ **Room DAOs**: SpellDao, CharacterDao, SpellSlotDao, PotionDao, RecipeDao, RecipeKnowledgeDao, **ItemDao, LocationDao, GroupDao, GlobalSettingsDao, CharacterJournalDao, MagicSignDao**
+- ✅ **TypeConverters**: SlotType-Converter, PotionAnalysisStatus-Converter, **Weight-Converter, Currency-Converter, Laboratory-Converter, ApplicatusDuration-Converter, MagicSignEffect-Converter, MagicSignDuration-Converter**
+- ✅ **ApplicatusDatabase**: Room-Datenbank mit automatischer Initialisierung (aktuelle Version: **39**)
   - ✅ Migration von Version 1 zu 2 (neue Felder)
   - ✅ Migration von Version 2 zu 3 (Alchimie-Features)
   - ✅ Migration von Version 3 zu 4 (LE/AE/KE, Spielleiter-Modus)
   - ✅ Migration von Version 17 zu 18 (Inventar-Feature)
-  - ✅ Migration zu aktueller Version (Gruppen, Brauen, erweiterte Analyse)
+  - ✅ Migration zu aktueller Version (Gruppen, Brauen, erweiterte Analyse, Zauberzeichen)
 - ✅ **ApplicatusRepository**: Repository-Pattern für Datenzugriff (inkl. Bereinigung von Rezeptwissen beim Import)
 - ✅ **InitialSpells**: 235+ vordefinierte Zauber (magierzauber.txt + hexenzauber.txt)
 - ✅ **InitialRecipes**: 30+ vordefinierte Trank-Rezepte (Rezepte.csv)
@@ -317,6 +330,13 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - ✅ KE-Regeneration
   - ✅ Unterstützung für Meisterliche Regeneration
 
+- ✅ **MagicSignChecker**: Zauberzeichen-Aktivierungsprobe
+  - ✅ Aktivierungsprobe auf KL/IN/FF mit RkW
+  - ✅ Berücksichtigung von Aktivierungsmodifikatoren
+  - ✅ Ablaufdatum-Berechnung basierend auf Wirkdauer
+  - ✅ Patzer-Erkennung (verdorbenes Zeichen)
+  - ✅ canUseZauberzeichen()-Prüfung (RkW > 0 und SF Zauberzeichen)
+
 ### 5. ViewModels (ui/viewmodel/)
 - ✅ **CharacterListViewModel**: Verwaltung der Charakterliste
   - ✅ Liste aller Charaktere
@@ -362,6 +382,19 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - ✅ Tränke als virtuelle Items integrieren
   - ✅ Gewichtsberechnung pro Location
   - ✅ Items zwischen Orten verschieben
+  - ✅ **Magie-Indikatoren**: Anzeige von Zauberzeichen auf Items
+  - ✅ **Gewichtsreduktion**: Automatische Berechnung bei Sigille des Unsichtbaren Trägers
+
+- ✅ **MagicSignViewModel**: Verwaltung der Zauberzeichen
+  - ✅ Zauberzeichen erstellen und löschen
+  - ✅ Aktivierungsproben durchführen
+  - ✅ Verfügbare Ziel-Items anzeigen
+  - ✅ Ablaufdatum-Tracking
+
+- ✅ **CharacterJournalViewModel**: Verwaltung des Charakterjournals
+  - ✅ Journaleinträge anzeigen und filtern
+  - ✅ Spielleiter-exklusive Einträge
+  - ✅ Export zusammen mit Charakter
 
 ### 6. UI-Screens (ui/screen/)
 - ✅ **CharacterListScreen**: 
@@ -447,6 +480,22 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - ✅ Tränke als virtuelle Items
   - ✅ Dialoge zum Hinzufügen/Bearbeiten von Locations und Items
   - ✅ Gewichtsanzeige in Stein und Unzen
+  - ✅ **Magie-Indikatoren** für Items mit Zauberzeichen/Zauberspeichern
+
+- ✅ **MagicSignScreen** (Zauberzeichen):
+  - ✅ Liste aller Zauberzeichen des Charakters
+  - ✅ Charakterinfo-Card (RkW, SF Zauberzeichen)
+  - ✅ FAB zum Hinzufügen neuer Zauberzeichen
+  - ✅ **AddMagicSignDialog**: Auswahl von Ziel-Item und Wirkdauer
+  - ✅ **ActivateMagicSignDialog**: Aktivierungsprobe mit Ergebnis-Anzeige
+  - ✅ Zeigt Ablaufdatum und Aktivierungsstatus
+  - ✅ Spielleiter-Integration
+
+- ✅ **CharacterJournalScreen**:
+  - ✅ Chronologische Liste aller Journaleinträge
+  - ✅ Filterung nach Kategorien
+  - ✅ Spielleiter-exklusive Informationen
+  - ✅ Derisches Datum und irdischer Zeitstempel
 
 ### 7. Navigation (ui/navigation/)
 - ✅ **Screen**: Sealed Class für Routes
@@ -455,6 +504,8 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - CharacterHome → SpellStorage mit characterId-Parameter
   - CharacterHome → Potion (Hexenküche) mit characterId-Parameter
   - CharacterHome → **Inventory (Packesel)** mit characterId-Parameter
+  - CharacterHome → **MagicSign (Zauberzeichen)** mit characterId-Parameter
+  - CharacterHome → **CharacterJournal** mit characterId-Parameter
   - Potion → RecipeKnowledge mit characterId-Parameter
   - CharacterHome → NearbySync mit characterId-Parameter
 
@@ -743,7 +794,7 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 - ✅ **Spielleiter-Modus wird NICHT übertragen** (bleibt lokal)
 
 ### Datenmodell-Versionierung
-- ✅ **Versionsnummer**: Aktuelle Version 5 des Datenmodells
+- ✅ **Versionsnummer**: Aktuelle Version **6** des Datenmodells
 - ✅ **Kompatibilitätscheck**: Prüfung bei Import/Sync
 - ✅ **Warnungen**: 
   - Bei älteren Versionen (Import möglich mit Warnung)
@@ -755,6 +806,7 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
   - v3: Alchemie-, Energie-, Trank- und Rezeptwissen-Daten
   - v4: Gruppen für Charaktere, GUID für Tränke (Trank-Übergabe)
   - v5: Magisches Meisterhandwerk für Alchimie und Kochen (Tränke)
+  - **v6**: Zauberzeichen-Export, Creator-GUID für SpellSlots/MagicSigns, Item-GUID, Item-Bindung für SpellSlots
 
 ## 🆕 Neue Features (Version 5 - Trank-Brauen & Magisches Meisterhandwerk)
 
@@ -917,3 +969,73 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 3. **Schnelle Übertragung**: Nearby Sync für direkten Transfer zwischen zwei Geräten
 4. **Charaktere teilen**: JSON-Datei mit anderen Spielern teilen
 
+## 🆕 Neue Features (Version 6 - Zauberzeichen & Erweiterte Applicatus-Optionen)
+
+### Zauberzeichen-System
+- ✅ **Zauberzeichen auf Items**: Magische Zeichen auf Inventar-Gegenständen
+  - Voraussetzung: SF Zauberzeichen und RkW > 0
+  - Beliebige Items als Ziel wählbar
+  - Aktivierungsprobe auf KL/IN/FF mit RkW
+- ✅ **Wirkdauer-Optionen**:
+  - RkW/2 Tage (aufgerundet)
+  - 1 Monat (30 Tage)
+  - 1 Quartal (90 Tage)
+  - Bis zur Wintersonnenwende (1. Firun)
+- ✅ **Spezialeffekte**:
+  - NONE: Nur Freitext-Beschreibung
+  - WEIGHT_REDUCTION: Sigille des Unsichtbaren Trägers (RkP* × 2 Stein Gewichtsreduktion)
+- ✅ **Ablaufdatum**: Automatische Berechnung basierend auf derischem Kalender
+- ✅ **Patzer-Handling**: Bei Doppel-20/Dreifach-20 ist das Zeichen verdorben
+
+### Erweiterte Applicatus-Optionen
+- ✅ **Wirkdauer-Konfiguration** (ApplicatusDuration):
+  - Tag (+0): Bis zum nächsten Sonnenaufgang
+  - Mond (+3): Bis zum Ende des aktuellen Mondes
+  - Quartal (+5): Bis zur nächsten Quartalsgrenze
+  - Wintersonnenwende (+7): Bis zur nächsten Wintersonnenwende
+- ✅ **Verlängerte Zauberdauer**: +4 Erleichterung beim Einspeichern
+- ✅ **AsP-Kostenersparnis**: 0-50% Reduktion der Applicatus-Kosten
+
+### Kraftkontrolle & Kraftfokus
+- ✅ **Kraftkontrolle**: SF für -1 AsP pro Zauber
+- ✅ **Zauberstab mit Kraftfokus**: -1 AsP (nicht bei Zauberspeicher-Nutzung)
+
+### Vollständiges Datenbank-Backup
+- ✅ **DatabaseBackupManager**: Export/Import der kompletten Datenbank
+  - Alle Zauber und Rezepte
+  - Alle Gruppen mit derischem Datum
+  - Alle Charaktere mit allen Daten
+  - Fortschrittsanzeige während Export/Import
+
+### Echtzeit-Synchronisation
+- ✅ **CharacterRealtimeSyncManager**: Bidirektionale Live-Synchronisation
+- ✅ **SyncSessionManager**: Singleton für Session-Verwaltung auf Application-Ebene
+  - Sessions überleben Navigation zwischen Screens
+  - Mehrere Charaktere gleichzeitig synchronisierbar
+  - Star-Topologie (Spielleiter als Host, Spieler als Clients)
+  - Last-Write-Wins Konfliktauflösung
+
+### Charakterjournal
+- ✅ **CharacterJournalEntry**: Automatisches Protokollieren aller Ereignisse
+  - Irdischer Timestamp und derisches Datum
+  - Kategorisierte Einträge (Potion.*, Spell.*, Energy.*, etc.)
+  - Spieler-sichtbare und Spielleiter-exklusive Nachrichten
+- ✅ **JournalCategory**: Vordefinierte Konstanten für Ereignistypen
+- ✅ **Export**: Journal wird mit Charakter exportiert
+
+## 📚 Weiterführende Dokumentation
+
+Für detaillierte Informationen zu einzelnen Bereichen siehe:
+
+- **[README.md](README.md)** - Projekt-Übersicht und Feature-Beschreibung
+- **[PROBECHECKER_DOCUMENTATION.md](PROBECHECKER_DOCUMENTATION.md)** - Zentrale DSA-Proben-Logik
+- **[TALENT_SYSTEM_DOCUMENTATION.md](TALENT_SYSTEM_DOCUMENTATION.md)** - Talent- und System-Zauber-System
+- **[POTION_BREWING_DOCUMENTATION.md](POTION_BREWING_DOCUMENTATION.md)** - Trank-Brau-System im Detail
+- **[PACKESEL_DOCUMENTATION.md](PACKESEL_DOCUMENTATION.md)** - Inventarverwaltung (Packesel)
+- **[EXPORT_IMPORT_GUIDE.md](EXPORT_IMPORT_GUIDE.md)** - Export/Import und Backup-Funktionen
+- **[CHARACTER_SYNC_DOCUMENTATION.md](CHARACTER_SYNC_DOCUMENTATION.md)** - Echtzeit-Synchronisation
+- **[JOURNAL_INTEGRATION_GUIDE.md](JOURNAL_INTEGRATION_GUIDE.md)** - Charakterjournal-System
+- **[SPELL_UPDATE_GUIDE.md](SPELL_UPDATE_GUIDE.md)** - Zauber-Datenbank aktualisieren
+- **[UI_TESTS_DOCUMENTATION.md](UI_TESTS_DOCUMENTATION.md)** - UI-Test-Suite
+- **[NEARBY_TEST_INFRASTRUCTURE.md](NEARBY_TEST_INFRASTRUCTURE.md)** - Test-Infrastruktur für Nearby Connections
+- **[app/src/androidTest/java/de/applicatus/app/data/DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/app/data/DATABASE_MIGRATION_TEST.md)** - Datenbank-Migrationstest

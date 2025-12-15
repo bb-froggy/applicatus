@@ -230,3 +230,12 @@ val viewModel = NearbySyncViewModel(
     FakeNearbyConnectionsService()  // Test-Implementierung
 )
 ```
+
+## Weitere Informationen
+
+Siehe auch:
+- **[README.md](README.md)** - Projekt-Übersicht
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Gesamtübersicht der Implementierung
+- **[CHARACTER_SYNC_DOCUMENTATION.md](CHARACTER_SYNC_DOCUMENTATION.md)** - Echtzeit-Synchronisation
+- **[EXPORT_IMPORT_GUIDE.md](EXPORT_IMPORT_GUIDE.md)** - Export/Import und Nearby Sync
+- **[UI_TESTS_DOCUMENTATION.md](UI_TESTS_DOCUMENTATION.md)** - UI-Test-Suite

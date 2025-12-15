@@ -23,11 +23,35 @@ Eine Android-App zur Verwaltung von Zauberspeichern (Zauberstab und Applicatus),
   - Kategorisierte Einträge (Tränke, Zauber, Energie, etc.)
   - Spieler-sichtbare und Spielleiter-exklusive Informationen
   - Export zusammen mit dem Charakter
+- **Kraftkontrolle & Kraftfokus**: AsP-Kostenreduktion beim Zaubern
+  - Kraftkontrolle: -1 AsP pro Zauber
+  - Zauberstab mit Kraftfokus: -1 AsP (nicht bei Zauberspeicher-Nutzung)
+
+### Zauberzeichen
+- **Zauberzeichen-Verwaltung**: Verwalten Sie Zauberzeichen auf Inventar-Gegenständen
+  - Voraussetzung: SF Zauberzeichen und Ritualkenntniswert (RkW)
+  - Zauberzeichen auf beliebigen Items erstellen
+  - Aktivierungsprobe auf KL/IN/FF mit RkW
+- **Wirkdauer-Optionen**: 
+  - RkW/2 Tage (aufgerundet)
+  - 1 Monat, 1 Quartal
+  - Bis zur Wintersonnenwende
+- **Spezialeffekte**:
+  - Sigille des Unsichtbaren Trägers: Gewichtsreduktion um RkP* × 2 Stein
+  - Benutzerdefinierte Effekte als Freitext
+- **Integration**: Zauberzeichen werden im Inventar mit Magie-Indikator angezeigt
 
 ### Zauberspeicher
 - **Zwei Slot-Typen**: 
   - Applicatus-Slots für den gleichnamigen Zauber
   - Zauberspeicher-Slots mit konfigurierbaren Volumenpunkten (max. 100 gesamt)
+- **Applicatus-Wirkdauer**: Konfigurierbare Speicherdauer mit Erschwernis-Modifikatoren
+  - Tag (+0): Bis zum nächsten Sonnenaufgang
+  - Mond (+3): Bis zum Ende des aktuellen Mondes
+  - Quartal (+5): Bis zur nächsten Quartalsgrenze
+  - Wintersonnenwende (+7): Bis zur nächsten Wintersonnenwende
+- **Verlängerte Zauberdauer**: Optional +4 Erleichterung
+- **AsP-Kostenersparnis**: Bis zu 50% Reduktion der AsP-Kosten
 - **Zauberprobe**: Automatische Würfelprobe beim Einspeichern von Zaubern mit W20-Würfeln
 - **Besondere Würfelergebnisse**: Erkennung von Doppel-1, Dreifach-1, Doppel-20 und Dreifach-20
 - **Zauberliste**: Über 235 vordefinierte Zauber aus DSA (Standard + Hexenzauber)
@@ -75,11 +99,20 @@ Eine Android-App zur Verwaltung von Zauberspeichern (Zauberstab und Applicatus),
 - **JSON-Export/Import**: 
   - Charaktere als JSON-Datei exportieren/importieren
   - Enthält alle Charakterdaten, Slots, Tränke (inklusive Analyse-Status), Rezeptwissen und Gruppen-Zugehörigkeit
-  - Versionskontrolle (v5) mit Warnungen bei Versionsunterschieden
+  - Versionskontrolle (v6) mit Warnungen bei Versionsunterschieden
+- **Vollständiges Datenbank-Backup**:
+  - Exportiert/Importiert die komplette App-Datenbank
+  - Enthält alle Zauber, Rezepte, Gruppen und Charaktere
+  - Ideal für Gerätewechsel und Kampagnen-Austausch
 - **Nearby Connections**: 
   - Direkte Geräte-zu-Gerät-Übertragung via Bluetooth/WLAN
   - Keine Internetverbindung erforderlich
   - Perfekt für den Austausch am Spieltisch
+- **Echtzeit-Synchronisation**:
+  - Star-Topologie: Spielleiter als Host, Spieler als Clients
+  - Bidirektionale Kommunikation mit Last-Write-Wins
+  - Sessions überleben Navigation zwischen Screens
+  - Mehrere Charaktere gleichzeitig synchronisierbar
 - **Datenschutz**: Spielleiter-Modus wird beim Export NICHT übertragen (bleibt lokal)
 
 ### Persistenz & Datenbank
@@ -117,14 +150,16 @@ app/
 ├── data/
 │   ├── model/           # Datenmodelle
 │   │   ├── character/   # Character, Group, GlobalSettings, CharacterJournalEntry
-│   │   ├── spell/       # Spell, SystemSpell (ODEM, ANALYS)
+│   │   ├── spell/       # Spell, SpellSlot, SystemSpell, ApplicatusDuration
 │   │   ├── talent/      # Talent-Enum mit Eigenschaftsproben
-│   │   ├── potion/      # Potion, Recipe, RecipeKnowledge, PotionQuality, Laboratory, etc.
-│   │   └── inventory/   # Item, Location, Weight, Currency
+│   │   ├── potion/      # Potion, Recipe, RecipeKnowledge, PotionQuality, Laboratory
+│   │   ├── inventory/   # Item, Location, Weight, Currency
+│   │   └── magicsign/   # MagicSign, MagicSignEffect, MagicSignDuration
 │   ├── dao/             # Room DAOs
 │   ├── repository/      # Repository-Pattern
-│   ├── export/          # Export/Import-Logik (JSON, DTOs)
+│   ├── export/          # Export/Import-Logik (CharacterExportManager, DatabaseBackupManager)
 │   ├── nearby/          # Nearby Connections Service
+│   ├── sync/            # Real-time Sync (CharacterRealtimeSyncManager, SyncSessionManager)
 │   ├── InitialSpells.kt # Vordefinierte Zauber
 │   └── InitialRecipes.kt # Vordefinierte Rezepte
 ├── logic/
@@ -134,6 +169,7 @@ app/
 │   ├── PotionBrewer.kt      # Trank-Brau-Logik mit Magischem Meisterhandwerk
 │   ├── PotionHelper.kt      # Hilfsfunktionen für Trank-Verwaltung
 │   ├── DerianDateCalculator.kt # Derischer Kalender
+│   ├── MagicSignChecker.kt  # Zauberzeichen-Aktivierungsproben
 │   └── RegenerationCalculator.kt # LE/AE/KE-Regeneration
 ├── ui/
 │   ├── screen/          # Composable Screens
@@ -141,6 +177,7 @@ app/
 │   │   ├── spell/       # Zauberspeicher-Screens
 │   │   ├── potion/      # Hexenküche-Screens (Tränke, Rezepte, Analyse, Brauen)
 │   │   ├── inventory/   # Inventar-Screens (Packesel)
+│   │   ├── magicsign/   # Zauberzeichen-Screens
 │   │   └── NearbySyncScreen.kt
 │   ├── viewmodel/       # ViewModels
 │   ├── component/       # UI-Komponenten (SpellAnimation, PotionBrewAnimation)
@@ -258,6 +295,22 @@ Charaktere können als "Spielleiter" markiert werden, wodurch:
 - Patzer-Hinweise detailliert angezeigt werden
 
 **Wichtig**: Der Spielleiter-Modus wird beim Export NICHT übertragen und bleibt immer lokal!
+
+## Weiterführende Dokumentation
+
+Für detaillierte Informationen zu einzelnen Bereichen siehe:
+
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Technische Implementierungsübersicht und Entwickler-Hinweise
+- **[PROBECHECKER_DOCUMENTATION.md](PROBECHECKER_DOCUMENTATION.md)** - Zentrale DSA-Proben-Logik
+- **[TALENT_SYSTEM_DOCUMENTATION.md](TALENT_SYSTEM_DOCUMENTATION.md)** - Talent- und System-Zauber-System
+- **[POTION_BREWING_DOCUMENTATION.md](POTION_BREWING_DOCUMENTATION.md)** - Trank-Brau-System im Detail
+- **[PACKESEL_DOCUMENTATION.md](PACKESEL_DOCUMENTATION.md)** - Inventarverwaltung (Packesel)
+- **[EXPORT_IMPORT_GUIDE.md](EXPORT_IMPORT_GUIDE.md)** - Export/Import und Backup-Funktionen
+- **[CHARACTER_SYNC_DOCUMENTATION.md](CHARACTER_SYNC_DOCUMENTATION.md)** - Echtzeit-Synchronisation
+- **[JOURNAL_INTEGRATION_GUIDE.md](JOURNAL_INTEGRATION_GUIDE.md)** - Charakterjournal-System
+- **[SPELL_UPDATE_GUIDE.md](SPELL_UPDATE_GUIDE.md)** - Zauber-Datenbank aktualisieren
+- **[UI_TESTS_DOCUMENTATION.md](UI_TESTS_DOCUMENTATION.md)** - UI-Test-Suite
+- **[NEARBY_TEST_INFRASTRUCTURE.md](NEARBY_TEST_INFRASTRUCTURE.md)** - Test-Infrastruktur für Nearby Connections
 
 ## Lizenz
 
