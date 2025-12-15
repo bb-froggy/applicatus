@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +35,7 @@ fun RecipeKnowledgeScreen(
                 title = { Text("Rezepte-Wissen") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
                     }
                 },
                 actions = {
@@ -67,7 +67,7 @@ fun RecipeKnowledgeScreen(
                                 showFilterMenu = false
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                         DropdownMenuItem(
                             text = { 
                                 Row(
@@ -235,7 +235,7 @@ fun RecipeKnowledgeCard(
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                 )
 
                 ExposedDropdownMenu(
@@ -264,3 +264,5 @@ private fun getKnowledgeLevelDisplayName(level: RecipeKnowledgeLevel): String {
         RecipeKnowledgeLevel.KNOWN -> "Bekannt"
     }
 }
+
+

@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
@@ -51,7 +51,7 @@ fun MagicSignScreen(
                 title = { Text("Zauberzeichen") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
                     }
                 },
                 actions = {
@@ -395,7 +395,7 @@ private fun MagicSignCard(
             }
             
             Spacer(modifier = Modifier.height(8.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(8.dp))
             
             // Aktionen
@@ -540,7 +540,7 @@ private fun AddMagicSignDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTargetDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
                         ExposedDropdownMenu(
                             expanded = showTargetDropdown,
@@ -577,7 +577,7 @@ private fun AddMagicSignDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showEffectDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
                         ExposedDropdownMenu(
                             expanded = showEffectDropdown,
@@ -618,7 +618,7 @@ private fun AddMagicSignDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDurationDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                         )
                         ExposedDropdownMenu(
                             expanded = showDurationDropdown,
@@ -693,3 +693,5 @@ private fun AddMagicSignDialog(
         }
     )
 }
+
+

@@ -40,7 +40,7 @@ fun CharacterTalentsCard(
                 text = stringResource(R.string.talents),
                 style = MaterialTheme.typography.titleMedium
             )
-            Divider()
+            HorizontalDivider()
             
             // Alchimie
             if (character.hasAlchemy) {

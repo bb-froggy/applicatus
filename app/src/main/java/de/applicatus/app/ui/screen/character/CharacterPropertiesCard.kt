@@ -30,7 +30,7 @@ fun CharacterPropertiesCard(
                 text = stringResource(R.string.properties),
                 style = MaterialTheme.typography.titleMedium
             )
-            Divider()
+            HorizontalDivider()
             
             Row(
                 modifier = Modifier.fillMaxWidth(),

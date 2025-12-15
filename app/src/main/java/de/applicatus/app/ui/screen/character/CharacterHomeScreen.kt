@@ -11,11 +11,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -225,7 +225,7 @@ fun CharacterHomeScreen(
                 title = { Text(character?.name ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cancel))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                     }
                 },
                 actions = {
@@ -238,7 +238,7 @@ fun CharacterHomeScreen(
                     // Journal Button
                     IconButton(onClick = { onNavigateToJournal(characterId) }) {
                         Icon(
-                            Icons.Default.MenuBook, 
+                            Icons.AutoMirrored.Filled.MenuBook, 
                             contentDescription = "Journal"
                         )
                     }
@@ -264,7 +264,7 @@ fun CharacterHomeScreen(
                             DropdownMenuItem(
                                 text = { Text("Als JSON exportieren") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.ArrowForward, null)
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null)
                                 },
                                 onClick = {
                                     showMoreMenu = false
@@ -283,7 +283,7 @@ fun CharacterHomeScreen(
                                 }
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             DropdownMenuItem(
                                 text = { Text("Echtzeit-Sync") },

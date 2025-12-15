@@ -39,7 +39,7 @@ fun CharacterSpellsCard(
                 text = stringResource(R.string.spells),
                 style = MaterialTheme.typography.titleMedium
             )
-            Divider()
+            HorizontalDivider()
             
             // Applicatus
             if (character.hasApplicatus) {

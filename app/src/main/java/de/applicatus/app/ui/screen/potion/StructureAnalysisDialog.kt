@@ -77,7 +77,7 @@ fun StructureAnalysisDialog(
                     style = MaterialTheme.typography.headlineSmall
                 )
                 
-                Divider()
+                HorizontalDivider()
                 
                 Text(
                     text = if (showRecipeName) recipe.name else "Unbekannter Trank",
@@ -123,7 +123,7 @@ fun StructureAnalysisDialog(
                 
                 // Zeige Probenergebnis an
                 probeResult?.let { result ->
-                    Divider()
+                    HorizontalDivider()
                     
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -146,7 +146,7 @@ fun StructureAnalysisDialog(
                                 style = MaterialTheme.typography.titleMedium
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             // Eigenschaften und Fertigkeitswert
                             Text(
@@ -164,7 +164,7 @@ fun StructureAnalysisDialog(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             // Probenerschwernis-Breakdown
                             Text(
@@ -225,7 +225,7 @@ fun StructureAnalysisDialog(
                                 }
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             Text(
                                 text = "Würfe: ${result.probeRolls.joinToString(", ")}",
@@ -246,7 +246,7 @@ fun StructureAnalysisDialog(
                                 )
                             }
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             Text(
                                 text = result.message,
@@ -257,7 +257,7 @@ fun StructureAnalysisDialog(
                 }
                 
                 if (finalResult == null && probeResult == null) {
-                    Divider()
+                    HorizontalDivider()
                     
                     Text(
                         text = "Analysemethode wählen:",
@@ -354,7 +354,7 @@ fun StructureAnalysisDialog(
                           selectedMethod == StructureAnalysisMethod.LABORATORY_COOKING) && character.cookingPotionsIsMagicalMastery)
                     
                     if (canUseMagicalMastery) {
-                        Divider()
+                        HorizontalDivider()
                         
                         val skillValue = when (selectedMethod) {
                             StructureAnalysisMethod.BY_SIGHT_ALCHEMY,
@@ -419,7 +419,7 @@ fun StructureAnalysisDialog(
                 }
                 
                 finalResult?.let { final ->
-                    Divider()
+                    HorizontalDivider()
                     
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -444,7 +444,7 @@ fun StructureAnalysisDialog(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             Text(
                                 text = final.message,
@@ -547,3 +547,4 @@ fun StructureAnalysisDialog(
         }
     }
 }
+

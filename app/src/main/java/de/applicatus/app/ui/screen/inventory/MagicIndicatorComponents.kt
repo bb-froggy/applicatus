@@ -312,7 +312,7 @@ fun MagicIndicatorDetailDialog(
                 
                 // Ablaufdatum
                 indicator.expiryDate?.let { date ->
-                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     Row {
                         Text("Wirkt bis: ", fontWeight = FontWeight.Bold)
                         Text(date)

@@ -46,7 +46,7 @@ fun AstralMeditationDialog(
                     style = MaterialTheme.typography.bodySmall
                 )
                 
-                Divider()
+                HorizontalDivider()
                 
                 OutlinedTextField(
                     value = leToConvert,

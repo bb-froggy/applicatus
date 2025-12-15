@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.ui.res.painterResource
@@ -51,7 +53,7 @@ fun CharacterJournalScreen(
                 title = { Text("Journal - ${character?.name ?: "Charakter"}") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
                     }
                 }
             )
@@ -70,7 +72,7 @@ fun CharacterJournalScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        Icons.Default.MenuBook,
+                        Icons.AutoMirrored.Filled.MenuBook,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -236,7 +238,7 @@ fun JournalEntryCard(
                     color = iconColor
                 )
                 
-                Divider(
+                HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
@@ -294,7 +296,7 @@ fun getCategoryIcon(category: String): ImageVector? {
         category.startsWith("Spell.") -> Icons.Default.AutoAwesome
         category.startsWith("Energy.Regeneration") -> Icons.Filled.NightsStay
         category.startsWith("Energy.") -> Icons.Default.Favorite
-        category.startsWith("Recipe.") -> Icons.Default.MenuBook
+        category.startsWith("Recipe.") -> Icons.AutoMirrored.Filled.MenuBook
         category.startsWith("Inventory.") -> Icons.Default.Backpack
         category.startsWith("Talent.") -> Icons.Default.Star
         category.startsWith("Combat.") -> Icons.Default.Security

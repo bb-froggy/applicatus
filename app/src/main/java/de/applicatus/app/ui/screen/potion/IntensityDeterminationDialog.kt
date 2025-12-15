@@ -53,7 +53,7 @@ fun IntensityDeterminationDialog(
                     style = MaterialTheme.typography.headlineSmall
                 )
                 
-                Divider()
+                HorizontalDivider()
                 
                 Text(
                     text = if (showRecipeName) recipe.name else "Unbekannter Trank",
@@ -107,7 +107,7 @@ fun IntensityDeterminationDialog(
                         }
                     }
                 } else {
-                    Divider()
+                    HorizontalDivider()
                     
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -140,7 +140,7 @@ fun IntensityDeterminationDialog(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             if (result!!.success) {
                                 val intensityText = when (result!!.intensityQuality) {
@@ -256,3 +256,4 @@ fun IntensityDeterminationDialog(
         }
     }
 }
+

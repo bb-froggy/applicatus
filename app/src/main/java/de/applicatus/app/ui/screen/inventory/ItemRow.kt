@@ -602,7 +602,7 @@ fun PurseEditor(
         
         // Differenz-Anzeige
         if (difference != 0) {
-            Divider()
+            HorizontalDivider()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,

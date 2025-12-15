@@ -213,7 +213,7 @@ fun BrewPotionDialog(
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor()
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                                 )
                                 ExposedDropdownMenu(
                                     expanded = expanded,
@@ -427,7 +427,7 @@ fun BrewPotionDialog(
                                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .menuAnchor()
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = expanded,
@@ -516,7 +516,7 @@ fun BrewPotionDialog(
                     
                     // Zusammenfassung
                     item {
-                        Divider()
+                        HorizontalDivider()
                         Text("Zusammenfassung", style = MaterialTheme.typography.titleMedium)
                         if (selectedRecipe != null) {
                             if (selectedRecipeKnowledgeLevel == RecipeKnowledgeLevel.UNDERSTOOD) {
@@ -604,3 +604,5 @@ fun BrewPotionDialog(
         }
     )
 }
+
+

@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NightsStay
@@ -156,7 +156,7 @@ fun CharacterHomeScreen(
                 title = { Text(character?.name ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cancel))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                     }
                 },
                 actions = {
@@ -173,7 +173,7 @@ fun CharacterHomeScreen(
                             DropdownMenuItem(
                                 text = { Text("Als JSON exportieren") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.ArrowForward, null)
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null)
                                 },
                                 onClick = {
                                     showMoreMenu = false
@@ -192,7 +192,7 @@ fun CharacterHomeScreen(
                                 }
                             )
                             
-                            Divider()
+                            HorizontalDivider()
                             
                             DropdownMenuItem(
                                 text = { Text("Nearby Sync") },
@@ -306,7 +306,7 @@ private fun PropertiesCard(character: Character) {
                 text = stringResource(R.string.properties),
                 style = MaterialTheme.typography.titleMedium
             )
-            Divider()
+            HorizontalDivider()
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -610,7 +610,7 @@ private fun TalentsCard(character: Character) {
                 text = stringResource(R.string.talents),
                 style = MaterialTheme.typography.titleMedium
             )
-            Divider()
+            HorizontalDivider()
             
             // Alchimie
             if (character.hasAlchemy) {
@@ -700,7 +700,7 @@ private fun SpellsCard(character: Character) {
                 text = stringResource(R.string.spells),
                 style = MaterialTheme.typography.titleMedium
             )
-            Divider()
+            HorizontalDivider()
             
             // Applicatus
             if (character.hasApplicatus) {

@@ -16,8 +16,8 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -145,7 +145,7 @@ fun CharacterListScreen(
                                 viewModel.syncMissingRecipes()
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("Charakter aus JSON importieren") },
                             leadingIcon = { Icon(Icons.Default.Add, null) },
@@ -163,7 +163,7 @@ fun CharacterListScreen(
                             }
                         )
 
-                        Divider()
+                        HorizontalDivider()
                         
                         DropdownMenuItem(
                             text = { Text("Vollständiges Backup exportieren") },
@@ -195,7 +195,7 @@ fun CharacterListScreen(
                             }
                         )
 
-                        Divider()
+                        HorizontalDivider()
                         
                         DropdownMenuItem(
                             text = { Text("App-Informationen") },
@@ -758,7 +758,7 @@ fun CharacterListScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         LinearProgressIndicator(
-                            progress = backupExportState.percentage / 100f,
+                            progress = { backupExportState.percentage / 100f },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -873,7 +873,7 @@ fun CharacterListScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         LinearProgressIndicator(
-                            progress = backupImportState.percentage / 100f,
+                            progress = { backupImportState.percentage / 100f },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -1066,7 +1066,7 @@ fun CharacterListItem(
                             )
                             DropdownMenuItem(
                                 text = { Text("Als Datei exportieren") },
-                                leadingIcon = { Icon(Icons.Default.ArrowForward, null) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, null) },
                                 onClick = {
                                     showExportMenu = false
                                     onExport()

@@ -39,7 +39,7 @@ fun CharacterAttributesCard(
                     }
                 }
             }
-            Divider()
+            HorizontalDivider()
             
             Row(
                 modifier = Modifier.fillMaxWidth(),

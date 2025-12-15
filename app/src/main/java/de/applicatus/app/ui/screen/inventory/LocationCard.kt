@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -301,7 +302,7 @@ fun LocationCard(
                     // Übertragen-Button (nur für Spielleiter und nicht für "Rüstung/Kleidung")
                     if (location != null && isGameMaster && location.name != "Rüstung/Kleidung") {
                         IconButton(onClick = onTransferLocation) {
-                            Icon(Icons.Default.Send, "Ort übertragen")
+                            Icon(Icons.AutoMirrored.Filled.Send, "Ort übertragen")
                         }
                     }
                     
@@ -340,7 +341,7 @@ fun LocationCard(
                 )
             }
             
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
             // Item-Liste
             if (itemsWithMagic.isEmpty()) {

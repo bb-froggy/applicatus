@@ -166,7 +166,7 @@ fun EditCharacterTalentsDialog(
                 // Astrale Meditation
                 if (character.hasAe) {
                     item {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     }
                     
                     item {

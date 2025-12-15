@@ -474,7 +474,7 @@ fun SpellSlotCardEditMode(
             // Item-Zuordnung (nur für Applicatus und langwirkende Zauber)
             if (slot.slotType != SlotType.SPELL_STORAGE) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
@@ -578,7 +578,7 @@ fun SpellPickerDialog(
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        Divider(modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     }
                 }
             }
@@ -669,7 +669,7 @@ fun ItemPickerDialog(
                                 )
                             }
                         }
-                        Divider(modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     }
                 }
             }

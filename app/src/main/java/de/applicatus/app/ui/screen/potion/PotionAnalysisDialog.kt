@@ -52,7 +52,7 @@ fun PotionAnalysisDialog(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         
-                        Divider()
+                        HorizontalDivider()
                         
                         Text(
                             text = if (showRecipeName) recipe.name else "Unbekannter Trank",
@@ -106,7 +106,7 @@ fun PotionAnalysisDialog(
                             }
                         }
                         
-                        Divider()
+                        HorizontalDivider()
                         
                         Button(
                             onClick = onDismiss,
@@ -147,3 +147,4 @@ fun PotionAnalysisDialog(
         }
     }
 }
+

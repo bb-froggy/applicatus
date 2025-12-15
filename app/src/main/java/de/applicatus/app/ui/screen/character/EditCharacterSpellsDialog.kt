@@ -127,7 +127,7 @@ fun EditCharacterSpellsDialog(
                 
                 if (character.hasAe) {
                     item {
-                        Divider()
+                        HorizontalDivider()
                     }
                     
                     item {

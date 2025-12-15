@@ -15,16 +15,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,7 +77,7 @@ fun PotionScreen(
                 title = { Text(stringResource(R.string.witch_kitchen)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.cancel))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                     }
                 },
                 actions = {
@@ -456,7 +456,7 @@ private fun PotionCard(
                         contentPadding = PaddingValues(8.dp)
                     ) {
                         Icon(
-                            Icons.Default.CallSplit,
+                            Icons.AutoMirrored.Filled.CallSplit,
                             contentDescription = "Verdünnen",
                             modifier = Modifier.size(20.dp)
                         )
@@ -488,7 +488,7 @@ private fun PotionCard(
                         contentPadding = PaddingValues(8.dp)
                     ) {
                         Icon(
-                            Icons.Default.Send,
+                            Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Übergeben",
                             modifier = Modifier.size(20.dp)
                         )
@@ -719,7 +719,7 @@ private fun AddPotionDialog(
                         label = { Text(stringResource(R.string.recipe)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRecipe) },
                         modifier = Modifier
-                            .menuAnchor()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                             .fillMaxWidth()
                     )
 
@@ -751,7 +751,7 @@ private fun AddPotionDialog(
                         label = { Text(stringResource(R.string.quality)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedQuality) },
                         modifier = Modifier
-                            .menuAnchor()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                             .fillMaxWidth()
                     )
 
@@ -983,7 +983,7 @@ private fun TransferPotionDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCharacter) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                     )
                     
                     ExposedDropdownMenu(
@@ -1020,4 +1020,5 @@ private fun TransferPotionDialog(
         }
     )
 }
+
 

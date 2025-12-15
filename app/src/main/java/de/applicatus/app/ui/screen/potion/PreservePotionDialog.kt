@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -159,7 +159,7 @@ fun PreservePotionDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
                     }
                     Text(
                         text = "Trank haltbar machen",
@@ -168,7 +168,7 @@ fun PreservePotionDialog(
                     Spacer(modifier = Modifier.width(48.dp))
                 }
                 
-                Divider()
+                HorizontalDivider()
                 
                 // Konfigurationsphase
                 Text(
@@ -196,7 +196,7 @@ fun PreservePotionDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     // Info-Box
                     Card(
@@ -245,7 +245,7 @@ fun PreservePotionDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTalent) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(),
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                         )
                         
@@ -382,3 +382,5 @@ private fun getTalentDisplayName(talent: Talent): String {
         else -> talent.name
     }
 }
+
+

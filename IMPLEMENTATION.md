@@ -137,17 +137,34 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
 
 ### Häufige Build-Fehler und deren Vermeidung
 
-#### 1. Nicht existierende Compose-Komponenten
-**Problem**: Verwendung von Compose-Komponenten, die in der verwendeten Version nicht verfügbar sind.
+#### 1. Deprecated Compose-Komponenten
+**Problem**: Einige Compose-Komponenten wurden zugunsten verbesserter Alternativen als deprecated markiert.
 
-**Beispiel**: `HorizontalDivider` (Material 3) vs. `Divider` (Material 2)
+**Wichtige Migrationen (Compose BOM 2024.12.01+)**:
 
-**Lösung**: 
-- Prüfe die verfügbaren Komponenten in der verwendeten Compose-Version
-- Bei Unsicherheit: Verwende etablierte Komponenten wie `Divider` statt neuerer Alternativen
-- Teste den Build nach dem Hinzufügen neuer UI-Komponenten
+| Deprecated | Neu | Import |
+|------------|-----|--------|
+| `Divider()` | `HorizontalDivider()` | `androidx.compose.material3.HorizontalDivider` |
+| `Icons.Default.ArrowBack` | `Icons.AutoMirrored.Filled.ArrowBack` | `androidx.compose.material.icons.automirrored.filled.ArrowBack` |
+| `Icons.Default.ArrowForward` | `Icons.AutoMirrored.Filled.ArrowForward` | `androidx.compose.material.icons.automirrored.filled.ArrowForward` |
+| `Icons.Default.Send` | `Icons.AutoMirrored.Filled.Send` | `androidx.compose.material.icons.automirrored.filled.Send` |
+| `Icons.Default.MenuBook` | `Icons.AutoMirrored.Filled.MenuBook` | `androidx.compose.material.icons.automirrored.filled.MenuBook` |
+| `Icons.Default.CallSplit` | `Icons.AutoMirrored.Filled.CallSplit` | `androidx.compose.material.icons.automirrored.filled.CallSplit` |
+| `LinearProgressIndicator(progress = value)` | `LinearProgressIndicator(progress = { value })` | Lambda-basiert |
+| `Modifier.menuAnchor()` | `Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)` | Mit Parametern |
 
-#### 2. String-Ressourcen mit Platzhaltern
+**Hinweis**: AutoMirrored-Icons werden automatisch für RTL-Sprachen gespiegelt.
+
+#### 2. Import-Statements prüfen
+**Problem**: Fehlende oder falsche Import-Statements führen zu "Unresolved reference"-Fehlern.
+
+**Lösung**:
+- Prüfe alle verwendeten Icons/Komponenten auf korrekte Imports
+- Bei AutoMirrored Icons: `androidx.compose.material.icons.automirrored.filled.*`
+- Bei Standard Icons: `androidx.compose.material.icons.filled.*`
+- Bei Material 3 Komponenten: `androidx.compose.material3.*`
+
+#### 3. String-Ressourcen mit Platzhaltern
 **Problem**: Strings mit mehreren Platzhaltern (`%d`, `%s`) benötigen das `formatted="false"` Attribut.
 
 **Beispiel**:
@@ -160,14 +177,6 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
 ```
 
 **Regel**: Sobald ein String mehr als einen Platzhalter enthält oder nicht-positionierte Formate verwendet, muss `formatted="false"` hinzugefügt werden.
-
-#### 3. Import-Statements prüfen
-**Problem**: Fehlende oder falsche Import-Statements führen zu "Unresolved reference"-Fehlern.
-
-**Lösung**:
-- Prüfe alle verwendeten Icons/Komponenten auf korrekte Imports
-- Bei Material Design Icons: `androidx.compose.material.icons.filled.*`
-- Bei Material 3 Komponenten: `androidx.compose.material3.*`
 
 #### 4. Lint-Fehler vs. Compilation-Fehler
 **Problem**: Lint kann manchmal Fehler melden, obwohl der Code korrekt kompiliert.

@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -85,7 +88,7 @@ fun NearbySyncScreen(
                         viewModel.stopAllConnections()
                         onNavigateBack()
                     }) {
-                        Icon(Icons.Default.ArrowBack, "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zurück")
                     }
                 }
             )
@@ -125,7 +128,7 @@ fun NearbySyncScreen(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = viewModel.connectionState is NearbyConnectionsInterface.ConnectionState.Connected
                         ) {
-                            Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Charakter '$characterName' senden")
                         }
@@ -402,7 +405,7 @@ fun DeviceItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(Icons.Default.ArrowForward, null)
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null)
         }
     }
 }

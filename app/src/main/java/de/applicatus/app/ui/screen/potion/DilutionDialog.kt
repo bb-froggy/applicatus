@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -104,7 +104,7 @@ fun DilutionDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
                     }
                     Text(
                         text = "Qualifizierte Verdünnung",
@@ -113,7 +113,7 @@ fun DilutionDialog(
                     Spacer(modifier = Modifier.width(48.dp))
                 }
                 
-                Divider()
+                HorizontalDivider()
                 
                 if (resultMessage == null) {
                     // Konfigurationsphase
@@ -144,7 +144,7 @@ fun DilutionDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTalent) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(),
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                         )
                         
@@ -225,7 +225,7 @@ fun DilutionDialog(
                     )
                     
                     // Modifikatoren
-                    Divider()
+                    HorizontalDivider()
                     Text(
                         text = "Modifikatoren:",
                         style = MaterialTheme.typography.titleSmall
@@ -249,7 +249,7 @@ fun DilutionDialog(
                     
                     // Magisches Meisterhandwerk
                     if (isMagicalMastery && character.hasAe) {
-                        Divider()
+                        HorizontalDivider()
                         MagicalMasteryControl(
                             skillValue = skillValue,
                             currentAsp = character.currentAe,
@@ -258,7 +258,7 @@ fun DilutionDialog(
                         )
                     }
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     // Buttons
                     Button(
@@ -312,7 +312,7 @@ fun DilutionDialog(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     Button(
                         onClick = onComplete,
@@ -334,3 +334,5 @@ private fun getTalentDisplayName(talent: Talent): String {
         else -> talent.name
     }
 }
+
+
