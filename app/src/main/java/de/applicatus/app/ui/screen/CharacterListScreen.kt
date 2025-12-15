@@ -955,23 +955,20 @@ fun CharacterListItem(
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showExportMenu by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     
-    @Suppress("DEPRECATION")
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                showDeleteConfirmation = true
-                false // Verhindert automatisches Löschen, wir warten auf Bestätigung
-            } else {
-                false
-            }
-        }
-    )
+    val dismissState = rememberSwipeToDismissBoxState()
     
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true,
+        onDismiss = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                showDeleteConfirmation = true
+                scope.launch { dismissState.reset() }
+            }
+        },
         backgroundContent = {
             // Roter Hintergrund mit Lösch-Icon beim Swipen
             val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {

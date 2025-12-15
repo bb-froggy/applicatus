@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import de.applicatus.app.data.model.inventory.ItemWithLocation
 import de.applicatus.app.data.model.inventory.ItemWithMagic
 import de.applicatus.app.data.model.inventory.MagicIndicator
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,26 +49,23 @@ fun ItemRow(
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
     var currentDragOffset by remember { mutableStateOf(Offset.Zero) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     
     // Self-Items können nicht per Swipe gelöscht werden
     val canSwipeToDelete = !item.isSelfItem
     
-    @Suppress("DEPRECATION")
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {
-                showDeleteConfirmation = true
-                false // Warten auf Bestätigung
-            } else {
-                false
-            }
-        }
-    )
+    val dismissState = rememberSwipeToDismissBoxState()
     
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = canSwipeToDelete,
+        onDismiss = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {
+                showDeleteConfirmation = true
+                scope.launch { dismissState.reset() }
+            }
+        },
         backgroundContent = {
             val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart && canSwipeToDelete) {
                 Color.Red
