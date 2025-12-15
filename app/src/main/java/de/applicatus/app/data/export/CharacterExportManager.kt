@@ -278,9 +278,10 @@ class CharacterExportManager(
             
             // Prüfe lastModifiedDate, wenn Charakter aktualisiert wird
             if (existingCharacter != null && existingCharacter.lastModifiedDate > exportDto.exportTimestamp) {
+                val dateFormat = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.GERMANY)
                 additionalWarnings += "WARNUNG: Der lokale Charakter wurde nach dem Export geändert (" +
-                    "Lokal: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(existingCharacter.lastModifiedDate)}, " +
-                    "Export: ${java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(exportDto.exportTimestamp)}). " +
+                    "Lokal: ${dateFormat.format(existingCharacter.lastModifiedDate)}, " +
+                    "Export: ${dateFormat.format(exportDto.exportTimestamp)}). " +
                     "Beim Import gehen diese Änderungen verloren!"
             }
             

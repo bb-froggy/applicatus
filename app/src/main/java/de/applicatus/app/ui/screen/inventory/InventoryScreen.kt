@@ -16,7 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import androidx.compose.ui.zIndex
-import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.ApplicatusApplication
 import de.applicatus.app.data.model.character.Character
@@ -519,10 +520,7 @@ fun InventoryScreen(
             if (draggedItem != null && dragOffset != Offset.Zero) {
                 Box(
                     modifier = Modifier
-                        .offset(
-                            x = (dragOffset.x / density.density).dp,
-                            y = (dragOffset.y / density.density).dp
-                        )
+                        .offset { IntOffset(dragOffset.x.roundToInt(), dragOffset.y.roundToInt()) }
                         .zIndex(1000f)
                         .width(200.dp)
                         .background(
@@ -555,10 +553,7 @@ fun InventoryScreen(
             if (draggedLocation != null && locationDragOffset != Offset.Zero) {
                 Box(
                     modifier = Modifier
-                        .offset(
-                            x = (locationDragOffset.x / density.density).dp,
-                            y = (locationDragOffset.y / density.density).dp
-                        )
+                        .offset { IntOffset(locationDragOffset.x.roundToInt(), locationDragOffset.y.roundToInt()) }
                         .zIndex(1001f)
                         .width(250.dp)
                         .background(
