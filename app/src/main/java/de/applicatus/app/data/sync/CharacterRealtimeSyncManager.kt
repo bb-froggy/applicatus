@@ -363,26 +363,10 @@ class CharacterRealtimeSyncManager(
                     scope.launch {
                         // Snapshot anwenden (nur wenn GUID übereinstimmt)
                         if (snapshot.character.guid == currentCharacterGuid) {
-                            // Setze Flag um Echo-Back zu verhindern
-                            isApplyingReceivedSnapshot = true
-                            try {
-                                val result = repository.applySnapshotFromSync(snapshot, allowCreateNew = false)
-                                if (result.isSuccess) {
-                                    lastSuccessfulReceiveTime = System.currentTimeMillis()
-                                    // Keep-Alive-Timer zurücksetzen (wir haben Daten empfangen)
-                                    lastKeepAliveTime = System.currentTimeMillis()
-                                } else {
-                                    _syncStatus.value = SyncStatus.Error(
-                                        "Snapshot-Import fehlgeschlagen: ${result.exceptionOrNull()?.message}"
-                                    )
-                                }
-                            } finally {
-                                // Längere Verzögerung um sicherzustellen, dass alle DB-Flows abgefeuert haben
-                                // und der Debounce-Timer (500ms) abgelaufen ist bevor wir wieder senden
-                                delay(DEBOUNCE_MS + 200)
-                                isApplyingReceivedSnapshot = false
-                            }
+                            handleIncomingSnapshotInternal(snapshot)
                         }
+                        // Hinweis: Wenn die GUID nicht übereinstimmt, wird der Snapshot ignoriert.
+                        // Bei Multi-Character-Sync wird der SyncSessionManager das Routing übernehmen.
                     }
                 },
                 onKeepAliveReceived = {
@@ -395,6 +379,42 @@ class CharacterRealtimeSyncManager(
                     _syncStatus.value = SyncStatus.Error("Empfang fehlgeschlagen: $error")
                 }
             )
+        }
+    }
+    
+    /**
+     * Verarbeitet einen eingehenden Snapshot.
+     * Diese Methode wird auch vom SyncSessionManager aufgerufen für Multi-Character-Sync.
+     */
+    suspend fun handleIncomingSnapshot(snapshot: CharacterExportDto) {
+        // Nur verarbeiten wenn die GUID übereinstimmt
+        if (snapshot.character.guid == currentCharacterGuid) {
+            handleIncomingSnapshotInternal(snapshot)
+        }
+    }
+    
+    /**
+     * Interne Methode zur Verarbeitung eines Snapshots.
+     */
+    private suspend fun handleIncomingSnapshotInternal(snapshot: CharacterExportDto) {
+        // Setze Flag um Echo-Back zu verhindern
+        isApplyingReceivedSnapshot = true
+        try {
+            val result = repository.applySnapshotFromSync(snapshot, allowCreateNew = false)
+            if (result.isSuccess) {
+                lastSuccessfulReceiveTime = System.currentTimeMillis()
+                // Keep-Alive-Timer zurücksetzen (wir haben Daten empfangen)
+                lastKeepAliveTime = System.currentTimeMillis()
+            } else {
+                _syncStatus.value = SyncStatus.Error(
+                    "Snapshot-Import fehlgeschlagen: ${result.exceptionOrNull()?.message}"
+                )
+            }
+        } finally {
+            // Längere Verzögerung um sicherzustellen, dass alle DB-Flows abgefeuert haben
+            // und der Debounce-Timer (500ms) abgelaufen ist bevor wir wieder senden
+            delay(DEBOUNCE_MS + 200)
+            isApplyingReceivedSnapshot = false
         }
     }
     

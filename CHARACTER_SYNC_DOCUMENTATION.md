@@ -52,6 +52,13 @@ val isActive = syncManager.hasActiveSession(characterId)
 // Anzahl aktiver Sessions
 val count = syncManager.getActiveSyncCount()
 
+// Character-GUID registrieren/deregistrieren (für Multi-Character-Sync)
+syncManager.registerCharacterGuid(characterId, guid)
+syncManager.unregisterCharacterGuid(guid)
+
+// Aktive Character-GUIDs abfragen
+val guids = syncManager.getActiveCharacterGuids()
+
 // Session beenden
 syncManager.removeSession(characterId)
 
@@ -63,6 +70,8 @@ syncManager.stopAllSessions()
 - Sessions überleben Navigation zwischen Screens
 - Spielleiter kann mehrere Charaktere gleichzeitig synchronisieren
 - Zentrale Status-Verwaltung für UI-Anzeige in CharacterListScreen
+- **Multi-Character-Sync**: Mehrere Charaktere können über dieselbe physische Verbindung synchronisiert werden
+- Automatisches Routing von eingehenden Snapshots anhand der Character-GUID
 
 #### 2. CharacterRealtimeSyncManager
 
@@ -73,6 +82,7 @@ Zentrale Verwaltung der Synchronisation mit vereinfachtem Protokoll:
 - Full-Snapshot-basierte Synchronisation (verwendet `CharacterExportDto`)
 - Update-Debouncing (500ms) zur Performance-Optimierung
 - Last-Write-Wins Konfliktauflösung (GUID-basiert)
+- **Multi-Character-Unterstützung**: `handleIncomingSnapshot()` ermöglicht externes Routing von Snapshots
 - Watchdog für Verbindungsüberwachung (Warnung nach 15s ohne Aktivität)
 - **Keep-Alive**: Sendet alle 10 Sekunden einen Snapshot, auch ohne Änderungen
 
@@ -115,7 +125,8 @@ suspend fun applySnapshotFromSync(
 
 **Verhalten:**
 - Sucht Charakter per GUID (nicht per Name!)
-- Überschreibt komplett ohne UI-Dialoge (Charakter, Slots, Tränke, Items, Locations)
+- Überschreibt komplett ohne UI-Dialoge (Charakter, Slots, Tränke, Items, Locations, **Journal-Einträge**)
+- **Trank-Lagerorte** werden korrekt synchronisiert (locationName → locationId)
 - `lastModifiedDate` wird auf `exportTimestamp` gesetzt
 - Gruppe bleibt beim Überschreiben erhalten
 - Optional: Neue Charaktere anlegen (nur wenn `allowCreateNew = true`)

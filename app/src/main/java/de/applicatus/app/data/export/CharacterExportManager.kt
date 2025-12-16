@@ -109,7 +109,8 @@ class CharacterExportManager(
             // Sammle Tränke und Rezepte
             val potionsWithRecipes = repository.getPotionsForCharacter(characterId).first()
             val potions = potionsWithRecipes.map { potionWithRecipe ->
-                PotionDto.fromPotion(potionWithRecipe.potion, potionWithRecipe.recipe.name)
+                val locationName = potionWithRecipe.potion.locationId?.let { locationsById[it]?.name }
+                PotionDto.fromPotion(potionWithRecipe.potion, potionWithRecipe.recipe.name, locationName)
             }
             
             // Sammle Rezeptwissen

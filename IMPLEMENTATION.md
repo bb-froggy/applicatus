@@ -1012,8 +1012,11 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
 - ✅ **SyncSessionManager**: Singleton für Session-Verwaltung auf Application-Ebene
   - Sessions überleben Navigation zwischen Screens
   - Mehrere Charaktere gleichzeitig synchronisierbar
+  - Multi-Character-Sync: GUID-basiertes Routing von eingehenden Snapshots
   - Star-Topologie (Spielleiter als Host, Spieler als Clients)
   - Last-Write-Wins Konfliktauflösung
+- ✅ **Journal-Synchronisation**: Journal-Einträge werden mit synchronisiert
+- ✅ **Trank-Lagerorte**: locationName wird korrekt exportiert/importiert
 
 ### Charakterjournal
 - ✅ **CharacterJournalEntry**: Automatisches Protokollieren aller Ereignisse

@@ -503,4 +503,285 @@ class CharacterRealtimeSyncManagerTest {
         
         assertEquals("Should have sent exactly 5 payloads", 5, hostService.sentPayloadCount)
     }
+    
+    // ==================== Potion Location Sync Tests ====================
+    
+    /**
+     * Test: PotionDto enthält locationName für Export
+     */
+    @Test
+    fun `PotionDto includes locationName in export`() {
+        val potionDto = de.applicatus.app.data.export.PotionDto(
+            guid = "potion-guid-123",
+            recipeId = 1L,
+            recipeName = "Heiltrank",
+            locationName = "Rucksack",  // Neu hinzugefügtes Feld
+            actualQuality = "B",
+            expiryDate = "15 Praios 1041 BF"
+        )
+        
+        // Serialisiere und deserialisiere
+        val jsonString = json.encodeToString(de.applicatus.app.data.export.PotionDto.serializer(), potionDto)
+        val decoded = json.decodeFromString(de.applicatus.app.data.export.PotionDto.serializer(), jsonString)
+        
+        // Verifiziere, dass locationName erhalten bleibt
+        assertEquals("Rucksack", decoded.locationName)
+        assertEquals("potion-guid-123", decoded.guid)
+        assertEquals("Heiltrank", decoded.recipeName)
+    }
+    
+    /**
+     * Test: PotionDto ohne locationName (null) funktioniert für "Ohne Ort" Tränke
+     */
+    @Test
+    fun `PotionDto with null locationName represents unassigned potion`() {
+        val potionDto = de.applicatus.app.data.export.PotionDto(
+            guid = "potion-guid-456",
+            recipeId = 2L,
+            recipeName = "Gifttrank",
+            locationName = null,  // "Ohne Ort"
+            actualQuality = "C",
+            expiryDate = "1 Efferd 1041 BF"
+        )
+        
+        val jsonString = json.encodeToString(de.applicatus.app.data.export.PotionDto.serializer(), potionDto)
+        val decoded = json.decodeFromString(de.applicatus.app.data.export.PotionDto.serializer(), jsonString)
+        
+        assertNull("locationName should be null for unassigned potions", decoded.locationName)
+    }
+    
+    /**
+     * Test: CharacterExportDto mit Tränken an verschiedenen Lagerorten
+     */
+    @Test
+    fun `CharacterExportDto with potions at different locations serializes correctly`() {
+        val testCharacterDto = CharacterDto(
+            guid = "char-guid-123",
+            name = "Test Charakter"
+        )
+        
+        val potions = listOf(
+            de.applicatus.app.data.export.PotionDto(
+                guid = "potion-1",
+                recipeName = "Heiltrank",
+                locationName = "Rucksack",
+                actualQuality = "B",
+                expiryDate = "1 Praios 1041 BF"
+            ),
+            de.applicatus.app.data.export.PotionDto(
+                guid = "potion-2",
+                recipeName = "Gifttrank",
+                locationName = "Am Körper",
+                actualQuality = "C",
+                expiryDate = "1 Praios 1041 BF"
+            ),
+            de.applicatus.app.data.export.PotionDto(
+                guid = "potion-3",
+                recipeName = "Antidot",
+                locationName = null,  // "Ohne Ort"
+                actualQuality = "A",
+                expiryDate = "1 Praios 1041 BF"
+            )
+        )
+        
+        val exportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = testCharacterDto,
+            spellSlots = emptyList(),
+            potions = potions,
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = emptyList(),
+            exportTimestamp = 1700000000000L
+        )
+        
+        val jsonString = json.encodeToString(CharacterExportDto.serializer(), exportDto)
+        val decoded = json.decodeFromString(CharacterExportDto.serializer(), jsonString)
+        
+        assertEquals(3, decoded.potions.size)
+        assertEquals("Rucksack", decoded.potions[0].locationName)
+        assertEquals("Am Körper", decoded.potions[1].locationName)
+        assertNull(decoded.potions[2].locationName)
+    }
+    
+    // ==================== Journal Sync Tests ====================
+    
+    /**
+     * Test: JournalEntryDto Serialisierung funktioniert
+     */
+    @Test
+    fun `JournalEntryDto serializes correctly`() {
+        val journalEntry = de.applicatus.app.data.export.JournalEntryDto(
+            timestamp = 1700000000000L,
+            derianDate = "15 Praios 1040 BF",
+            category = "Potion.Brewed",
+            playerMessage = "Ein Heiltrank wurde gebraut.",
+            gmMessage = "Qualität: B"
+        )
+        
+        val jsonString = json.encodeToString(de.applicatus.app.data.export.JournalEntryDto.serializer(), journalEntry)
+        val decoded = json.decodeFromString(de.applicatus.app.data.export.JournalEntryDto.serializer(), jsonString)
+        
+        assertEquals(1700000000000L, decoded.timestamp)
+        assertEquals("15 Praios 1040 BF", decoded.derianDate)
+        assertEquals("Potion.Brewed", decoded.category)
+        assertEquals("Ein Heiltrank wurde gebraut.", decoded.playerMessage)
+        assertEquals("Qualität: B", decoded.gmMessage)
+    }
+    
+    /**
+     * Test: JournalEntryDto mit null gmMessage funktioniert
+     */
+    @Test
+    fun `JournalEntryDto with null gmMessage works`() {
+        val journalEntry = de.applicatus.app.data.export.JournalEntryDto(
+            timestamp = 1700000000000L,
+            derianDate = "15 Praios 1040 BF",
+            category = "Energy.Changed",
+            playerMessage = "LE: 30 → 25"
+            // gmMessage ist standardmäßig null
+        )
+        
+        val jsonString = json.encodeToString(de.applicatus.app.data.export.JournalEntryDto.serializer(), journalEntry)
+        val decoded = json.decodeFromString(de.applicatus.app.data.export.JournalEntryDto.serializer(), jsonString)
+        
+        assertNull(decoded.gmMessage)
+    }
+    
+    /**
+     * Test: CharacterExportDto mit Journal-Einträgen
+     */
+    @Test
+    fun `CharacterExportDto with journal entries serializes correctly`() {
+        val testCharacterDto = CharacterDto(
+            guid = "char-guid-456",
+            name = "Journal Test Charakter"
+        )
+        
+        val journalEntries = listOf(
+            de.applicatus.app.data.export.JournalEntryDto(
+                timestamp = 1700000000000L,
+                derianDate = "1 Praios 1040 BF",
+                category = "Character.Created",
+                playerMessage = "Charakter wurde erstellt."
+            ),
+            de.applicatus.app.data.export.JournalEntryDto(
+                timestamp = 1700000001000L,
+                derianDate = "2 Praios 1040 BF",
+                category = "Potion.Brewed",
+                playerMessage = "Ein Heiltrank wurde gebraut.",
+                gmMessage = "Qualität: A"
+            )
+        )
+        
+        val exportDto = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = testCharacterDto,
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = journalEntries,
+            exportTimestamp = 1700000002000L
+        )
+        
+        val jsonString = json.encodeToString(CharacterExportDto.serializer(), exportDto)
+        val decoded = json.decodeFromString(CharacterExportDto.serializer(), jsonString)
+        
+        assertEquals(2, decoded.journalEntries.size)
+        assertEquals("Character.Created", decoded.journalEntries[0].category)
+        assertEquals("Potion.Brewed", decoded.journalEntries[1].category)
+        assertEquals("Qualität: A", decoded.journalEntries[1].gmMessage)
+    }
+    
+    // ==================== Multi-Character Sync Tests ====================
+    
+    /**
+     * Test: SyncSessionManager trackt mehrere aktive Character-GUIDs
+     */
+    @Test
+    fun `SyncSessionManager tracks multiple character GUIDs`() {
+        val syncSessionManager = SyncSessionManager.getInstance()
+        
+        // Registriere zwei verschiedene Charaktere
+        syncSessionManager.registerCharacterGuid(1L, "char-guid-A")
+        syncSessionManager.registerCharacterGuid(2L, "char-guid-B")
+        
+        val activeGuids = syncSessionManager.getActiveCharacterGuids()
+        
+        assertTrue("char-guid-A should be registered", activeGuids.contains("char-guid-A"))
+        assertTrue("char-guid-B should be registered", activeGuids.contains("char-guid-B"))
+        assertEquals(2, activeGuids.size)
+        
+        // Cleanup
+        syncSessionManager.unregisterCharacterGuid("char-guid-A")
+        syncSessionManager.unregisterCharacterGuid("char-guid-B")
+    }
+    
+    /**
+     * Test: SyncSessionManager kann Snapshots anhand der GUID routen
+     */
+    @Test
+    fun `SyncSessionManager routes snapshots by character GUID`() = runTest {
+        // Dieser Test prüft, dass routeIncomingSnapshot false zurückgibt,
+        // wenn kein passender Manager registriert ist
+        val syncSessionManager = SyncSessionManager.getInstance()
+        
+        val testSnapshot = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = CharacterDto(
+                guid = "unknown-guid",
+                name = "Unbekannter Charakter"
+            ),
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = emptyList(),
+            exportTimestamp = System.currentTimeMillis()
+        )
+        
+        // Sollte false zurückgeben, da kein Manager für diese GUID registriert ist
+        val routed = syncSessionManager.routeIncomingSnapshot(testSnapshot)
+        assertFalse("Snapshot should not be routed when no manager is registered", routed)
+    }
+    
+    /**
+     * Test: CharacterRealtimeSyncManager hat handleIncomingSnapshot Methode
+     */
+    @Test
+    fun `CharacterRealtimeSyncManager has handleIncomingSnapshot method`() = runTest {
+        val testScope = TestScope()
+        val manager = CharacterRealtimeSyncManager(
+            mockRepository,
+            hostService,
+            mockExportManager,
+            testScope
+        )
+        
+        // Methode sollte existieren und ohne Exception aufgerufen werden können
+        // (Der eigentliche Aufruf macht nichts, da keine Session aktiv ist)
+        val testSnapshot = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = CharacterDto(
+                guid = "some-guid",
+                name = "Test"
+            ),
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = emptyList(),
+            exportTimestamp = System.currentTimeMillis()
+        )
+        
+        // Sollte ohne Exception durchlaufen (GUID stimmt nicht überein, also wird nichts gemacht)
+        manager.handleIncomingSnapshot(testSnapshot)
+        
+        assertTrue("handleIncomingSnapshot should complete without throwing", true)
+    }
 }

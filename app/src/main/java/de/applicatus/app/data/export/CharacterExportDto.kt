@@ -244,6 +244,7 @@ data class PotionDto(
     val guid: String,
     val recipeId: Long? = null,
     val recipeName: String? = null,
+    val locationName: String? = null,  // Lagerort-Name für Export/Import (seit Version 8)
     val actualQuality: String,
     val appearance: String = "",
     val expiryDate: String,
@@ -258,10 +259,11 @@ data class PotionDto(
     val bestStructureAnalysisFacilitation: Int = 0
 ) {
     companion object {
-        fun fromPotion(potion: Potion, recipeName: String?) = PotionDto(
+        fun fromPotion(potion: Potion, recipeName: String?, locationName: String? = null) = PotionDto(
             guid = potion.guid,
             recipeId = potion.recipeId,
             recipeName = recipeName,
+            locationName = locationName,
             actualQuality = potion.actualQuality.name,
             appearance = potion.appearance,
             expiryDate = potion.expiryDate,
@@ -276,7 +278,7 @@ data class PotionDto(
         )
     }
 
-    fun toPotion(characterId: Long, resolvedRecipeId: Long): Potion {
+    fun toPotion(characterId: Long, resolvedRecipeId: Long, resolvedLocationId: Long? = null): Potion {
         val safeActualQuality = runCatching { PotionQuality.valueOf(actualQuality) }
             .getOrElse { PotionQuality.C }
         val safeKnownQualityLevel = runCatching { KnownQualityLevel.valueOf(knownQualityLevel) }
@@ -294,6 +296,7 @@ data class PotionDto(
             guid = guid,
             characterId = characterId,
             recipeId = resolvedRecipeId,
+            locationId = resolvedLocationId,  // Lagerort wird aus Export übernommen
             actualQuality = safeActualQuality,
             appearance = appearance,
             expiryDate = expiryDate,

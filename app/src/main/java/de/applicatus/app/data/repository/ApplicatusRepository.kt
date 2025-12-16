@@ -896,6 +896,17 @@ class ApplicatusRepository(
             throw IllegalStateException("Charakter mit GUID ${snapshot.character.guid} existiert nicht und allowCreateNew=false")
         }
         
+        // Locations importieren (WICHTIG: VOR Tränken und Items, damit locationsByName verfügbar ist)
+        // WICHTIG: Verwende insertLocationWithoutSelfItem, weil SelfItems
+        // bereits als Items im Snapshot enthalten sind (mit isSelfItem=true)
+        snapshot.locations.forEach { locationDto ->
+            val location = locationDto.toLocation(characterId)
+            insertLocationWithoutSelfItem(location)
+        }
+        
+        // locationsByName-Map für Tränke und Items erstellen
+        val locationsByName = getLocationsForCharacter(characterId).first().associateBy { it.name }
+        
         // Tränke importieren
         // WICHTIG: Verwende DAOs direkt um touchCharacter nicht zu triggern
         val allRecipes = allRecipes.first()
@@ -922,12 +933,14 @@ class ApplicatusRepository(
             val resolvedRecipeId = potionDto.recipeId?.let { recipesById[it]?.id }
                 ?: potionDto.recipeName?.let { recipesByName[it]?.id }
             if (resolvedRecipeId != null) {
-                val importedPotion = potionDto.toPotion(characterId, resolvedRecipeId)
+                // Location-ID über Namen auflösen
+                val resolvedLocationId = potionDto.locationName?.let { locationsByName[it]?.id }
+                val importedPotion = potionDto.toPotion(characterId, resolvedRecipeId, resolvedLocationId)
                 val existingPotion = existingPotionsByGuid[potionDto.guid]
                 
                 if (existingPotion != null) {
-                    // Merge mit besserem Analyse-Ergebnis
-                    val mergedPotion = mergePotion(existingPotion, importedPotion)
+                    // Merge mit besserem Analyse-Ergebnis, aber locationId vom importierten Trank übernehmen
+                    val mergedPotion = mergePotion(existingPotion, importedPotion).copy(locationId = resolvedLocationId)
                     potionDao.updatePotion(mergedPotion)
                 } else {
                     potionDao.insertPotion(importedPotion)
@@ -945,18 +958,10 @@ class ApplicatusRepository(
             }
         }
         
-        // Locations importieren
-        // WICHTIG: Verwende insertLocationWithoutSelfItem, weil SelfItems
-        // bereits als Items im Snapshot enthalten sind (mit isSelfItem=true)
-        snapshot.locations.forEach { locationDto ->
-            val location = locationDto.toLocation(characterId)
-            insertLocationWithoutSelfItem(location)
-        }
-        
         // Items importieren - auflöse locationName zu locationId, erstelle GUID-Map
         // WICHTIG: Verwende itemDao.insert() direkt statt insertItem() um touchCharacter
         // nicht für jedes einzelne Item aufzurufen (verhindert exponentielles Sync-Echo)
-        val locationsByName = getLocationsForCharacter(characterId).first().associateBy { it.name }
+        // Hinweis: locationsByName wurde bereits weiter oben erstellt
         val itemIdsByGuid = mutableMapOf<String, Long>()
         snapshot.items.forEach { itemDto ->
             val resolvedLocationId = itemDto.locationName?.let { locationsByName[it]?.id }
@@ -1016,6 +1021,16 @@ class ApplicatusRepository(
                 val magicSign = signDto.toMagicSign(characterId, resolvedItemId, characterGuid)
                 magicSignDao.insert(magicSign)
             }
+        }
+        
+        // Journal-Einträge importieren (seit v8 für Sync)
+        // Lösche alte Journal-Einträge und importiere neue
+        characterJournalDao.deleteEntriesForCharacter(characterId)
+        val journalEntries = snapshot.journalEntries.map { entryDto ->
+            entryDto.toJournalEntry(characterId)
+        }
+        if (journalEntries.isNotEmpty()) {
+            characterJournalDao.insertEntries(journalEntries)
         }
         
         // WICHTIG: Nur EINMAL am Ende touchCharacter aufrufen, um den Sync-Loop zu verhindern

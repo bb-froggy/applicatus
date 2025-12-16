@@ -1,11 +1,14 @@
 package de.applicatus.app.data.sync
 
+import de.applicatus.app.data.export.CharacterExportDto
 import de.applicatus.app.data.export.CharacterExportManager
 import de.applicatus.app.data.nearby.NearbyConnectionsInterface
 import de.applicatus.app.data.repository.ApplicatusRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +22,11 @@ import kotlinx.coroutines.launch
  * Navigation zwischen Screens.
  * 
  * Jeder Charakter kann maximal eine aktive Session haben.
+ * 
+ * MULTI-CHARACTER-SYNC:
+ * Wenn über eine physische Nearby-Verbindung mehrere Charaktere synchronisiert werden,
+ * werden eingehende Snapshots automatisch an den passenden CharacterRealtimeSyncManager
+ * weitergeleitet (basierend auf der Character-GUID).
  */
 class SyncSessionManager private constructor() {
     
@@ -27,6 +35,9 @@ class SyncSessionManager private constructor() {
     // Alle aktiven Sync-Sessions (characterId -> SyncManager)
     private val activeSessions = mutableMapOf<Long, CharacterRealtimeSyncManager>()
     
+    // Mapping von Character-GUID zu Character-ID für schnelles Lookup
+    private val guidToCharacterId = mutableMapOf<String, Long>()
+    
     // Combined Status aller Sessions für UI-Anzeige
     private val _activeSyncStatuses = MutableStateFlow<Map<Long, CharacterRealtimeSyncManager.SyncStatus>>(emptyMap())
     val activeSyncStatuses: StateFlow<Map<Long, CharacterRealtimeSyncManager.SyncStatus>> = _activeSyncStatuses.asStateFlow()
@@ -34,6 +45,9 @@ class SyncSessionManager private constructor() {
     // Abhängigkeiten (müssen vor Verwendung gesetzt werden)
     private var repository: ApplicatusRepository? = null
     private var nearbyService: NearbyConnectionsInterface? = null
+    
+    // Zentraler Receiver für eingehende Daten (wird von allen Managern geteilt)
+    private var centralReceiverJob: Job? = null
     
     /**
      * Initialisiert den Manager mit den benötigten Abhängigkeiten.
@@ -64,10 +78,47 @@ class SyncSessionManager private constructor() {
                 scope.launch {
                     manager.syncStatus.collect { status ->
                         updateSessionStatus(characterId, status)
+                        
+                        // GUID-Mapping aktualisieren wenn Syncing
+                        if (status is CharacterRealtimeSyncManager.SyncStatus.Syncing) {
+                            guidToCharacterId[status.characterGuid] = characterId
+                        }
                     }
                 }
             }
         }
+    }
+    
+    /**
+     * Registriert eine Character-GUID für das Routing von eingehenden Snapshots.
+     * Wird vom CharacterRealtimeSyncManager aufgerufen wenn eine Session gestartet wird.
+     */
+    fun registerCharacterGuid(characterId: Long, guid: String) {
+        guidToCharacterId[guid] = characterId
+    }
+    
+    /**
+     * Entfernt die Registrierung einer Character-GUID.
+     */
+    fun unregisterCharacterGuid(guid: String) {
+        guidToCharacterId.remove(guid)
+    }
+    
+    /**
+     * Verarbeitet einen eingehenden Snapshot und leitet ihn an den passenden Manager weiter.
+     * Wenn kein passender Manager gefunden wird (d.h. der Charakter wird auf diesem Gerät
+     * nicht synchronisiert), wird der Snapshot ignoriert.
+     * 
+     * @return true wenn der Snapshot verarbeitet wurde, false wenn kein passender Manager gefunden wurde
+     */
+    suspend fun routeIncomingSnapshot(snapshot: CharacterExportDto): Boolean {
+        val characterGuid = snapshot.character.guid
+        val characterId = guidToCharacterId[characterGuid] ?: return false
+        val manager = activeSessions[characterId] ?: return false
+        
+        // Der Manager verarbeitet den Snapshot
+        manager.handleIncomingSnapshot(snapshot)
+        return true
     }
     
     /**
@@ -81,7 +132,15 @@ class SyncSessionManager private constructor() {
      * Entfernt eine Session und stoppt den Sync.
      */
     fun removeSession(characterId: Long) {
-        activeSessions.remove(characterId)?.stopSession()
+        val manager = activeSessions.remove(characterId)
+        if (manager != null) {
+            // GUID-Mapping entfernen
+            val status = manager.syncStatus.value
+            if (status is CharacterRealtimeSyncManager.SyncStatus.Syncing) {
+                guidToCharacterId.remove(status.characterGuid)
+            }
+            manager.stopSession()
+        }
         updateSessionStatus(characterId, CharacterRealtimeSyncManager.SyncStatus.Idle)
     }
     
@@ -91,6 +150,7 @@ class SyncSessionManager private constructor() {
     fun stopAllSessions() {
         activeSessions.values.forEach { it.stopSession() }
         activeSessions.clear()
+        guidToCharacterId.clear()
         _activeSyncStatuses.value = emptyMap()
     }
     
@@ -122,6 +182,13 @@ class SyncSessionManager private constructor() {
             status is CharacterRealtimeSyncManager.SyncStatus.Warning ||
             status is CharacterRealtimeSyncManager.SyncStatus.Connecting
         }
+    }
+    
+    /**
+     * Gibt alle aktiven Character-GUIDs zurück.
+     */
+    fun getActiveCharacterGuids(): Set<String> {
+        return guidToCharacterId.keys.toSet()
     }
     
     private fun updateSessionStatus(characterId: Long, status: CharacterRealtimeSyncManager.SyncStatus) {
