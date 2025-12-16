@@ -284,6 +284,13 @@ class CharacterHomeViewModel(
                         playerMessage = "Manuelle Änderung: $playerMessage",
                         gmMessage = ""
                     )
+                    
+                    // WICHTIG: Character "touchen" um einen erneuten Sync auszulösen,
+                    // damit der neue Journal-Eintrag auch synchronisiert wird.
+                    // Das ist nötig, weil der Journal-Eintrag erst nach dem Debounce-
+                    // Fenster (5s) geschrieben wird, der Sync aber schon vorher 
+                    // ausgelöst wurde (bei der Character-Änderung).
+                    repository.updateCharacter(char.copy(lastModifiedDate = System.currentTimeMillis()))
                 }
             }
             

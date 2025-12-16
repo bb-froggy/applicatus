@@ -133,6 +133,11 @@ class CharacterExportManager(
                 JournalEntryDto.fromJournalEntry(entry)
             }
             
+            android.util.Log.d("JournalSync", "Export: ${journalEntries.size} Journal-Einträge für Character $characterId")
+            journalEntries.forEachIndexed { index, entry ->
+                android.util.Log.d("JournalSync", "  [$index] ${entry.category}: ${entry.playerMessage}")
+            }
+            
             val exportDto = CharacterExportDto(
                 version = DataModelVersion.CURRENT_VERSION,
                 character = CharacterDto.fromCharacter(character, groupName),

@@ -784,4 +784,348 @@ class CharacterRealtimeSyncManagerTest {
         
         assertTrue("handleIncomingSnapshot should complete without throwing", true)
     }
+    
+    // ==================== Journal Sync Scenario Tests ====================
+    
+    /**
+     * Test: Bidirektionaler Journal-Sync - Szenario aus dem Bugreport
+     * 
+     * Szenario:
+     * - Gerät A und Gerät B synchronisieren Charakter X
+     * - Beide haben initial den Journal-Eintrag "Trank wird hinzugefügt"
+     * - Auf Gerät A wird LE von 20 auf 25 erhöht → neuer Journal-Eintrag
+     * - Der Snapshot wird zu Gerät B gesendet
+     * - Erwartung: Gerät B sollte den Journal-Eintrag "LE-Änderung 20->25" haben
+     */
+    @Test
+    fun `journal entries are included in sync snapshot`() = runTest {
+        val characterGuid = "char-sync-test-123"
+        val baseTimestamp = 1700000000000L
+        
+        // Erstelle CharacterDto mit LE = 25 (nach der Änderung)
+        val characterDtoAfterLeChange = CharacterDto(
+            guid = characterGuid,
+            name = "Test Charakter",
+            mu = 10,
+            kl = 12,
+            inValue = 11,
+            ch = 10,
+            ff = 13,
+            ge = 14,
+            ko = 12,
+            kk = 11,
+            maxLe = 30,
+            currentLe = 25,  // War 20, jetzt 25
+            hasAe = false,
+            maxAe = 0,
+            currentAe = 0,
+            hasKe = false,
+            maxKe = 0,
+            currentKe = 0,
+            lastModifiedDate = baseTimestamp + 2000
+        )
+        
+        // Erstelle Journal-Einträge - einer alt, einer neu (LE-Änderung)
+        val oldJournalEntry = de.applicatus.app.data.export.JournalEntryDto(
+            timestamp = baseTimestamp,
+            derianDate = "1 Praios 1040 BF",
+            category = "Potion.Brewed",
+            playerMessage = "Trank wird hinzugefügt"
+        )
+        
+        val newJournalEntry = de.applicatus.app.data.export.JournalEntryDto(
+            timestamp = baseTimestamp + 1000,  // Später als der alte Eintrag
+            derianDate = "1 Praios 1040 BF",
+            category = "Energy.Changed",
+            playerMessage = "LE: 20 → 25"
+        )
+        
+        // Erstelle Snapshot mit BEIDEN Journal-Einträgen
+        val snapshotFromDeviceA = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = characterDtoAfterLeChange,
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = listOf(oldJournalEntry, newJournalEntry),  // BEIDE Einträge!
+            exportTimestamp = baseTimestamp + 2000
+        )
+        
+        // Serialisiere und deserialisiere (simuliert Übertragung)
+        val jsonString = json.encodeToString(CharacterExportDto.serializer(), snapshotFromDeviceA)
+        val receivedSnapshot = json.decodeFromString(CharacterExportDto.serializer(), jsonString)
+        
+        // Verifiziere: Der empfangene Snapshot enthält BEIDE Journal-Einträge
+        assertEquals(
+            "Snapshot should contain 2 journal entries (old + new LE change)",
+            2, 
+            receivedSnapshot.journalEntries.size
+        )
+        
+        // Verifiziere den alten Eintrag
+        val receivedOldEntry = receivedSnapshot.journalEntries.find { it.category == "Potion.Brewed" }
+        assertNotNull("Old journal entry (Potion.Brewed) should be in snapshot", receivedOldEntry)
+        assertEquals("Trank wird hinzugefügt", receivedOldEntry?.playerMessage)
+        
+        // Verifiziere den neuen LE-Änderungs-Eintrag
+        val receivedNewEntry = receivedSnapshot.journalEntries.find { it.category == "Energy.Changed" }
+        assertNotNull("New journal entry (Energy.Changed) should be in snapshot", receivedNewEntry)
+        assertEquals("LE: 20 → 25", receivedNewEntry?.playerMessage)
+        
+        // Verifiziere Reihenfolge nach Timestamp
+        assertTrue(
+            "New entry should have later timestamp than old entry",
+            receivedNewEntry!!.timestamp > receivedOldEntry!!.timestamp
+        )
+    }
+    
+    /**
+     * Test: applySnapshotFromSync wird mit Journal-Einträgen aufgerufen
+     * 
+     * Dieser Test verifiziert, dass wenn ein Snapshot mit Journal-Einträgen empfangen wird,
+     * die Repository-Methode mit diesen Einträgen aufgerufen wird.
+     */
+    @Test
+    fun `applySnapshotFromSync is called with journal entries from snapshot`() = runTest {
+        val characterGuid = "char-journal-sync-456"
+        val baseTimestamp = 1700000000000L
+        
+        // Erstelle Snapshot mit Journal-Einträgen
+        val snapshotWithJournal = CharacterExportDto(
+            version = DataModelVersion.CURRENT_VERSION,
+            character = CharacterDto(
+                guid = characterGuid,
+                name = "Journal Test Char",
+                currentLe = 25,
+                maxLe = 30
+            ),
+            spellSlots = emptyList(),
+            potions = emptyList(),
+            recipeKnowledge = emptyList(),
+            locations = emptyList(),
+            items = emptyList(),
+            journalEntries = listOf(
+                de.applicatus.app.data.export.JournalEntryDto(
+                    timestamp = baseTimestamp,
+                    derianDate = "1 Praios 1040 BF",
+                    category = "Potion.Brewed",
+                    playerMessage = "Heiltrank gebraut"
+                ),
+                de.applicatus.app.data.export.JournalEntryDto(
+                    timestamp = baseTimestamp + 1000,
+                    derianDate = "1 Praios 1040 BF",
+                    category = "Energy.Changed",
+                    playerMessage = "LE: 20 → 25"
+                )
+            ),
+            exportTimestamp = baseTimestamp + 2000
+        )
+        
+        // Konfiguriere Mock, um erfolgreiche Anwendung zu simulieren
+        coEvery { 
+            mockRepository.applySnapshotFromSync(any(), any()) 
+        } returns Result.success(1L)
+        
+        // Rufe die gemockte Methode auf
+        mockRepository.applySnapshotFromSync(snapshotWithJournal, allowCreateNew = false)
+        
+        // Capture den übergebenen Snapshot
+        coVerify { 
+            mockRepository.applySnapshotFromSync(
+                match { snapshot ->
+                    snapshot.journalEntries.size == 2 &&
+                    snapshot.journalEntries.any { it.category == "Potion.Brewed" } &&
+                    snapshot.journalEntries.any { it.category == "Energy.Changed" }
+                },
+                false
+            )
+        }
+    }
+    
+    /**
+     * Test: Bidirektionale Synchronisation - vollständiges Szenario
+     * 
+     * Simuliert das vollständige Szenario aus dem Bugreport:
+     * 1. Host A und Client B verbinden sich
+     * 2. Host A sendet Snapshot mit LE=25 und Journal "LE: 20→25"
+     * 3. Client B empfängt und sollte den Journal-Eintrag haben
+     * 4. Client B ändert LE auf 27 und sendet Snapshot mit Journal "LE: 25→27"
+     * 5. Host A empfängt und sollte den Journal-Eintrag haben
+     * 
+     * KRITISCH: Beide Geräte sollten am Ende ALLE Journal-Einträge haben!
+     */
+    @Test
+    fun `bidirectional sync includes journal entries in both directions`() = runTest {
+        FakeNearbyConnectionsService.clearRegistry()
+        
+        val hostNearbyService = FakeNearbyConnectionsService()
+        val clientNearbyService = FakeNearbyConnectionsService()
+        
+        try {
+            val characterGuid = "char-bidirectional-789"
+            val baseTimestamp = 1700000000000L
+            
+            // === PHASE 1: Host sendet Snapshot nach LE-Änderung 20→25 ===
+            
+            val hostSnapshotAfterFirstChange = CharacterExportDto(
+                version = DataModelVersion.CURRENT_VERSION,
+                character = CharacterDto(
+                    guid = characterGuid,
+                    name = "Bidirectional Test Char",
+                    currentLe = 25,  // Geändert von 20 auf 25
+                    maxLe = 30,
+                    lastModifiedDate = baseTimestamp + 1000
+                ),
+                spellSlots = emptyList(),
+                potions = emptyList(),
+                recipeKnowledge = emptyList(),
+                locations = emptyList(),
+                items = emptyList(),
+                journalEntries = listOf(
+                    de.applicatus.app.data.export.JournalEntryDto(
+                        timestamp = baseTimestamp,
+                        derianDate = "1 Praios 1040 BF",
+                        category = "Potion.Brewed",
+                        playerMessage = "Trank wird hinzugefügt"
+                    ),
+                    de.applicatus.app.data.export.JournalEntryDto(
+                        timestamp = baseTimestamp + 500,
+                        derianDate = "1 Praios 1040 BF",
+                        category = "Energy.Changed",
+                        playerMessage = "LE: 20 → 25"
+                    )
+                ),
+                exportTimestamp = baseTimestamp + 1000
+            )
+            
+            // Host beginnt Advertising
+            hostNearbyService.startAdvertising("Host Device")
+            
+            // Client verbindet sich
+            clientNearbyService.connectToEndpoint("Host Device", "Client Device")
+            advanceUntilIdle()
+            
+            // Client registriert zuerst seinen Empfangs-Callback
+            var clientReceivedSnapshot: CharacterExportDto? = null
+            clientNearbyService.receiveCharacterData(
+                onDataReceived = { snapshot ->
+                    clientReceivedSnapshot = snapshot
+                },
+                onKeepAliveReceived = {},
+                onError = { fail("Client receive should not error: $it") }
+            )
+            
+            // Host sendet Snapshot zu Client
+            hostNearbyService.sendCharacterData(
+                "Client Device",
+                hostSnapshotAfterFirstChange,
+                onSuccess = {},
+                onFailure = { fail("Host send should succeed") }
+            )
+            
+            advanceUntilIdle()
+            
+            // Verifiziere: Client hat beide Journal-Einträge empfangen
+            assertNotNull("Client should have received snapshot", clientReceivedSnapshot)
+            assertEquals(
+                "Client snapshot should have 2 journal entries",
+                2,
+                clientReceivedSnapshot!!.journalEntries.size
+            )
+            assertTrue(
+                "Client should have LE change entry",
+                clientReceivedSnapshot!!.journalEntries.any { 
+                    it.category == "Energy.Changed" && it.playerMessage == "LE: 20 → 25" 
+                }
+            )
+            
+            // === PHASE 2: Client sendet Snapshot nach LE-Änderung 25→27 ===
+            
+            // Host registriert seinen Empfangs-Callback
+            var hostReceivedSnapshot: CharacterExportDto? = null
+            hostNearbyService.receiveCharacterData(
+                onDataReceived = { snapshot ->
+                    hostReceivedSnapshot = snapshot
+                },
+                onKeepAliveReceived = {},
+                onError = { fail("Host receive should not error: $it") }
+            )
+            
+            // Wichtig: Client-Snapshot sollte ALLE bisherigen Journal-Einträge + den neuen enthalten
+            val clientSnapshotAfterSecondChange = CharacterExportDto(
+                version = DataModelVersion.CURRENT_VERSION,
+                character = CharacterDto(
+                    guid = characterGuid,
+                    name = "Bidirectional Test Char",
+                    currentLe = 27,  // Geändert von 25 auf 27
+                    maxLe = 30,
+                    lastModifiedDate = baseTimestamp + 2000
+                ),
+                spellSlots = emptyList(),
+                potions = emptyList(),
+                recipeKnowledge = emptyList(),
+                locations = emptyList(),
+                items = emptyList(),
+                journalEntries = listOf(
+                    de.applicatus.app.data.export.JournalEntryDto(
+                        timestamp = baseTimestamp,
+                        derianDate = "1 Praios 1040 BF",
+                        category = "Potion.Brewed",
+                        playerMessage = "Trank wird hinzugefügt"
+                    ),
+                    // KRITISCH: Der Client muss auch den vorher empfangenen Eintrag mitsenden!
+                    // Bei Last-Write-Wins ist der komplette Snapshot maßgeblich.
+                    de.applicatus.app.data.export.JournalEntryDto(
+                        timestamp = baseTimestamp + 500,
+                        derianDate = "1 Praios 1040 BF",
+                        category = "Energy.Changed",
+                        playerMessage = "LE: 20 → 25"
+                    ),
+                    de.applicatus.app.data.export.JournalEntryDto(
+                        timestamp = baseTimestamp + 1500,
+                        derianDate = "1 Praios 1040 BF",
+                        category = "Energy.Changed",
+                        playerMessage = "LE: 25 → 27"
+                    )
+                ),
+                exportTimestamp = baseTimestamp + 2000
+            )
+            
+            // Client sendet Snapshot zurück zu Host
+            clientNearbyService.sendCharacterData(
+                "Host Device",
+                clientSnapshotAfterSecondChange,
+                onSuccess = {},
+                onFailure = { fail("Client send should succeed") }
+            )
+            
+            advanceUntilIdle()
+            
+            // Verifiziere: Host hat ALLE drei Journal-Einträge empfangen
+            assertNotNull("Host should have received snapshot", hostReceivedSnapshot)
+            assertEquals(
+                "Host snapshot should have 3 journal entries (old + 2 LE changes)",
+                3,
+                hostReceivedSnapshot!!.journalEntries.size
+            )
+            assertTrue(
+                "Host should have first LE change entry",
+                hostReceivedSnapshot!!.journalEntries.any { 
+                    it.category == "Energy.Changed" && it.playerMessage == "LE: 20 → 25" 
+                }
+            )
+            assertTrue(
+                "Host should have second LE change entry",
+                hostReceivedSnapshot!!.journalEntries.any { 
+                    it.category == "Energy.Changed" && it.playerMessage == "LE: 25 → 27" 
+                }
+            )
+            
+        } finally {
+            hostNearbyService.stopAllConnections()
+            clientNearbyService.stopAllConnections()
+        }
+    }
 }

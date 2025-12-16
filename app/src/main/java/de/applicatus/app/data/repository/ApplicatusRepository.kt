@@ -1025,12 +1025,20 @@ class ApplicatusRepository(
         
         // Journal-Einträge importieren (seit v8 für Sync)
         // Lösche alte Journal-Einträge und importiere neue
+        android.util.Log.d("JournalSync", "Snapshot enthält ${snapshot.journalEntries.size} Journal-Einträge")
+        snapshot.journalEntries.forEachIndexed { index, entry ->
+            android.util.Log.d("JournalSync", "  [$index] ${entry.category}: ${entry.playerMessage}")
+        }
+        
         characterJournalDao.deleteEntriesForCharacter(characterId)
         val journalEntries = snapshot.journalEntries.map { entryDto ->
             entryDto.toJournalEntry(characterId)
         }
         if (journalEntries.isNotEmpty()) {
             characterJournalDao.insertEntries(journalEntries)
+            android.util.Log.d("JournalSync", "${journalEntries.size} Journal-Einträge für Character $characterId importiert")
+        } else {
+            android.util.Log.d("JournalSync", "Keine Journal-Einträge im Snapshot")
         }
         
         // WICHTIG: Nur EINMAL am Ende touchCharacter aufrufen, um den Sync-Loop zu verhindern
