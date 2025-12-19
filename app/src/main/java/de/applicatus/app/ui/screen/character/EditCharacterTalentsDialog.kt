@@ -26,6 +26,7 @@ fun EditCharacterTalentsDialog(
     
     var selfControlSkill by remember { mutableStateOf(character.selfControlSkill.toString()) }
     var sensoryAcuitySkill by remember { mutableStateOf(character.sensoryAcuitySkill.toString()) }
+    var wildernessSkill by remember { mutableStateOf(character.wildernessSkill.toString()) }
     var magicalLoreSkill by remember { mutableStateOf(character.magicalLoreSkill.toString()) }
     var herbalLoreSkill by remember { mutableStateOf(character.herbalLoreSkill.toString()) }
     
@@ -145,6 +146,16 @@ fun EditCharacterTalentsDialog(
                 
                 item {
                     OutlinedTextField(
+                        value = wildernessSkill,
+                        onValueChange = { wildernessSkill = it },
+                        label = { Text("${stringResource(R.string.wilderness)} TaW") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                item {
+                    OutlinedTextField(
                         value = magicalLoreSkill,
                         onValueChange = { magicalLoreSkill = it },
                         label = { Text("${stringResource(R.string.magical_lore)} TaW") },
@@ -215,6 +226,7 @@ fun EditCharacterTalentsDialog(
                             cookingPotionsIsMagicalMastery = if (hasCookingPotions && character.hasAe) cookingPotionsIsMagicalMastery else false,
                             selfControlSkill = selfControlSkill.toIntOrNull() ?: 0,
                             sensoryAcuitySkill = sensoryAcuitySkill.toIntOrNull() ?: 0,
+                            wildernessSkill = wildernessSkill.toIntOrNull() ?: 0,
                             magicalLoreSkill = magicalLoreSkill.toIntOrNull() ?: 0,
                             herbalLoreSkill = herbalLoreSkill.toIntOrNull() ?: 0,
                             ritualKnowledgeValue = if (character.hasAe) ritualKnowledgeValue.toIntOrNull() ?: 0 else 0,

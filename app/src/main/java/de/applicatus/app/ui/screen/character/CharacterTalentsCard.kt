@@ -21,6 +21,7 @@ fun CharacterTalentsCard(
                      character.hasCookingPotions || 
                      character.selfControlSkill > 0 || 
                      character.sensoryAcuitySkill > 0 || 
+                     character.wildernessSkill > 0 || 
                      character.magicalLoreSkill > 0 || 
                      character.herbalLoreSkill > 0
     
@@ -71,6 +72,14 @@ fun CharacterTalentsCard(
                 TalentItem(
                     name = stringResource(R.string.sensory_acuity),
                     value = character.sensoryAcuitySkill
+                )
+            }
+            
+            // Wildnisleben
+            if (character.wildernessSkill > 0) {
+                TalentItem(
+                    name = stringResource(R.string.wilderness),
+                    value = character.wildernessSkill
                 )
             }
             

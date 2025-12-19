@@ -32,4 +32,8 @@ sealed class Screen(val route: String) {
     object MagicSignScreen : Screen("magic_signs/{characterId}") {
         fun createRoute(characterId: Long) = "magic_signs/$characterId"
     }
+    
+    object HerbSearchScreen : Screen("herb_search/{characterId}") {
+        fun createRoute(characterId: Long) = "herb_search/$characterId"
+    }
 }

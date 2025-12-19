@@ -47,7 +47,8 @@ fun CharacterHomeScreen(
     onNavigateToInventory: (Long) -> Unit,
     onNavigateToJournal: (Long) -> Unit = {},
     onNavigateToNearbySync: (Long, String) -> Unit = { _, _ -> },
-    onNavigateToMagicSigns: (Long) -> Unit = {}
+    onNavigateToMagicSigns: (Long) -> Unit = {},
+    onNavigateToHerbSearch: (Long) -> Unit = {}
 ) {
     val viewModel: CharacterHomeViewModel = viewModel(factory = viewModelFactory)
     val character by viewModel.character.collectAsState()
@@ -64,6 +65,7 @@ fun CharacterHomeScreen(
     var showEditPropertiesDialog by remember { mutableStateOf(false) }
     var showEditEnergiesDialog by remember { mutableStateOf(false) }
     var showEditTalentsDialog by remember { mutableStateOf(false) }
+    var showEditTerrainKnowledgeDialog by remember { mutableStateOf(false) }
     var showEditSpellsDialog by remember { mutableStateOf(false) }
     var showRegenerationDialog by remember { mutableStateOf(false) }
     var showAstralMeditationDialog by remember { mutableStateOf(false) }
@@ -361,6 +363,13 @@ fun CharacterHomeScreen(
                     onClick = { showEditTalentsDialog = true }
                 )
                 
+                // Geländekunde
+                CharacterTerrainKnowledgeCard(
+                    character = char,
+                    isEditMode = isEditMode,
+                    onClick = { showEditTerrainKnowledgeDialog = true }
+                )
+                
                 // Zauber
                 CharacterSpellsCard(
                     character = char,
@@ -393,6 +402,13 @@ fun CharacterHomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Packesel")
+                }
+                
+                Button(
+                    onClick = { onNavigateToHerbSearch(characterId) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Kräutersuche")
                 }
                 
                 // Zauberzeichen nur anzeigen, wenn Charakter die SF hat und RkW > 0
@@ -489,6 +505,17 @@ fun CharacterHomeScreen(
             onConfirm = { updatedChar ->
                 viewModel.updateCharacter(updatedChar)
                 showEditTalentsDialog = false
+            }
+        )
+    }
+    
+    if (showEditTerrainKnowledgeDialog && character != null) {
+        EditCharacterTerrainKnowledgeDialog(
+            character = character!!,
+            onDismiss = { showEditTerrainKnowledgeDialog = false },
+            onConfirm = { updatedChar ->
+                viewModel.updateCharacter(updatedChar)
+                showEditTerrainKnowledgeDialog = false
             }
         )
     }

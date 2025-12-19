@@ -35,7 +35,10 @@ import de.applicatus.app.ui.viewmodel.PotionViewModelFactory
 import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModel
 import de.applicatus.app.ui.viewmodel.RecipeKnowledgeViewModelFactory
 import de.applicatus.app.ui.viewmodel.MagicSignViewModel
+import de.applicatus.app.ui.viewmodel.HerbSearchViewModel
+import de.applicatus.app.ui.viewmodel.HerbSearchViewModelFactory
 import de.applicatus.app.ui.screen.magicsign.MagicSignScreen
+import de.applicatus.app.ui.screen.HerbSearchScreen
 import java.net.URLDecoder
 
 @Composable
@@ -98,6 +101,9 @@ fun ApplicatusNavHost(
                 },
                 onNavigateToMagicSigns = { charId ->
                     navController.navigate(Screen.MagicSignScreen.createRoute(charId))
+                },
+                onNavigateToHerbSearch = { charId ->
+                    navController.navigate(Screen.HerbSearchScreen.createRoute(charId))
                 }
             )
         }
@@ -221,6 +227,20 @@ fun ApplicatusNavHost(
             )
             MagicSignScreen(
                 viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.HerbSearchScreen.route,
+            arguments = listOf(
+                navArgument("characterId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val characterId = backStackEntry.arguments?.getLong("characterId") ?: return@composable
+            HerbSearchScreen(
+                characterId = characterId,
+                viewModelFactory = HerbSearchViewModelFactory(repository, characterId),
                 onNavigateBack = { navController.popBackStack() }
             )
         }

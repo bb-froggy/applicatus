@@ -111,6 +111,8 @@
     <string name="sensory_acuity">Sinnenschärfe</string>
     <string name="magical_lore">Magiekunde</string>
     <string name="herbal_lore">Pflanzenkunde</string>
+    <string name="wilderness">Wildnisleben</string>
+    <string name="terrain_knowledge">Geländekunde</string>
     
     <!-- Spells -->
     <string name="spells">Zauber</string>
