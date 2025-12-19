@@ -740,6 +740,41 @@ repository.getCharacterByIdFlow(playerCharacterId).collect { character ->
 
 ---
 
+## Bekannte Lösungen für frühere Probleme
+
+### Journal-Einträge werden nicht synchronisiert (behoben)
+
+**Problem:** Bei manuellen Energie-Änderungen (LE, AE, KE) wurde der Journal-Eintrag erst nach einem 5-Sekunden-Debounce-Fenster geschrieben. Der Sync wurde jedoch sofort bei der Character-Änderung ausgelöst (500ms Debounce), sodass der Journal-Eintrag im Export fehlte.
+
+**Symptom:**
+- Gerät A ändert LE von 20 auf 25 → Journal-Eintrag "LE: 20 → 25" erscheint auf A
+- Gerät B empfängt die LE-Änderung (Charakter zeigt 25)
+- Aber Gerät B hat KEINEN Journal-Eintrag "LE: 20 → 25"
+
+**Ursache:** Race-Condition zwischen:
+1. Character-Update (sofort) → Sync-Trigger (500ms Debounce) → Export
+2. Journal-Eintrag (5000ms Debounce)
+
+Der Export erfolgte bevor der Journal-Eintrag geschrieben wurde.
+
+**Lösung (v8+):** Nach dem Schreiben des Journal-Eintrags wird der Character erneut "touched" (lastModifiedDate aktualisiert), um einen zweiten Sync auszulösen:
+
+```kotlin
+// CharacterHomeViewModel.trackManualEnergyChange()
+repository.logCharacterEvent(...)
+
+// WICHTIG: Character "touchen" um einen erneuten Sync auszulösen
+repository.updateCharacter(char.copy(lastModifiedDate = System.currentTimeMillis()))
+```
+
+**Resultat:** Der Journal-Eintrag wird nach 5 Sekunden Inaktivität geschrieben, und dann löst das Character-Update einen neuen Sync aus, der den Journal-Eintrag enthält.
+
+**Debug-Logging:** Bei Problemen mit Journal-Sync kann in Logcat nach "JournalSync" gefiltert werden. Das zeigt:
+- Export: Wie viele Journal-Einträge exportiert werden
+- Import: Wie viele Journal-Einträge aus dem Snapshot importiert werden
+
+---
+
 **Hinweis:** Diese Dokumentation beschreibt die aktuelle vereinfachte Implementierung (Phase 1). Full-Snapshot-Protokoll mit Last-Write-Wins, keine inkrementellen Updates.
 
 ## Weitere Informationen

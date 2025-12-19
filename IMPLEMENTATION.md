@@ -1016,6 +1016,8 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
   - Star-Topologie (Spielleiter als Host, Spieler als Clients)
   - Last-Write-Wins Konfliktauflösung
 - ✅ **Journal-Synchronisation**: Journal-Einträge werden mit synchronisiert
+  - Journal-Debounce (5s) triggert erneuten Sync nach Eintrag
+  - Debug-Logging: Logcat "JournalSync" zeigt Export/Import-Details
 - ✅ **Trank-Lagerorte**: locationName wird korrekt exportiert/importiert
 
 ### Charakterjournal
