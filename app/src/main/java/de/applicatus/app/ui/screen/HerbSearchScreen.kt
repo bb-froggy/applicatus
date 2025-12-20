@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.applicatus.app.data.model.herb.Herb
 import de.applicatus.app.data.model.herb.Landscape
+import de.applicatus.app.data.model.herb.hasGelaendekundeIn
 import de.applicatus.app.data.model.herb.Region
 import de.applicatus.app.logic.DerianDateCalculator
 import de.applicatus.app.logic.HerbSearchCalculator
@@ -302,7 +303,7 @@ fun HerbSearchScreen(
                         
                         // Zeige Geländekunde für diese Landschaft an
                         selectedLandscape?.let { landscape ->
-                            if (character?.gelaendekunde?.contains(landscape.displayName) == true) {
+                            if (landscape.hasGelaendekundeIn(character?.gelaendekunde ?: emptyList())) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
@@ -313,7 +314,7 @@ fun HerbSearchScreen(
                                         enabled = false
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Geländekunde ${landscape.displayName} (-3)")
+                                    Text("Geländekunde ${landscape.getGelaendekunde()} (-3)")
                                 }
                             }
                         }

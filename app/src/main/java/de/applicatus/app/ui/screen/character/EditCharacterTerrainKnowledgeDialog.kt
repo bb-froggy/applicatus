@@ -11,13 +11,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.applicatus.app.R
 import de.applicatus.app.data.model.character.Character
-import de.applicatus.app.data.model.herb.Landscape
+import de.applicatus.app.data.model.herb.getAllGelaendekunden
 
 /**
  * Dialog zum Bearbeiten der Geländekunde-Liste eines Charakters
  * 
- * Der Charakter kann mehrere Landschaften auswählen, für die er Geländekunde besitzt.
- * Dies gibt -3 Bonus auf die Kräutersuche in diesen Landschaften.
+ * Der Charakter kann mehrere Geländekunden auswählen, für die er Geländekunde besitzt.
+ * Dies gibt -3 Bonus auf die Kräutersuche in allen entsprechenden Landschaften.
  */
 @Composable
 fun EditCharacterTerrainKnowledgeDialog(
@@ -25,18 +25,16 @@ fun EditCharacterTerrainKnowledgeDialog(
     onDismiss: () -> Unit,
     onConfirm: (Character) -> Unit
 ) {
-    // State für die ausgewählten Landschaften (als Set für schnelle Lookup)
-    val selectedLandscapes = remember { 
+    // State für die ausgewählten Geländekunden (als Set für schnelle Lookup)
+    val selectedGelaendekunden = remember { 
         mutableStateListOf<String>().apply { 
             addAll(character.gelaendekunde) 
         }
     }
     
-    // Alle verfügbaren Landschaften (außer SEA, da nicht relevant für Kräutersuche)
-    val availableLandscapes = remember {
-        Landscape.values()
-            .filter { it != Landscape.SEA }
-            .sortedBy { it.displayName }
+    // Alle verfügbaren Geländekunden (10 DSA-Geländekunden)
+    val availableGelaendekunden = remember {
+        getAllGelaendekunden()
     }
 
     AlertDialog(
@@ -45,7 +43,7 @@ fun EditCharacterTerrainKnowledgeDialog(
             Column {
                 Text(stringResource(R.string.terrain_knowledge))
                 Text(
-                    text = "Wähle Landschaften aus (-3 auf Kräutersuche)",
+                    text = "Wähle Geländekunden aus (-3 Erleichterung)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -55,8 +53,8 @@ fun EditCharacterTerrainKnowledgeDialog(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(availableLandscapes) { landscape ->
-                    val isSelected = selectedLandscapes.contains(landscape.displayName)
+                items(availableGelaendekunden) { gelaendekunde ->
+                    val isSelected = selectedGelaendekunden.contains(gelaendekunde)
                     
                     Row(
                         modifier = Modifier
@@ -66,16 +64,16 @@ fun EditCharacterTerrainKnowledgeDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = landscape.displayName,
+                            text = gelaendekunde,
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Checkbox(
                             checked = isSelected,
                             onCheckedChange = { checked ->
                                 if (checked) {
-                                    selectedLandscapes.add(landscape.displayName)
+                                    selectedGelaendekunden.add(gelaendekunde)
                                 } else {
-                                    selectedLandscapes.remove(landscape.displayName)
+                                    selectedGelaendekunden.remove(gelaendekunde)
                                 }
                             }
                         )
@@ -88,7 +86,7 @@ fun EditCharacterTerrainKnowledgeDialog(
                 onClick = {
                     onConfirm(
                         character.copy(
-                            gelaendekunde = selectedLandscapes.toList().sorted()
+                            gelaendekunde = selectedGelaendekunden.toList().sorted()
                         )
                     )
                 }

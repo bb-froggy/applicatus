@@ -4,6 +4,7 @@ import de.applicatus.app.data.InitialHerbs
 import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.herb.Herb
 import de.applicatus.app.data.model.herb.Landscape
+import de.applicatus.app.data.model.herb.hasGelaendekundeIn
 import de.applicatus.app.logic.DerianDateCalculator.DerianMonth
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -63,7 +64,7 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
     ): Int {
         return herb.calculateSearchDifficulty(
             landscape = landscape,
-            hasGelaendekunde = character.gelaendekunde.contains(landscape.displayName),
+            hasGelaendekunde = landscape.hasGelaendekundeIn(character.gelaendekunde),
             hasOrtskenntnis = hasOrtskenntnis
         )
     }

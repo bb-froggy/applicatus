@@ -11,6 +11,7 @@ import de.applicatus.app.data.model.character.Group
 import de.applicatus.app.data.model.herb.Herb
 import de.applicatus.app.data.model.herb.Landscape
 import de.applicatus.app.data.model.herb.Region
+import de.applicatus.app.data.model.herb.hasGelaendekundeIn
 import de.applicatus.app.data.model.inventory.Item
 import de.applicatus.app.data.model.inventory.Location
 import de.applicatus.app.data.repository.ApplicatusRepository
@@ -272,7 +273,7 @@ class HerbSearchViewModel(
         val effectiveTaw = getEffectiveTaW() ?: return
         
         // Anpassung für Geländekunde und Ortskenntnis
-        val bonus = (if (char.gelaendekunde.contains(landscape.displayName)) 3 else 0) +
+        val bonus = (if (landscape.hasGelaendekundeIn(char.gelaendekunde)) 3 else 0) +
                    (if (_hasOrtskenntnis.value) 7 else 0)
         
         val probeMU = char.mu
