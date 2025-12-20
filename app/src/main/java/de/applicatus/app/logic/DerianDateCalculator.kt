@@ -523,6 +523,17 @@ object DerianDateCalculator {
     }
     
     /**
+     * Extrahiert den Monat aus einem derischen Datum
+     * 
+     * @param date Das derische Datum (z.B. "15 Praios 1040 BF")
+     * @return Der DerianMonth oder FULL_YEAR bei Fehler
+     */
+    fun getMonthFromDate(date: String): DerianMonth {
+        val components = parseDateComponents(date) ?: return DerianMonth.FULL_YEAR
+        return DerianMonth.fromMonthName(components.second) ?: DerianMonth.FULL_YEAR
+    }
+    
+    /**
      * Hilfsklasse für Quadrupel
      */
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

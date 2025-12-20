@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Spell::class, Character::class, SpellSlot::class, Recipe::class, Potion::class, GlobalSettings::class, RecipeKnowledge::class, Group::class, Item::class, Location::class, CharacterJournalEntry::class, MagicSign::class],
-    version = 40,
+    version = 42,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -1360,6 +1360,83 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                 }
             }
         }
+        
+        val MIGRATION_40_41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Neue Felder für Kräutersuche hinzufügen (mit Check, ob Spalte bereits existiert)
+                val cursor = db.query("PRAGMA table_info(characters)")
+                val existingColumns = mutableSetOf<String>()
+                while (cursor.moveToNext()) {
+                    existingColumns.add(cursor.getString(cursor.getColumnIndexOrThrow("name")))
+                }
+                cursor.close()
+                
+                if (!existingColumns.contains("wildernessSkill")) {
+                    db.execSQL("ALTER TABLE characters ADD COLUMN wildernessSkill INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!existingColumns.contains("sensoryAcuitySkill")) {
+                    db.execSQL("ALTER TABLE characters ADD COLUMN sensoryAcuitySkill INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!existingColumns.contains("herbalLoreSkill")) {
+                    db.execSQL("ALTER TABLE characters ADD COLUMN herbalLoreSkill INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!existingColumns.contains("gelaendekunde")) {
+                    db.execSQL("ALTER TABLE characters ADD COLUMN gelaendekunde TEXT NOT NULL DEFAULT ''")
+                }
+            }
+        }
+        
+        val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Neue Felder für Kräuter-Inventar und Kräutertasche
+                // Mit Check, ob Spalten bereits existieren (für den Fall, dass sie in einer alten Version von MIGRATION_40_41 bereits hinzugefügt wurden)
+                
+                // Prüfe existierende Spalten in characters
+                val charactersCursor = db.query("PRAGMA table_info(characters)")
+                val existingCharacterColumns = mutableSetOf<String>()
+                while (charactersCursor.moveToNext()) {
+                    existingCharacterColumns.add(charactersCursor.getString(charactersCursor.getColumnIndexOrThrow("name")))
+                }
+                charactersCursor.close()
+                
+                // 1. Character: letzte Suchregion und Landschaft
+                if (!existingCharacterColumns.contains("lastHerbSearchRegion")) {
+                    db.execSQL("ALTER TABLE characters ADD COLUMN lastHerbSearchRegion TEXT NOT NULL DEFAULT ''")
+                }
+                if (!existingCharacterColumns.contains("lastHerbSearchLandscape")) {
+                    db.execSQL("ALTER TABLE characters ADD COLUMN lastHerbSearchLandscape TEXT NOT NULL DEFAULT ''")
+                }
+                
+                // Prüfe existierende Spalten in items
+                val itemsCursor = db.query("PRAGMA table_info(items)")
+                val existingItemColumns = mutableSetOf<String>()
+                while (itemsCursor.moveToNext()) {
+                    existingItemColumns.add(itemsCursor.getString(itemsCursor.getColumnIndexOrThrow("name")))
+                }
+                itemsCursor.close()
+                
+                // 2. Item: Kraut-Felder (isHerb, expiryDate)
+                if (!existingItemColumns.contains("isHerb")) {
+                    db.execSQL("ALTER TABLE items ADD COLUMN isHerb INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!existingItemColumns.contains("expiryDate")) {
+                    db.execSQL("ALTER TABLE items ADD COLUMN expiryDate TEXT NOT NULL DEFAULT ''")
+                }
+                
+                // Prüfe existierende Spalten in locations
+                val locationsCursor = db.query("PRAGMA table_info(locations)")
+                val existingLocationColumns = mutableSetOf<String>()
+                while (locationsCursor.moveToNext()) {
+                    existingLocationColumns.add(locationsCursor.getString(locationsCursor.getColumnIndexOrThrow("name")))
+                }
+                locationsCursor.close()
+                
+                // 3. Location: Kräutertasche-Flag
+                if (!existingLocationColumns.contains("isHerbPouch")) {
+                    db.execSQL("ALTER TABLE locations ADD COLUMN isHerbPouch INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+        }
 
         fun getDatabase(context: Context): ApplicatusDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -1368,7 +1445,7 @@ abstract class ApplicatusDatabase : RoomDatabase() {
                     ApplicatusDatabase::class.java,
                     "applicatus_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41, MIGRATION_41_42)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

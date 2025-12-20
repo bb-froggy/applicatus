@@ -66,6 +66,8 @@ data class Character(
     // Talente für Kräutersuche (sensoryAcuitySkill = Sinnenschärfe, wildernessSkill = Wildnisleben, herbalLoreSkill = Pflanzenkunde)
     val wildernessSkill: Int = 0,        // Wildnisleben-Talentwert (0-18, für Kräutersuche-Berechnung)
     val gelaendekunde: List<String> = emptyList(), // Liste der Landschaften, für die der Charakter Geländekunde hat (z.B. ["Wald", "Gebirge"])
+    val lastHerbSearchRegion: String = "", // Letzte Kräutersuche-Region (für UI-Vorauswahl)
+    val lastHerbSearchLandscape: String = "", // Letzte Kräutersuche-Landschaftsart (für UI-Vorauswahl)
     // Lebensenergie (alle Charaktere haben LE)
     val currentLe: Int = 30,             // Aktuelle Lebensenergie
     val maxLe: Int = 30,                 // Maximale Lebensenergie

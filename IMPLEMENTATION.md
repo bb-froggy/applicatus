@@ -53,6 +53,22 @@ methodBonus = character.sensoryAcuitySkill / 3  // Abrundung ist hier korrekt!
 - **Division durch 3 (Berechnung)**: Kaufmännisch runden → `(wert + 1) / 3`
 - **"Je 3 Punkte" (Schwellenwerte)**: Nur volle 3 Punkte → `wert / 3` (normale Division)
 
+### Würfelnotation in DSA
+
+**WICHTIG: DSA-Regelwerke verwenden oft Kurzschreibweisen für Würfel!**
+
+In DSA-Regelwerken werden Würfelnotationen oft ohne führende "1" geschrieben:
+- **"W6"** bedeutet **1W6** (ein sechsseitiger Würfel)
+- **"W20"** bedeutet **1W20** (ein zwanzigseitiger Würfel)
+- **"W3"** bedeutet **1W3** (ein dreiseitiger Würfel)
+
+Die Funktion `ProbeChecker.rollDice()` unterstützt beide Schreibweisen:
+- `"3W6+2"` → Standard-Notation
+- `"W20"` → Kurzform für "1W20"
+- `"W3"` → Kurzform für "1W3"
+
+**Regex-Pattern**: `(\d*)W(\d+)([+\-]\d+)?` - Die Anzahl ist optional.
+
 ### DSA-Regelkonformität: Magisches Meisterhandwerk
 
 **WICHTIG: Beim Magischen Meisterhandwerk kann der TaW maximal verdoppelt werden!**

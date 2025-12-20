@@ -30,17 +30,23 @@ fun HerbSearchScreen(
     val character by viewModel.character.collectAsState()
     val selectedRegion by viewModel.selectedRegion.collectAsState()
     val selectedLandscape by viewModel.selectedLandscape.collectAsState()
-    val selectedMonth by viewModel.selectedMonth.collectAsState()
     val selectedHerb by viewModel.selectedHerb.collectAsState()
+    val currentDate by viewModel.currentDate.collectAsState()
     val hasOrtskenntnis by viewModel.hasOrtskenntnis.collectAsState()
     val hasDoubledSearchTime by viewModel.hasDoubledSearchTime.collectAsState()
     val availableLandscapes by viewModel.availableLandscapes.collectAsState()
     val availableHerbs by viewModel.availableHerbs.collectAsState()
     val searchResult by viewModel.searchResult.collectAsState()
     
+    // Initialisiere Region/Landschaft bei jedem Screen-Besuch
+    LaunchedEffect(character) {
+        character?.let {
+            viewModel.initializeLastSearch()
+        }
+    }
+    
     var showRegionMenu by remember { mutableStateOf(false) }
     var showLandscapeMenu by remember { mutableStateOf(false) }
-    var showMonthMenu by remember { mutableStateOf(false) }
     var showHerbMenu by remember { mutableStateOf(false) }
     
     Scaffold(
@@ -63,39 +69,76 @@ fun HerbSearchScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Character Info
+            // Character Info (kompakt mit Akkordeon)
             character?.let { char ->
+                var isExpanded by remember { mutableStateOf(false) }
+                
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { isExpanded = !isExpanded }
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = char.name,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "Sinnenschärfe: ${char.sensoryAcuitySkill}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Wildnisleben: ${char.wildernessSkill}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Pflanzenkunde: ${char.herbalLoreSkill}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        viewModel.getHerbSearchTaW()?.let { taw ->
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            viewModel.getHerbSearchTaW()?.let { taw ->
+                                Text(
+                                    text = "Kräutersuche TaW: $taw (MU/IN/FF)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Text(
-                                text = "Kräutersuche-TaW: $taw",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                text = if (isExpanded) "▼" else "▶",
+                                style = MaterialTheme.typography.titleMedium
                             )
                         }
+                        
+                        if (isExpanded) {
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(
+                                text = "Sinnenschärfe: ${char.sensoryAcuitySkill}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Wildnisleben: ${char.wildernessSkill}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Pflanzenkunde: ${char.herbalLoreSkill}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Current Date Display
+            currentDate?.let { date ->
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Aktuelles Datum:",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = date,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
@@ -153,33 +196,6 @@ fun HerbSearchScreen(
                 }
             }
             
-            // Month Selection
-            if (selectedLandscape != null) {
-                Box {
-                    OutlinedButton(
-                        onClick = { showMonthMenu = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(selectedMonth.displayName)
-                    }
-                    
-                    DropdownMenu(
-                        expanded = showMonthMenu,
-                        onDismissRequest = { showMonthMenu = false }
-                    ) {
-                        viewModel.getAllMonths().forEach { month ->
-                            DropdownMenuItem(
-                                text = { Text(month.displayName) },
-                                onClick = {
-                                    viewModel.selectMonth(month)
-                                    showMonthMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-            
             // Herb Selection
             if (availableHerbs.isNotEmpty()) {
                 Box {
@@ -199,11 +215,16 @@ fun HerbSearchScreen(
                                 text = { 
                                     Column {
                                         Text(herb.name)
-                                        Text(
-                                            text = "Erschwer ${herb.identificationDifficulty}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
+                                        selectedLandscape?.let { landscape ->
+                                            val occurrence = herb.getOccurrenceInLandscape(landscape)
+                                            occurrence?.let {
+                                                Text(
+                                                    text = "Erkennung: +${herb.identificationDifficulty}, Häufigkeit: +${it.modifier}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                            }
+                                        }
                                     }
                                 },
                                 onClick = {
@@ -216,7 +237,7 @@ fun HerbSearchScreen(
                 }
             }
             
-            // Modifiers
+            // Modifiers und Probe-Vorschau zusammengefasst
             if (selectedHerb != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth()
@@ -251,7 +272,7 @@ fun HerbSearchScreen(
                                 onCheckedChange = { viewModel.setDoubledSearchTime(it) }
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Doppelte Suchdauer (-2)")
+                            Text("Doppelte Suchdauer (TaW x1.5)")
                         }
                         
                         // Zeige Geländekunde für diese Landschaft an
@@ -272,13 +293,18 @@ fun HerbSearchScreen(
                             }
                         }
                         
-                        viewModel.getSearchDifficulty()?.let { difficulty ->
-                            Divider(modifier = Modifier.padding(vertical = 4.dp))
-                            Text(
-                                text = "Gesamte Erschwernis: $difficulty",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                        // Probe-Zusammenfassung
+                        character?.let { char ->
+                            viewModel.getEffectiveTaW()?.let { effectiveTaw ->
+                                viewModel.getSearchDifficulty()?.let { difficulty ->
+                                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                                    Text(
+                                        text = "MU/IN/FF (${char.mu}/${char.inValue}/${char.ff}) mit TaW $effectiveTaw ${if (difficulty >= 0) "+" else ""}$difficulty",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -340,29 +366,61 @@ fun HerbSearchScreen(
                         Divider(modifier = Modifier.padding(vertical = 4.dp))
                         
                         Text(
-                            text = "Würfe: ${result.roll1}, ${result.roll2}, ${result.roll3}",
+                            text = "Würfe: ${result.roll1}, ${result.roll2}, ${result.roll3} | TaP*: ${result.qualityPoints}",
                             style = MaterialTheme.typography.bodyLarge
                         )
                         
-                        Text(
-                            text = "TaP*: ${result.qualityPoints}",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        
-                        result.foundQuantity?.let { quantity ->
+                        if (result.portionCount > 1) {
                             Text(
-                                text = "Gefundene Menge: $quantity",
+                                text = "🌿 ${result.portionCount} Portionen gefunden!",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                        
+                        // Zeige gewürfelte Mengen
+                        if (result.harvestedItems.isNotEmpty()) {
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(
+                                text = "Gefunden:",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (result.success) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                }
+                            )
+                            result.harvestedItems.forEach { item ->
+                                val displayText = if (item.diceRoll != null && item.rolled && item.individualRolls.isNotEmpty()) {
+                                    // Bei Mehrfachportionen: Zeige alle Würfe einzeln
+                                    if (item.individualRolls.size > 1) {
+                                        val rollsText = item.individualRolls.joinToString(", ")
+                                        "• ${item.diceRoll} → [$rollsText] = ${item.quantity}x ${item.productName}"
+                                    } else {
+                                        // Einzelne Portion
+                                        "• ${item.diceRoll} → ${item.quantity}x ${item.productName}"
+                                    }
+                                } else if (item.diceRoll != null && item.rolled) {
+                                    // Fallback falls individualRolls leer ist
+                                    "• ${item.diceRoll} → ${item.quantity}x ${item.productName}"
+                                } else {
+                                    // Feste Menge ohne Würfel
+                                    "• ${item.quantity}x ${item.productName}"
+                                }
+                                Text(
+                                    text = displayText,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        } else if (result.foundQuantity != null) {
+                            // Fallback auf baseQuantity wenn harvestedItems leer
+                            Text(
+                                text = "Gefundene Menge: ${result.foundQuantity}",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        
-                        Button(
-                            onClick = { viewModel.resetSearch() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Neue Suche")
-                        }
+
                     }
                 }
             }

@@ -41,6 +41,7 @@ fun LocationCard(
     onDeleteLocation: () -> Unit,
     onTransferLocation: () -> Unit,
     onCarriedChanged: (Boolean) -> Unit,
+    onHerbPouchChanged: (Boolean) -> Unit = {},
     onStartDrag: (ItemWithLocation) -> Unit,
     onDragUpdate: (Offset) -> Unit,
     onDragEnd: (ItemWithLocation, Offset) -> Unit,
@@ -242,6 +243,26 @@ fun LocationCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        
+                        // Checkbox "Als Kräutertasche" (nur im Bearbeitungsmodus)
+                        if (isEditMode) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = location.isHerbPouch,
+                                    onCheckedChange = onHerbPouchChanged,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Als Kräutertasche",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     } else {
                         // Normale Locations
                         val hasReduction = originalWeight != null && originalWeight.toOunces() > totalWeight.toOunces()
@@ -289,6 +310,26 @@ fun LocationCard(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                            
+                            // Checkbox "Als Kräutertasche" (nur im Bearbeitungsmodus)
+                            if (isEditMode) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = location.isHerbPouch,
+                                        onCheckedChange = onHerbPouchChanged,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Als Kräutertasche",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }

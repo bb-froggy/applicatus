@@ -376,6 +376,11 @@ class ApplicatusRepository(
     fun getLocationsForCharacter(characterId: Long): Flow<List<Location>> =
         locationDao.getLocationsForCharacter(characterId)
     
+    suspend fun getHerbPouchLocationForCharacter(characterId: Long): Location? {
+        return locationDao.getLocationsForCharacterOnce(characterId)
+            .firstOrNull { it.isHerbPouch }
+    }
+    
     suspend fun getLocationById(locationId: Long): Location? =
         locationDao.getLocationById(locationId)
     
@@ -407,6 +412,22 @@ class ApplicatusRepository(
     
     suspend fun updateLocationIsCarried(locationId: Long, isCarried: Boolean) =
         locationDao.updateIsCarried(locationId, isCarried)
+    
+    /**
+     * Setzt eine Location als Kräutertasche.
+     * Deaktiviert automatisch alle anderen Kräutertaschen des gleichen Charakters.
+     */
+    suspend fun updateLocationIsHerbPouch(locationId: Long, characterId: Long, isHerbPouch: Boolean) {
+        if (isHerbPouch) {
+            // Deaktiviere alle anderen Kräutertaschen
+            locationDao.clearAllHerbPouchFlags(characterId)
+        }
+        // Setze die neue Kräutertasche
+        val location = locationDao.getLocationById(locationId)
+        if (location != null) {
+            locationDao.update(location.copy(isHerbPouch = isHerbPouch))
+        }
+    }
     
     /**
      * Löscht eine Location.

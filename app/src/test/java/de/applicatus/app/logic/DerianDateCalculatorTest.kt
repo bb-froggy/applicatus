@@ -65,9 +65,9 @@ class DerianDateCalculatorTest {
     fun testRollDice_invalidNotation() {
         // Ungültige Notationen sollten null zurückgeben
         assertNull(ProbeChecker.rollDice("abc"))
-        assertNull(ProbeChecker.rollDice("W6"))
         assertNull(ProbeChecker.rollDice("3D6"))
         assertNull(ProbeChecker.rollDice(""))
+        // "W6" ist jetzt gültig als Kurzform für "1W6"
     }
     
     @Test

@@ -208,7 +208,7 @@ object InitialHerbs {
         Herb(
             name = "Braunschlinge",
             identificationDifficulty = 6,
-            baseQuantity = "vier Farnblätter und zwei je 3W6 Schritt lange Rangen (je nach Alter der Pflanze)",
+            baseQuantity = "vier Farnblätter; zwei je 3W6 Schritt lange Rangen (je nach Alter der Pflanze)",
             distributions = listOf(
                 HerbDistribution(Landscape.STEPPE, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.SWAMP, Occurrence.OCCASIONAL),
@@ -250,7 +250,7 @@ object InitialHerbs {
         Herb(
             name = "Cheria-Kaktus",
             identificationDifficulty = 4,
-            baseQuantity = "W3 Stein Kaktusfleisch und pro Stein 3W6+8 Stacheln",
+            baseQuantity = "W3 Stein Kaktusfleisch; pro Stein 3W6+8 Stacheln",
             distributions = listOf(
                 HerbDistribution(Landscape.DESERT, Occurrence.RARE)
             ),
@@ -418,7 +418,21 @@ object InitialHerbs {
         Herb(
             name = "Finage",
             identificationDifficulty = 5,
-            baseQuantity = "Baum mit W20 Trieben und Bast",
+            baseQuantity = "W20 Triebe eines Baumes",
+            distributions = listOf(
+                HerbDistribution(Landscape.GRASSLANDS, Occurrence.VERY_RARE),
+                HerbDistribution(Landscape.RAINFOREST, Occurrence.RARE),
+                HerbDistribution(Landscape.FOREST, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.PERAINE
+            ),
+            pageReference = 238
+        ),
+        Herb(
+            name = "Finage",
+            identificationDifficulty = 5,
+            baseQuantity = "Bast eines Baumes",
             distributions = listOf(
                 HerbDistribution(Landscape.GRASSLANDS, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.RAINFOREST, Occurrence.RARE),
@@ -427,8 +441,7 @@ object InitialHerbs {
             harvestMonths = listOf(
                 DerianMonth.BORON,
                 DerianMonth.HESINDE,
-                DerianMonth.FIRUN,
-                DerianMonth.PERAINE
+                DerianMonth.FIRUN
             ),
             pageReference = 238
         ),
@@ -473,11 +486,36 @@ object InitialHerbs {
         Herb(
             name = "Grauer Mohn",
             identificationDifficulty = 1,
-            baseQuantity = "eine geschlossene Samenkapsel und eine Blüte",
+            baseQuantity = "eine geschlossene Samenkapsel; eine Blüte",
             distributions = listOf(
                 HerbDistribution(Landscape.MOUNTAINS, Occurrence.VERY_RARE)
             ),
-            harvestMonths = ALL_MONTHS,
+            harvestMonths = listOf(
+                DerianMonth.RONDRA
+            ),
+            pageReference = 253
+        ),
+        Herb(
+            name = "Grauer Mohn",
+            identificationDifficulty = 1,
+            baseQuantity = "eine Blüte",
+            distributions = listOf(
+                HerbDistribution(Landscape.MOUNTAINS, Occurrence.VERY_RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.PRAIOS,
+                DerianMonth.EFFERD,
+                DerianMonth.TRAVIA,
+                DerianMonth.BORON,
+                DerianMonth.HESINDE,
+                DerianMonth.FIRUN,
+                DerianMonth.TSA,
+                DerianMonth.PHEX,
+                DerianMonth.PERAINE,
+                DerianMonth.INGERIMM,
+                DerianMonth.RAHJA,
+                DerianMonth.NAMELESS_DAYS
+            ),
             pageReference = 253
         ),
         Herb(
@@ -539,7 +577,7 @@ object InitialHerbs {
         Herb(
             name = "Hollbeere",
             identificationDifficulty = 4,
-            baseQuantity = "2W6 Sträucher mit jeweils 2W6+5 Beeren und 2W6+3 Blätter der untersten Zweige",
+            baseQuantity = "2W6 Sträucher mit jeweils 2W6+5 Beeren; 2W6+3 Blätter der untersten Zweige",
             distributions = listOf(
                 HerbDistribution(Landscape.FOREST, Occurrence.OCCASIONAL),
                 HerbDistribution(Landscape.FOREST_EDGE, Occurrence.COMMON)
@@ -575,7 +613,7 @@ object InitialHerbs {
         Herb(
             name = "Ilmenblatt",
             identificationDifficulty = 2,
-            baseQuantity = "W20 Blätter und Blüten sowie 1 Unze Harz",
+            baseQuantity = "W20 Blätter; Blüten; 1 Unze Harz",
             distributions = listOf(
                 HerbDistribution(Landscape.MOUNTAINS, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.GRASSLANDS, Occurrence.OCCASIONAL),
@@ -665,7 +703,7 @@ object InitialHerbs {
         Herb(
             name = "Khôm- oder Mhanadiknolle",
             identificationDifficulty = 12,
-            baseQuantity = "eine Wurzel mit W6 Maß klarem Wasser",
+            baseQuantity = "eine Wurzel; W6 Maß klarem Wasser",
             distributions = listOf(
                 HerbDistribution(Landscape.DESERT, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.STEPPE, Occurrence.RARE)
@@ -769,7 +807,7 @@ object InitialHerbs {
         Herb(
             name = "Menchal-Kaktus",
             identificationDifficulty = 4,
-            baseQuantity = "ein Kaktus mit W3 Maß Menchalsaft; bei 1 auf W20 außerdem mit W6 Blüten",
+            baseQuantity = "ein Kaktus mit W3 Maß Menchalsaft; bei 1 auf W20 außerdem W6 Blüten",
             distributions = listOf(
                 HerbDistribution(Landscape.DESERT, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.HIGHLANDS, Occurrence.VERY_RARE)
@@ -855,15 +893,28 @@ object InitialHerbs {
                 HerbDistribution(Landscape.RAINFOREST, Occurrence.RARE)
             ),
             harvestMonths = listOf(
+                DerianMonth.TSA,
+                DerianMonth.PHEX,
+                DerianMonth.PERAINE,
+                DerianMonth.INGERIMM
+            ),
+            pageReference = 251
+        ),
+        Herb(
+            name = "Mirhamer Seidenliane",
+            identificationDifficulty = 4,
+            baseQuantity = "eine Ranke",
+            distributions = listOf(
+                HerbDistribution(Landscape.MOUNTAINS, Occurrence.VERY_RARE),
+                HerbDistribution(Landscape.RIVER_LAKE, Occurrence.VERY_RARE),
+                HerbDistribution(Landscape.RAINFOREST, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
                 DerianMonth.PRAIOS,
                 DerianMonth.RONDRA,
                 DerianMonth.EFFERD,
                 DerianMonth.TRAVIA,
                 DerianMonth.BORON,
-                DerianMonth.TSA,
-                DerianMonth.PHEX,
-                DerianMonth.PERAINE,
-                DerianMonth.INGERIMM,
                 DerianMonth.RAHJA,
                 DerianMonth.NAMELESS_DAYS
             ),
@@ -881,7 +932,7 @@ object InitialHerbs {
             dangers = "Die Berührung einer Blüte des Morgendornstrauchs verwandelt denjenigen binnen einer Woche in eine Sumpfranze."
         ),
         Herb(
-            name = "Naftanstaude",
+            name = "Naftanstaude (Nordaventurien)",
             identificationDifficulty = 1,
             baseQuantity = "eine Staude",
             distributions = listOf(
@@ -892,6 +943,45 @@ object InitialHerbs {
             harvestMonths = listOf(
                 DerianMonth.PRAIOS,
                 DerianMonth.RONDRA,
+                DerianMonth.INGERIMM,
+                DerianMonth.RAHJA,
+                DerianMonth.NAMELESS_DAYS
+            ),
+            pageReference = 255,
+            dangers = "Der Saft der Naftanstaude ist stark ätzend und kann nur mit einer FF+2 Probe gefahrlos geerntet werden."
+        ),
+        Herb(
+            name = "Naftanstaude (Südaventurien)",
+            identificationDifficulty = 1,
+            baseQuantity = "eine Staude",
+            distributions = listOf(
+                HerbDistribution(Landscape.COAST, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.BORON,
+                DerianMonth.HESINDE,
+                DerianMonth.FIRUN
+            ),
+            pageReference = 255,
+            dangers = "Der Saft der Naftanstaude ist stark ätzend und kann nur mit einer FF+2 Probe gefahrlos geerntet werden."
+        ),
+        Herb(
+            name = "Naftanstaude (Südaventurien)",
+            identificationDifficulty = 1,
+            baseQuantity = "eine Staude",
+            distributions = listOf(
+                HerbDistribution(Landscape.STEPPE, Occurrence.VERY_RARE),
+                HerbDistribution(Landscape.GRASSLANDS, Occurrence.RARE),
+                HerbDistribution(Landscape.FOREST_EDGE, Occurrence.VERY_RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.PRAIOS,
+                DerianMonth.RONDRA,
+                DerianMonth.EFFERD,
+                DerianMonth.TRAVIA,
+                DerianMonth.TSA,
+                DerianMonth.PHEX,
+                DerianMonth.PERAINE,
                 DerianMonth.INGERIMM,
                 DerianMonth.RAHJA,
                 DerianMonth.NAMELESS_DAYS
@@ -913,13 +1003,25 @@ object InitialHerbs {
         Herb(
             name = "Nothilf",
             identificationDifficulty = 6,
-            baseQuantity = "W20+2 Blüten und 2W20+10 Blätter",
+            baseQuantity = "W20+2 Blüten",
             distributions = listOf(
                 HerbDistribution(Landscape.MOUNTAINS, Occurrence.RARE),
                 HerbDistribution(Landscape.FOREST, Occurrence.RARE)
             ),
             harvestMonths = listOf(
-                DerianMonth.PRAIOS,
+                DerianMonth.PRAIOS
+            ),
+            pageReference = 256
+        ),
+        Herb(
+            name = "Nothilf",
+            identificationDifficulty = 6,
+            baseQuantity = "2W20+10 Blätter",
+            distributions = listOf(
+                HerbDistribution(Landscape.MOUNTAINS, Occurrence.RARE),
+                HerbDistribution(Landscape.FOREST, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
                 DerianMonth.PERAINE
             ),
             pageReference = 256
@@ -1167,7 +1269,33 @@ object InitialHerbs {
                 HerbDistribution(Landscape.RIVER_LAKE, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.FOREST_EDGE, Occurrence.VERY_RARE)
             ),
-            harvestMonths = ALL_MONTHS,
+            harvestMonths = listOf(
+                DerianMonth.PRAIOS,
+                DerianMonth.RONDRA,
+                DerianMonth.EFFERD,
+                DerianMonth.TRAVIA,
+                DerianMonth.BORON,
+                DerianMonth.HESINDE,
+                DerianMonth.FIRUN,
+                DerianMonth.TSA,
+                DerianMonth.PHEX,
+                DerianMonth.PERAINE,
+                DerianMonth.NAMELESS_DAYS
+            ),
+            pageReference = 262
+        ),
+        Herb(
+            name = "Roter Drachenschlund",
+            identificationDifficulty = 3,
+            baseQuantity = "W6 Blätter",
+            distributions = listOf(
+                HerbDistribution(Landscape.RIVER_LAKE, Occurrence.VERY_RARE),
+                HerbDistribution(Landscape.FOREST_EDGE, Occurrence.VERY_RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.INGERIMM,
+                DerianMonth.RAHJA
+            ),
             pageReference = 262
         ),
         Herb(
@@ -1175,28 +1303,90 @@ object InitialHerbs {
             identificationDifficulty = 12,
             baseQuantity = "eine Pflanze",
             distributions = listOf(
+                HerbDistribution(Landscape.COAST, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.BORON,
+                DerianMonth.HESINDE,
+                DerianMonth.FIRUN
+            ),
+            pageReference = 262
+        ),
+        Herb(
+            name = "Sansaro",
+            identificationDifficulty = 12,
+            baseQuantity = "eine Pflanze",
+            distributions = listOf(
+                HerbDistribution(Landscape.COAST, Occurrence.COMMON),
                 HerbDistribution(Landscape.SEA, Occurrence.RARE)
             ),
-            harvestMonths = ALL_MONTHS,
+            harvestMonths = listOf(
+                DerianMonth.PRAIOS,
+                DerianMonth.RONDRA,
+                DerianMonth.EFFERD,
+                DerianMonth.TRAVIA,
+                DerianMonth.TSA,
+                DerianMonth.PHEX,
+                DerianMonth.PERAINE,
+                DerianMonth.INGERIMM,
+                DerianMonth.RAHJA,
+                DerianMonth.NAMELESS_DAYS
+            ),
             pageReference = 262
         ),
         Herb(
             name = "Satuariensbusch",
             identificationDifficulty = -2,
-            baseQuantity = "4W20 Blätter, W20 Blüten, W20 Früchte, W3 Flux Saft",
+            baseQuantity = "4W20 Blätter; W20 Blüten; W3 Flux Saft",
+            distributions = listOf(
+                HerbDistribution(Landscape.FOREST, Occurrence.OCCASIONAL),
+                HerbDistribution(Landscape.FOREST_EDGE, Occurrence.OCCASIONAL)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.INGERIMM,
+                DerianMonth.RAHJA
+            ),
+            pageReference = 263
+        ),
+        Herb(
+            name = "Satuariensbusch",
+            identificationDifficulty = -2,
+            baseQuantity = "4W20 Blätter; W3 Flux Saft",
             distributions = listOf(
                 HerbDistribution(Landscape.FOREST, Occurrence.OCCASIONAL),
                 HerbDistribution(Landscape.FOREST_EDGE, Occurrence.OCCASIONAL)
             ),
             harvestMonths = listOf(
                 DerianMonth.PRAIOS,
-                DerianMonth.EFFERD,
-                DerianMonth.TRAVIA,
-                DerianMonth.PHEX,
-                DerianMonth.PERAINE,
-                DerianMonth.INGERIMM,
-                DerianMonth.RAHJA,
                 DerianMonth.NAMELESS_DAYS
+            ),
+            pageReference = 263
+        ),
+        Herb(
+            name = "Satuariensbusch",
+            identificationDifficulty = -2,
+            baseQuantity = "W3 Flux Saft",
+            distributions = listOf(
+                HerbDistribution(Landscape.FOREST, Occurrence.OCCASIONAL),
+                HerbDistribution(Landscape.FOREST_EDGE, Occurrence.OCCASIONAL)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.PHEX,
+                DerianMonth.PERAINE
+            ),
+            pageReference = 263
+        ),
+        Herb(
+            name = "Satuariensbusch",
+            identificationDifficulty = -2,
+            baseQuantity = "W20 Früchte",
+            distributions = listOf(
+                HerbDistribution(Landscape.FOREST, Occurrence.OCCASIONAL),
+                HerbDistribution(Landscape.FOREST_EDGE, Occurrence.OCCASIONAL)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.EFFERD,
+                DerianMonth.TRAVIA
             ),
             pageReference = 263
         ),
@@ -1257,7 +1447,7 @@ object InitialHerbs {
         Herb(
             name = "Schwarmschwamm",
             identificationDifficulty = 3,
-            baseQuantity = "ein Schwamm und W2 Samenkörper",
+            baseQuantity = "ein Schwamm; W2 Samenkörper",
             distributions = listOf(
                 HerbDistribution(Landscape.RIVER_LAKE, Occurrence.VERY_RARE),
                 HerbDistribution(Landscape.RIVER_FLOODPLAINS, Occurrence.VERY_RARE)
@@ -1284,7 +1474,7 @@ object InitialHerbs {
         Herb(
             name = "Schwarzer Mohn",
             identificationDifficulty = 5,
-            baseQuantity = "2 Blätter und eine geschlossene Samenkapsel",
+            baseQuantity = "2 Blätter",
             distributions = listOf(
                 HerbDistribution(Landscape.STEPPE, Occurrence.VERY_COMMON),
                 HerbDistribution(Landscape.GRASSLANDS, Occurrence.VERY_COMMON),
@@ -1296,14 +1486,30 @@ object InitialHerbs {
             harvestMonths = listOf(
                 DerianMonth.EFFERD,
                 DerianMonth.TRAVIA,
-                DerianMonth.BORON
             ),
             pageReference = 253
         ),
         Herb(
+            name = "Schwarzer Mohn",
+            identificationDifficulty = 5,
+            baseQuantity = "2 Blätter; eine geschlossene Samenkapsel",
+            distributions = listOf(
+                HerbDistribution(Landscape.STEPPE, Occurrence.VERY_COMMON),
+                HerbDistribution(Landscape.GRASSLANDS, Occurrence.VERY_COMMON),
+                HerbDistribution(Landscape.RIVER_LAKE, Occurrence.VERY_COMMON),
+                HerbDistribution(Landscape.RIVER_FLOODPLAINS, Occurrence.VERY_COMMON),
+                HerbDistribution(Landscape.FOREST, Occurrence.VERY_COMMON),
+                HerbDistribution(Landscape.FOREST_EDGE, Occurrence.VERY_COMMON)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.BORON
+            ),
+            pageReference = 253
+        ),        
+        Herb(
             name = "Schwarzer Wein",
             identificationDifficulty = 2,
-            baseQuantity = "",
+            baseQuantity = "IF TaP*>=7: 7W6 Beeren",
             distributions = listOf(
                 HerbDistribution(Landscape.HIGHLANDS, Occurrence.OCCASIONAL),
                 HerbDistribution(Landscape.STEPPE, Occurrence.OCCASIONAL),
@@ -1471,7 +1677,7 @@ object InitialHerbs {
         Herb(
             name = "Tuur-Amash-Kelch",
             identificationDifficulty = 1,
-            baseQuantity = "W6+3 Kelche",
+            baseQuantity = "W6+3 Kelche; IF TaP*>=13: eine Beere",
             distributions = listOf(
                 HerbDistribution(Landscape.FOREST, Occurrence.RARE),
                 HerbDistribution(Landscape.FOREST_EDGE, Occurrence.VERY_RARE)
@@ -1531,9 +1737,22 @@ object InitialHerbs {
             identificationDifficulty = 6,
             baseQuantity = "eine Wurzel",
             distributions = listOf(
+                HerbDistribution(Landscape.RAINFOREST, Occurrence.OCCASIONAL)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.EFFERD,
+                DerianMonth.TRAVIA,
+                DerianMonth.BORON
+            ),
+            pageReference = 272
+        ),
+        Herb(
+            name = "Vragieswurzel",
+            identificationDifficulty = 6,
+            baseQuantity = "eine Wurzel",
+            distributions = listOf(
                 HerbDistribution(Landscape.MOUNTAINS, Occurrence.RARE),
                 HerbDistribution(Landscape.HIGHLANDS, Occurrence.VERY_RARE),
-                HerbDistribution(Landscape.RAINFOREST, Occurrence.OCCASIONAL),
                 HerbDistribution(Landscape.FOREST, Occurrence.RARE)
             ),
             harvestMonths = listOf(
@@ -1567,20 +1786,44 @@ object InitialHerbs {
         Herb(
             name = "Wasserrausch",
             identificationDifficulty = 1,
-            baseQuantity = "2W20 Blüten",
+            baseQuantity = "2W20 Blüten; IF TaP*>=12: eine Frucht",
             distributions = listOf(
                 HerbDistribution(Landscape.RIVER_LAKE, Occurrence.RARE)
             ),
             harvestMonths = listOf(
-                DerianMonth.PRAIOS,
-                DerianMonth.RONDRA,
-                DerianMonth.EFFERD,
-                DerianMonth.TRAVIA,
                 DerianMonth.RAHJA,
-                DerianMonth.NAMELESS_DAYS
+                DerianMonth.NAMELESS_DAYS,
+                DerianMonth.PRAIOS
             ),
             pageReference = 273,
             dangers = "Im Umkreis von 5 Metern um die Blüten des Wasserrausches ist eine KO+5 Probe nötig. Andernfalls fällt man in berauschende Träume, was für eine Schwimmer den Tod bedeuten kann. Nur bei mehr als 12 TaP* findet sich auch eine Frucht."
+        ),
+        Herb(
+            name = "Wasserrausch",
+            identificationDifficulty = 1,
+            baseQuantity = "2W20 Blüten; IF TaP*>=12: eine Frucht",
+            distributions = listOf(
+                HerbDistribution(Landscape.RIVER_LAKE, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.RONDRA,
+                DerianMonth.EFFERD
+            ),
+            pageReference = 273,
+            dangers = "Im Umkreis von 5 Metern um die Blüten des Wasserrausches ist eine KO+5 Probe nötig. Andernfalls fällt man in berauschende Träume, was für eine Schwimmer den Tod bedeuten kann. Bei mehr als 12 TaP* findet sich zusätzlich eine Frucht."
+        ),
+        Herb(
+            name = "Wasserrausch",
+            identificationDifficulty = 1,
+            baseQuantity = "IF TaP*>=12: eine Frucht",
+            distributions = listOf(
+                HerbDistribution(Landscape.RIVER_LAKE, Occurrence.RARE)
+            ),
+            harvestMonths = listOf(
+                DerianMonth.TRAVIA
+            ),
+            pageReference = 273,
+            dangers = "Im Umkreis von 5 Metern um die Blüten des Wasserrausches ist eine KO+5 Probe nötig. Andernfalls fällt man in berauschende Träume, was für eine Schwimmer den Tod bedeuten kann. Bei mehr als 12 TaP* findet sich eine Frucht."
         ),
         Herb(
             name = "Winselgras",

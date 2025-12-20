@@ -330,6 +330,9 @@ fun InventoryScreen(
                             onCarriedChanged = { isCarried ->
                                 viewModel.updateLocationIsCarried(location.id, isCarried)
                             },
+                            onHerbPouchChanged = { isHerbPouch ->
+                                viewModel.updateLocationIsHerbPouch(location.id, isHerbPouch)
+                            },
                             onStartDrag = { item ->
                                 draggedItem = item
                             },

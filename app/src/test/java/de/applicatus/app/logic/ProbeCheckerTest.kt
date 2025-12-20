@@ -63,9 +63,50 @@ class ProbeCheckerTest {
     fun testRollDice_invalidNotation() {
         // Ungültige Notationen sollten null zurückgeben
         assertNull(ProbeChecker.rollDice("abc"))
-        assertNull(ProbeChecker.rollDice("W6"))
         assertNull(ProbeChecker.rollDice("3D6"))
         assertNull(ProbeChecker.rollDice(""))
+    }
+    
+    @Test
+    fun testRollDice_shorthandNotation_W3() {
+        // "W3" ist DSA-Kurzschreibweise für "1W3" und sollte funktionieren
+        val result = ProbeChecker.rollDice("W3")
+        assertNotNull("W3 should be valid DSA notation for 1W3", result)
+        assertTrue("W3 should give result between 1 and 3", result!! in 1..3)
+    }
+    
+    @Test
+    fun testRollDice_shorthandNotation_W6() {
+        // "W6" ist DSA-Kurzschreibweise für "1W6"
+        val result = ProbeChecker.rollDice("W6")
+        assertNotNull("W6 should be valid DSA notation for 1W6", result)
+        assertTrue("W6 should give result between 1 and 6", result!! in 1..6)
+    }
+    
+    @Test
+    fun testRollDice_shorthandNotation_W20() {
+        // "W20" ist DSA-Kurzschreibweise für "1W20"
+        val result = ProbeChecker.rollDice("W20")
+        assertNotNull("W20 should be valid DSA notation for 1W20", result)
+        assertTrue("W20 should give result between 1 and 20", result!! in 1..20)
+    }
+    
+    @Test
+    fun testRollDice_shorthandNotation_withModifier() {
+        // "W6+2" sollte als "1W6+2" interpretiert werden
+        val fixedRoll: (Int) -> Int = { 4 }
+        val result = ProbeChecker.rollDice("W6+2", fixedRoll)
+        assertNotNull("W6+2 should be valid", result)
+        assertEquals("W6+2 with roll of 4 should be 6", 6, result)
+    }
+    
+    @Test
+    fun testRollDice_shorthandNotation_withNegativeModifier() {
+        // "W20-1" sollte als "1W20-1" interpretiert werden  
+        val fixedRoll: (Int) -> Int = { 10 }
+        val result = ProbeChecker.rollDice("W20-1", fixedRoll)
+        assertNotNull("W20-1 should be valid", result)
+        assertEquals("W20-1 with roll of 10 should be 9", 9, result)
     }
     
     @Test

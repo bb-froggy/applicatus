@@ -5,6 +5,7 @@ import de.applicatus.app.data.model.character.Character
 import de.applicatus.app.data.model.herb.Herb
 import de.applicatus.app.data.model.herb.Landscape
 import de.applicatus.app.logic.DerianDateCalculator.DerianMonth
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
@@ -51,7 +52,6 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
      * @param herb Das gesuchte Kraut
      * @param landscape Die Landschaft
      * @param hasOrtskenntnis Hat der Charakter Ortskenntnis? (+7 Bonus)
-     * @param hasDoubledSearchTime Hat der Charakter die Suchdauer verdoppelt? (-2 Bonus)
      * @param character Der Charakter (für Geländekunde)
      * @return Die Probenerschwernis (positiv = Erschwernis, negativ = Erleichterung)
      */
@@ -59,21 +59,13 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
         herb: Herb,
         landscape: Landscape,
         hasOrtskenntnis: Boolean,
-        hasDoubledSearchTime: Boolean,
         character: Character
     ): Int {
-        var difficulty = herb.calculateSearchDifficulty(
+        return herb.calculateSearchDifficulty(
             landscape = landscape,
             hasGelaendekunde = character.gelaendekunde.contains(landscape.displayName),
             hasOrtskenntnis = hasOrtskenntnis
         )
-        
-        // Verdoppelte Suchdauer gibt -2
-        if (hasDoubledSearchTime) {
-            difficulty -= 2
-        }
-        
-        return difficulty
     }
     
     /**
@@ -107,19 +99,50 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
         val roll3: Int,
         val isSpectacular: Boolean = false,  // Doppel-1
         val isCatastrophic: Boolean = false, // Doppel-20
-        val foundQuantity: String? = null    // Gefundene Menge (bei Erfolg)
+        val foundQuantity: String? = null,   // Gefundene Menge (bei Erfolg)
+        val harvestedItems: List<de.applicatus.app.logic.BaseQuantityParser.HerbHarvestItem> = emptyList(), // Tatsächlich gewürfelte Items
+        val portionCount: Int = 1 // Anzahl gefundener Portionen (basierend auf TaP*)
     )
+    
+    /**
+     * Berechnet die Anzahl der gefundenen Portionen basierend auf TaP*
+     * 
+     * Jede weitere Portion kostet die halbe Erschwernis (mindestens 1) an TaP*
+     * 
+     * @param qualityPoints Die übrigen TaP* nach der Probe
+     * @param difficulty Die Gesamterschwernis der Suche
+     * @return Anzahl der Portionen (mindestens 1 bei Erfolg)
+     */
+    fun calculatePortionCount(qualityPoints: Int, difficulty: Int): Int {
+        if (qualityPoints < 0) return 0 // Fehlschlag
+        
+        var portions = 1 // Erste Portion ist "gratis"
+        var remainingTap = qualityPoints
+        val costPerPortion = maxOf(1, difficulty / 2) // Halbe Erschwernis, mindestens 1
+        
+        while (remainingTap >= costPerPortion) {
+            portions++
+            remainingTap -= costPerPortion
+        }
+        
+        return portions
+    }
     
     /**
      * Führt eine Kräutersuche-Probe durch
      * 
      * Talentprobe auf MU/IN/FF mit Kräutersuche-TaW gegen die berechnete Erschwernis
      * 
+     * Bei doppelter Suchdauer wird der TaW auf 1.5x erhöht (aufgerundet).
+     * 
+     * Bei hohen TaP* werden mehrere Portionen gefunden: Jede weitere Portion kostet
+     * die halbe Erschwernis (mindestens 1) an TaP*.
+     * 
      * @param character Der suchende Charakter
      * @param herb Das gesuchte Kraut
      * @param landscape Die Landschaft
      * @param hasOrtskenntnis Hat der Charakter Ortskenntnis?
-     * @param hasDoubledSearchTime Hat der Charakter die Suchdauer verdoppelt?
+     * @param hasDoubledSearchTime Hat der Charakter die Suchdauer verdoppelt? (TaW wird auf 1.5x erhöht)
      * @param providedRolls Optionale fixe Würfelwürfe [roll1, roll2, roll3] (für Tests)
      * @return Das Suchergebnis
      */
@@ -131,9 +154,15 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
         hasDoubledSearchTime: Boolean,
         providedRolls: List<Int>? = null
     ): HerbSearchResult {
-        val taw = calculateHerbSearchTaW(character)
+        val baseTaw = calculateHerbSearchTaW(character)
+        val taw = if (hasDoubledSearchTime) {
+            // TaW auf 1.5x erhöhen (aufgerundet)
+            ceil(baseTaw * 1.5).toInt()
+        } else {
+            baseTaw
+        }
         val difficulty = calculateSearchDifficulty(
-            herb, landscape, hasOrtskenntnis, hasDoubledSearchTime, character
+            herb, landscape, hasOrtskenntnis, character
         )
         
         // Eigenschaften: MU/IN/FF
@@ -166,6 +195,12 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
             )
         }
         
+        val portionCount = if (result.success) {
+            calculatePortionCount(result.qualityPoints, difficulty)
+        } else {
+            0
+        }
+        
         return HerbSearchResult(
             success = result.success,
             qualityPoints = result.qualityPoints,
@@ -174,7 +209,8 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
             roll3 = result.rolls[2],
             isSpectacular = result.isDoubleOne || result.isTripleOne,
             isCatastrophic = result.isDoubleTwenty || result.isTripleTwenty,
-            foundQuantity = if (result.success) herb.baseQuantity else null
+            foundQuantity = if (result.success) herb.baseQuantity else null,
+            portionCount = portionCount
         )
     }
 }

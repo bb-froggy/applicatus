@@ -70,5 +70,11 @@ data class Item(
     val isSelfItem: Boolean = false,
     
     /** Für Eigenobjekte: ID des Ortes, zu dem dieses Eigenobjekt gehört (redundant zu locationId, aber explizit) */
-    val selfItemForLocationId: Long? = null
+    val selfItemForLocationId: Long? = null,
+    
+    /** Ist dies ein Kraut? (für Haltbarkeitsdatum und automatische Kräutertaschen-Sortierung) */
+    val isHerb: Boolean = false,
+    
+    /** Haltbarkeitsdatum (derisches Datum als String, nur für Kräuter, leer = unbegrenzt haltbar) */
+    val expiryDate: String = ""
 )

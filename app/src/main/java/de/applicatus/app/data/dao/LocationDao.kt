@@ -24,6 +24,9 @@ interface LocationDao {
     @Query("UPDATE locations SET isCarried = :isCarried WHERE id = :locationId")
     suspend fun updateIsCarried(locationId: Long, isCarried: Boolean)
     
+    @Query("UPDATE locations SET isHerbPouch = 0 WHERE characterId = :characterId")
+    suspend fun clearAllHerbPouchFlags(characterId: Long)
+    
     @Delete
     suspend fun delete(location: Location)
     
