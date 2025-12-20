@@ -33,15 +33,19 @@ Der Spieler sucht nach einem **spezifischen Kraut**:
    - Filtere Pflanzen: halbe Suchschwierigkeit ≤ TaP*
    - Falls keine → Ende
    - Wähle zufällige Pflanze aus Liste
-   - Berechne Portionen: 1 + (TaP*-1) ÷ (halbe Suchschwierigkeit)
+   - **Finde 1 Portion** dieser Pflanze
    - Würfel Mengen (mit TaP* für Bedingungen)
    - Reduziere TaP* um halbe Suchschwierigkeit
 
 **Beispiel**: Allgemeine Suche im Wald mit TaP* 20
-1. Fund: Alveranie (Schwierigkeit 11, halbe=6) → 1+(19÷6)=4 Portionen, TaP* → 14
-2. Fund: Basiliskenzunge (Schwierigkeit 8, halbe=4) → 1+(13÷4)=4 Portionen, TaP* → 10
-3. Fund: Finage (Schwierigkeit 4, halbe=2) → 1+(9÷2)=5 Portionen, TaP* → 8
-4. Fund: ... usw. bis TaP* < kleinste halbe Suchschwierigkeit
+1. Fund: Alveranie (Schwierigkeit 11, halbe=6) → 1 Portion, TaP* → 14
+2. Fund: Basiliskenzunge (Schwierigkeit 8, halbe=4) → 1 Portion, TaP* → 10
+3. Fund: Finage (Schwierigkeit 4, halbe=2) → 1 Portion, TaP* → 8
+4. Fund: nochmal Alveranie (halbe=6) → 1 Portion (2. insgesamt), TaP* → 2
+5. Fund: nochmal Finage (halbe=2) → 1 Portion (2. insgesamt), TaP* → 0
+
+Nun sind TaP* < kleinste halbe Suchschwierigkeit, also Ende.
+**Ergebnis**: 2x Alveranie, 1x Basiliskenzunge, 2x Finage
 
 **UI**: Im Kräuter-Dropdown gibt es die Option "Allgemeine Suche" (oben, hervorgehoben)
 

@@ -332,23 +332,15 @@ class HerbSearchViewModel(
                     character = char
                 )
                 
-                // Berechne Anzahl Portionen: 1 + (TaP*-1) / (Suchschwierigkeit/2)
                 val halfDifficulty = ceil(searchDifficulty / 2.0).toInt()
-                var portionCount = 1
-                var tapForPortions = remainingTapStern - 1
-                if (tapForPortions > 0 && halfDifficulty > 0) {
-                    portionCount += tapForPortions / halfDifficulty
-                }
                 
-                // Würfel Mengen für diese Pflanze
-                val harvestedItems = mutableListOf<BaseQuantityParser.HerbHarvestItem>()
-                repeat(portionCount) {
-                    val portionItems = BaseQuantityParser.rollQuantity(
-                        foundHerb.baseQuantity,
-                        remainingTapStern
-                    )
-                    harvestedItems.addAll(portionItems)
-                }
+                // Bei allgemeiner Suche: Immer nur 1 Portion pro Fund
+                // Würfel Menge für diese eine Portion
+                val portionItems = BaseQuantityParser.rollQuantity(
+                    foundHerb.baseQuantity,
+                    remainingTapStern
+                )
+                val harvestedItems = portionItems
                 
                 // Summiere Items
                 val summedItems = harvestedItems.groupBy { it.productName }
