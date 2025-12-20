@@ -51,7 +51,7 @@ data class Character(
     val selfControlSkill: Int = 0,       // Selbstbeherrschung-Talentwert (0-18, für Strukturanalyse-Serie)
     val sensoryAcuitySkill: Int = 0,     // Sinnenschärfe-Talentwert (0-18, für Analyse nach Augenschein)
     val magicalLoreSkill: Int = 0,       // Magiekunde-Talentwert (0-18, für Analys und Laboranalyse)
-    val herbalLoreSkill: Int = 0,        // Pflanzenkunde-Talentwert (0-18, alternativ zu Magiekunde bei Laboranalyse)
+    val herbalLoreSkill: Int = 0,        // Pflanzenkunde-Talentwert (0-18, alternativ zu Magiekunde bei Laboranalyse und für Kräutersuche)
     // Astrale Meditation und Zauberzeichen
     val ritualKnowledgeValue: Int = 0,   // Ritualkenntniswert (RkW, 0-18, für Astrale Meditation und Zauberzeichen)
     val hasKonzentrationsstärke: Boolean = false, // Hat der Charakter die SF Konzentrationsstärke? (+2 auf Astrale Meditation)
@@ -63,6 +63,11 @@ data class Character(
     val analysZfw: Int = 0,              // ANALYS ARKANSTRUKTUR-Zauberfertigkeit (0-18)
     // Labor für Alchimie
     val defaultLaboratory: Laboratory? = null,  // Standard-Labor für Brauproben (null = kein Labor verfügbar)
+    // Talente für Kräutersuche (sensoryAcuitySkill = Sinnenschärfe, wildernessSkill = Wildnisleben, herbalLoreSkill = Pflanzenkunde)
+    val wildernessSkill: Int = 0,        // Wildnisleben-Talentwert (0-18, für Kräutersuche-Berechnung)
+    val gelaendekunde: List<String> = emptyList(), // Liste der Landschaften, für die der Charakter Geländekunde hat (z.B. ["Wald", "Gebirge"])
+    val lastHerbSearchRegion: String = "", // Letzte Kräutersuche-Region (für UI-Vorauswahl)
+    val lastHerbSearchLandscape: String = "", // Letzte Kräutersuche-Landschaftsart (für UI-Vorauswahl)
     // Lebensenergie (alle Charaktere haben LE)
     val currentLe: Int = 30,             // Aktuelle Lebensenergie
     val maxLe: Int = 30,                 // Maximale Lebensenergie

@@ -40,5 +40,8 @@ data class Location(
     val sortOrder: Int = 0,
     
     /** Hat dieser Ort ein Eigenobjekt? (wird automatisch erstellt) */
-    val hasSelfItem: Boolean = false
+    val hasSelfItem: Boolean = false,
+    
+    /** Ist dies die Kräutertasche? (für automatisches Sortieren gesammelter Kräuter) */
+    val isHerbPouch: Boolean = false
 )

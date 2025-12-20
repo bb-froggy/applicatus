@@ -14,6 +14,32 @@ import kotlin.random.Random
  */
 object DerianDateCalculator {
     
+    /**
+     * Derische Monate für die Erntezeit-Berechnung
+     */
+    enum class DerianMonth(val displayName: String) {
+        PRAIOS("Praios"),
+        RONDRA("Rondra"),
+        EFFERD("Efferd"),
+        TRAVIA("Travia"),
+        BORON("Boron"),
+        HESINDE("Hesinde"),
+        FIRUN("Firun"),
+        TSA("Tsa"),
+        PHEX("Phex"),
+        PERAINE("Peraine"),
+        INGERIMM("Ingerimm"),
+        RAHJA("Rahja"),
+        NAMELESS_DAYS("Namenlose Tage"),
+        FULL_YEAR("Ganzjährig");  // Für Suchen ohne Monats-Einschränkung
+        
+        companion object {
+            fun fromMonthName(monthName: String): DerianMonth? {
+                return values().find { it.displayName.equals(monthName, ignoreCase = true) }
+            }
+        }
+    }
+    
     // Liste der derischen Monate (inkl. Namenlose Tage)
     private val months = listOf(
         "Praios", "Rondra", "Efferd", "Travia", "Boron", "Hesinde",
@@ -494,6 +520,17 @@ object DerianDateCalculator {
         } catch (e: Exception) {
             return null
         }
+    }
+    
+    /**
+     * Extrahiert den Monat aus einem derischen Datum
+     * 
+     * @param date Das derische Datum (z.B. "15 Praios 1040 BF")
+     * @return Der DerianMonth oder FULL_YEAR bei Fehler
+     */
+    fun getMonthFromDate(date: String): DerianMonth {
+        val components = parseDateComponents(date) ?: return DerianMonth.FULL_YEAR
+        return DerianMonth.fromMonthName(components.second) ?: DerianMonth.FULL_YEAR
     }
     
     /**

@@ -484,6 +484,16 @@ class InventoryViewModel(
     }
     
     /**
+     * Setzt eine Location als Kräutertasche.
+     * Deaktiviert automatisch alle anderen Kräutertaschen.
+     */
+    fun updateLocationIsHerbPouch(locationId: Long, isHerbPouch: Boolean) {
+        viewModelScope.launch {
+            repository.updateLocationIsHerbPouch(locationId, characterId, isHerbPouch)
+        }
+    }
+    
+    /**
      * Löscht eine Location (nur nicht-Standard-Locations)
      */
     fun deleteLocation(location: Location) {

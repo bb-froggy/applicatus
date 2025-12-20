@@ -53,6 +53,22 @@ methodBonus = character.sensoryAcuitySkill / 3  // Abrundung ist hier korrekt!
 - **Division durch 3 (Berechnung)**: Kaufmännisch runden → `(wert + 1) / 3`
 - **"Je 3 Punkte" (Schwellenwerte)**: Nur volle 3 Punkte → `wert / 3` (normale Division)
 
+### Würfelnotation in DSA
+
+**WICHTIG: DSA-Regelwerke verwenden oft Kurzschreibweisen für Würfel!**
+
+In DSA-Regelwerken werden Würfelnotationen oft ohne führende "1" geschrieben:
+- **"W6"** bedeutet **1W6** (ein sechsseitiger Würfel)
+- **"W20"** bedeutet **1W20** (ein zwanzigseitiger Würfel)
+- **"W3"** bedeutet **1W3** (ein dreiseitiger Würfel)
+
+Die Funktion `ProbeChecker.rollDice()` unterstützt beide Schreibweisen:
+- `"3W6+2"` → Standard-Notation
+- `"W20"` → Kurzform für "1W20"
+- `"W3"` → Kurzform für "1W3"
+
+**Regex-Pattern**: `(\d*)W(\d+)([+\-]\d+)?` - Die Anzahl ist optional.
+
 ### DSA-Regelkonformität: Magisches Meisterhandwerk
 
 **WICHTIG: Beim Magischen Meisterhandwerk kann der TaW maximal verdoppelt werden!**
@@ -101,12 +117,21 @@ Nach jeder Änderung am Code sollte ein Build durchgeführt werden, um Fehler fr
 # Schneller Debug-Build zum Testen
 .\gradlew.bat assembleDebug
 
+# Unit-Tests ausführen
+.\gradlew.bat testDebugUnitTest
+
+# Spezifische Test-Klasse ausführen (ohne --tests Parameter!)
+# Gradle unterstützt --tests nicht mit testDebugUnitTest direkt
+# Stattdessen: Alle Tests laufen lassen und Gradle filtert automatisch
+
 # Vollständiger Build (Debug + Release)
 .\gradlew.bat build
 
 # Mit detailliertem Stacktrace bei Fehlern
 .\gradlew.bat build --stacktrace
 ```
+
+**Wichtig**: Der `--tests` Parameter funktioniert nicht mit `testDebugUnitTest`. Alle Unit-Tests müssen zusammen ausgeführt werden. Gradle ist intelligent genug, nur geänderte Tests erneut auszuführen (Incremental Build).
 
 Wenn man UI-Tests hinzugefügt hat, sollen sie auch ausgeführt werden. Weil die UI-Tests lange dauern, sollten möglichst in jedem Durchlauf nur die UI-Tests ausgeführt werden, die auch tatsächlich interessant sind und sich verändert haben. Nach größeren Änderungen an der UI sollten alle UI-Tests durchgeführt werden und gegebenenfalls an die neue UI angepasst werden.
 
@@ -199,6 +224,15 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
 3. **Fehler sofort beheben**: Behebe Build-Fehler sofort, bevor du weitermachst
 4. **Kompatibilität prüfen**: Prüfe die Kompatibilität neuer APIs mit der Min SDK Version (API 26)
 
+### Wichtige Erkenntnisse aus der Entwicklung
+
+#### Kräutersuche-Feature
+- **Geländekunde**: Darf nicht einfach ein Boolean sein, sondern muss eine Liste von Landschaften sein, für die der Charakter Geländekunde hat (normalerweise 0-2 Landschaften)
+- **Sinnenschärfe**: Bereits als `sensoryAcuitySkill` im Character-Model vorhanden, nicht duplizieren als `sensesSkill`
+- **Room TypeConverter**: Listen von Strings benötigen einen TypeConverter (z.B. `fromStringList`/`toStringList` mit "|" als Separator)
+- **DerianMonth**: Sollte in bestehenden DerianDateCalculator integriert werden, nicht als separates Enum
+- **Daten-Vollständigkeit**: ALLE Kräuter aus dem Quellmaterial übernehmen, nicht nur eine Auswahl - eine gefüllte Datenbank ist viel wert
+
 ## ✅ Fertiggestellte Komponenten
 
 ### 1. Projektstruktur
@@ -223,6 +257,7 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - ✅ Alchimie-Talente (hasAlchemy, alchemySkill, alchemyIsMagicalMastery, hasCookingPotions, cookingPotionsSkill, cookingPotionsIsMagicalMastery, etc.)
   - ✅ System-Zauber (hasOdem, odemZfw, hasAnalys, analysZfw)
   - ✅ Labor-System (defaultLaboratory für Brauproben)
+  - ✅ **Kräutersuche-Talente** (sensoryAcuitySkill=Sinnenschärfe, wildernessSkill=Wildnisleben, herbalLoreSkill=Pflanzenkunde, gelaendekunde=[Liste von Landschaften])
   - ✅ Energien (LE, AE, KE mit aktuell/max/regenBonus)
   - ✅ Spielleiter-Modus (isGameMaster)
   - ✅ Gruppen-System (groupId, group)
@@ -336,6 +371,13 @@ Siehe auch: [DATABASE_MIGRATION_TEST.md](app/src/androidTest/java/de/applicatus/
   - ✅ Ablaufdatum-Berechnung basierend auf Wirkdauer
   - ✅ Patzer-Erkennung (verdorbenes Zeichen)
   - ✅ canUseZauberzeichen()-Prüfung (RkW > 0 und SF Zauberzeichen)
+
+- ✅ **HerbSearchCalculator**: Kräutersuche-Implementierung (nutzt ProbeChecker)
+  - ✅ TaW-Berechnung: (Sinnenschärfe + Wildnisleben + Pflanzenkunde + 1) / 3, gedeckelt auf 2× kleinstes Talent
+  - ✅ Erschwernis-Berechnung: Identifikationsschwierigkeit + Häufigkeit - Geländekunde(Liste) - Ortskenntnis - Verdopplung
+  - ✅ Verfügbarkeits-Filterung nach Landschaft und derischem Monat
+  - ✅ Kräutersuche-Probe auf MU/IN/FF
+  - ✅ 20+ Kräuter, 11 Regionen, vollständige Vorkommen-Daten
 
 ### 5. ViewModels (ui/viewmodel/)
 - ✅ **CharacterListViewModel**: Verwaltung der Charakterliste
@@ -1027,6 +1069,46 @@ Zwei verschiedene Slot-Typen für unterschiedliche Spielstile:
   - Spieler-sichtbare und Spielleiter-exklusive Nachrichten
 - ✅ **JournalCategory**: Vordefinierte Konstanten für Ereignistypen
 - ✅ **Export**: Journal wird mit Charakter exportiert
+
+## 🌿 Kräutersuche-System
+
+### Database Schema Changes
+**WICHTIG: Bei Character-Model-Änderungen immer Database-Version erhöhen!**
+
+Häufiger Fehler: Schema-Änderungen ohne Versions-Update führen zu:
+```
+java.lang.IllegalStateException: Room cannot verify the data integrity. 
+Looks like you've changed schema but forgot to update the version number.
+```
+
+**Immer durchführen:**
+1. Database-Version in `ApplicatusDatabase.kt` erhöhen (z.B. 39 → 40)
+2. Migration hinzufügen für neue Felder
+3. In Migration `ALTER TABLE` für neue Spalten mit `DEFAULT` Werten
+
+**Beispiel Migration:**
+```kotlin
+// Migration 39 -> 40: Kräutersuche-Felder
+val MIGRATION_39_40 = object : Migration(39, 40) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE characters ADD COLUMN wildernessSkill INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE characters ADD COLUMN gelaendekunde TEXT NOT NULL DEFAULT ''")
+    }
+}
+```
+
+### UI-Komponenten für Kräutersuche
+- **CharacterTalentsCard**: Zeigt wildernessSkill (Wildnisleben), sensoryAcuitySkill (Sinnenschärfe), herbalLoreSkill (Pflanzenkunde)
+- **EditCharacterTalentsDialog**: Bearbeitet alle drei Talente für Kräutersuche
+- **CharacterTerrainKnowledgeCard**: Zeigt Geländekunde-Liste (List<String>)
+- **EditCharacterTerrainKnowledgeDialog**: Multi-Select für Landschaften (aus Landscape enum)
+- **HerbSearchScreen**: Hauptbildschirm für Kräutersuche mit Region/Landschaft/Monat-Auswahl
+
+### Daten
+- **InitialHerbs.kt**: 95 Kräuter aus Zoo-Botanica Aventurica (ZBA), Wege der Alchimie (WdA), Kräuter und Knochen (KuK)
+- **InitialRegions.kt**: 27 Regionen Aventuriens mit Landschaften und Kräuterlisten
+- **Landscape enum**: 16 Landschaftstypen mit displayName für Geländekunde-Matching
+- **DerianDateCalculator.DerianMonth**: 13 Monate + "Ganzjährig" für Erntezeiten
 
 ## 📚 Weiterführende Dokumentation
 

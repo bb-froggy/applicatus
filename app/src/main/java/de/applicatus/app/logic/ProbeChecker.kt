@@ -243,8 +243,9 @@ object ProbeChecker {
      * - "3W6" → Würfelt 3 sechsseitige Würfel und summiert
      * - "2W20+5" → Würfelt 2 zwanzigseitige Würfel, addiert 5
      * - "1W6-2" → Würfelt 1 sechsseitigen Würfel, subtrahiert 2
+     * - "W3" → Kurzform für "1W3" (Standard in DSA-Regelwerken)
      * 
-     * @param diceNotation Würfelnotation (z.B. "3W6+2", "2W20-5", "1W10")
+     * @param diceNotation Würfelnotation (z.B. "3W6+2", "2W20-5", "1W10", "W3")
      * @param diceRoll Lambda für einzelne Würfelwürfe (Standard: Random, überschreibbar für Tests)
      * @return Gewürfeltes Ergebnis oder null bei ungültiger Notation
      */
@@ -252,11 +253,13 @@ object ProbeChecker {
         diceNotation: String,
         diceRoll: (diceSize: Int) -> Int = { diceSize -> Random.nextInt(1, diceSize + 1) }
     ): Int? {
-        // Regex für Würfelnotationen: z.B. "3W6+2", "2W20-5", "1W10"
-        val diceRegex = Regex("""(\d+)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE)
+        // Regex für Würfelnotationen: z.B. "3W6+2", "2W20-5", "1W10", "W3"
+        // Die Anzahl ist jetzt optional - "W6" wird als "1W6" interpretiert
+        val diceRegex = Regex("""(\d*)W(\d+)([+\-]\d+)?""", RegexOption.IGNORE_CASE)
         val match = diceRegex.matchEntire(diceNotation.trim()) ?: return null
         
-        val numDice = match.groupValues[1].toIntOrNull() ?: return null
+        // Wenn keine Anzahl angegeben, ist es 1 (z.B. "W3" = "1W3")
+        val numDice = match.groupValues[1].ifEmpty { "1" }.toIntOrNull() ?: return null
         val diceSize = match.groupValues[2].toIntOrNull() ?: return null
         val modifier = match.groupValues[3].ifEmpty { "+0" }.toIntOrNull() ?: 0
         
