@@ -18,6 +18,7 @@ import de.applicatus.app.logic.BaseQuantityParser
 import de.applicatus.app.logic.DerianDateCalculator
 import de.applicatus.app.logic.HerbSearchCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.math.ceil
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -46,6 +47,9 @@ class HerbSearchViewModel(
     
     private val _selectedHerb = MutableStateFlow<Herb?>(null)
     val selectedHerb: StateFlow<Herb?> = _selectedHerb.asStateFlow()
+    
+    private val _isGeneralSearch = MutableStateFlow(false)
+    val isGeneralSearch: StateFlow<Boolean> = _isGeneralSearch.asStateFlow()
     
     private val _hasOrtskenntnis = MutableStateFlow(false)
     val hasOrtskenntnis: StateFlow<Boolean> = _hasOrtskenntnis.asStateFlow()
@@ -142,6 +146,12 @@ class HerbSearchViewModel(
     
     fun selectHerb(herb: Herb?) {
         _selectedHerb.value = herb
+        _isGeneralSearch.value = false
+    }
+    
+    fun selectGeneralSearch() {
+        _selectedHerb.value = null
+        _isGeneralSearch.value = true
     }
     
     fun setOrtskenntnis(hasIt: Boolean) {
@@ -244,6 +254,153 @@ class HerbSearchViewModel(
             if (result.success && result.foundQuantity != null) {
                 addHerbsToInventory(herb, harvestedItems, currentDateStr)
             }
+        }
+    }
+    
+    /**
+     * Führt eine allgemeine/ungezielte Kräutersuche durch.
+     * Findet iterativ zufällige Pflanzen, deren halbe Suchschwierigkeit <= TaP* ist.
+     * Nach jedem Fund werden TaP* reduziert.
+     */
+    fun performGeneralSearch() {
+        val char = _character.value ?: return
+        val landscape = _selectedLandscape.value ?: return
+        val region = _selectedRegion.value ?: return
+        val currentDateStr = _currentDate.value ?: return
+        
+        // Berechne TaW und führe Talentprobe durch (ohne spezifisches Kraut, daher Erschwernis = 0)
+        val effectiveTaw = getEffectiveTaW() ?: return
+        
+        // Anpassung für Geländekunde und Ortskenntnis
+        val bonus = (if (char.gelaendekunde.contains(landscape.displayName)) 3 else 0) +
+                   (if (_hasOrtskenntnis.value) 7 else 0)
+        
+        val probeMU = char.mu
+        val probeIN = char.inValue
+        val probeFF = char.ff
+        
+        // Würfle Talentprobe (unmodifiziert, da keine spezifische Erschwernis)
+        val probe = calculator.performProbe(probeMU, probeIN, probeFF, effectiveTaw, -bonus)
+        
+        if (!probe.success) {
+            // Probe misslungen - keine Funde
+            val result = HerbSearchCalculator.HerbSearchResult(
+                success = false,
+                diceRolls = probe.rolls,
+                qualityPoints = 0,
+                effectiveTaW = effectiveTaw,
+                difficulty = 0,
+                foundHerb = null,
+                foundQuantity = null,
+                portionCount = 0,
+                harvestedItems = emptyList(),
+                searchDuration = if (_hasDoubledSearchTime.value) "2 Stunden" else "1 Stunde"
+            )
+            _searchResult.value = result
+            return
+        }
+        
+        // Probe gelungen - iterativ Pflanzen finden
+        var remainingTapStern = probe.qualityPoints
+        val foundHerbs = mutableListOf<Pair<Herb, List<BaseQuantityParser.HerbHarvestItem>>>()
+        
+        viewModelScope.launch {
+            while (remainingTapStern > 0) {
+                // Finde alle Pflanzen, deren halbe Suchschwierigkeit <= remainingTapStern
+                val candidateHerbs = _availableHerbs.value.filter { herb ->
+                    val searchDifficulty = calculator.calculateSearchDifficulty(
+                        herb = herb,
+                        landscape = landscape,
+                        hasOrtskenntnis = _hasOrtskenntnis.value,
+                        character = char
+                    )
+                    val halfDifficulty = ceil(searchDifficulty / 2.0).toInt()
+                    halfDifficulty <= remainingTapStern
+                }
+                
+                if (candidateHerbs.isEmpty()) {
+                    // Keine Pflanzen mehr findbar
+                    break
+                }
+                
+                // Wähle zufällig eine Pflanze
+                val foundHerb = candidateHerbs.random()
+                val searchDifficulty = calculator.calculateSearchDifficulty(
+                    herb = foundHerb,
+                    landscape = landscape,
+                    hasOrtskenntnis = _hasOrtskenntnis.value,
+                    character = char
+                )
+                
+                // Berechne Anzahl Portionen: 1 + (TaP*-1) / (Suchschwierigkeit/2)
+                val halfDifficulty = ceil(searchDifficulty / 2.0).toInt()
+                var portionCount = 1
+                var tapForPortions = remainingTapStern - 1
+                if (tapForPortions > 0 && halfDifficulty > 0) {
+                    portionCount += tapForPortions / halfDifficulty
+                }
+                
+                // Würfel Mengen für diese Pflanze
+                val harvestedItems = mutableListOf<BaseQuantityParser.HerbHarvestItem>()
+                repeat(portionCount) {
+                    val portionItems = BaseQuantityParser.rollQuantity(
+                        foundHerb.baseQuantity,
+                        remainingTapStern
+                    )
+                    harvestedItems.addAll(portionItems)
+                }
+                
+                // Summiere Items
+                val summedItems = harvestedItems.groupBy { it.productName }
+                    .map { (productName, items) ->
+                        val totalQuantity = items.sumOf { it.quantity.toIntOrNull() ?: 0 }
+                        val firstDiceRoll = items.firstOrNull()?.diceRoll
+                        val allRolls = items.mapNotNull { it.quantity.toIntOrNull() }
+                        BaseQuantityParser.HerbHarvestItem(
+                            productName = productName,
+                            quantity = totalQuantity.toString(),
+                            rolled = true,
+                            diceRoll = firstDiceRoll,
+                            individualRolls = allRolls
+                        )
+                    }
+                
+                foundHerbs.add(foundHerb to summedItems)
+                
+                // Füge Kräuter ins Inventar hinzu
+                addHerbsToInventory(foundHerb, summedItems, currentDateStr)
+                
+                // Reduziere TaP* um halbe Suchschwierigkeit (mindestens 1)
+                remainingTapStern -= maxOf(halfDifficulty, 1)
+            }
+            
+            // Erstelle Ergebnis-Objekt
+            val result = HerbSearchCalculator.HerbSearchResult(
+                success = true,
+                diceRolls = probe.rolls,
+                qualityPoints = probe.qualityPoints,
+                effectiveTaW = effectiveTaw,
+                difficulty = 0, // Bei allgemeiner Suche keine einzelne Schwierigkeit
+                foundHerb = null, // Mehrere Kräuter gefunden
+                foundQuantity = null,
+                portionCount = foundHerbs.sumOf { it.second.sumOf { item -> item.quantity.toIntOrNull() ?: 0 } },
+                harvestedItems = foundHerbs.flatMap { it.second },
+                searchDuration = if (_hasDoubledSearchTime.value) "2 Stunden" else "1 Stunde",
+                generalSearchResults = foundHerbs.map { (herb, items) ->
+                    HerbSearchCalculator.GeneralSearchHerbResult(
+                        herb = herb,
+                        harvestedItems = items
+                    )
+                }
+            )
+            
+            _searchResult.value = result
+            
+            // Speichere Region und Landschaft
+            repository.updateCharacter(char.copy(
+                lastHerbSearchRegion = region.name,
+                lastHerbSearchLandscape = landscape.displayName
+            ))
         }
     }
     

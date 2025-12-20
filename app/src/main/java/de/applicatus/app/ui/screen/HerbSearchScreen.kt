@@ -31,6 +31,7 @@ fun HerbSearchScreen(
     val selectedRegion by viewModel.selectedRegion.collectAsState()
     val selectedLandscape by viewModel.selectedLandscape.collectAsState()
     val selectedHerb by viewModel.selectedHerb.collectAsState()
+    val isGeneralSearch by viewModel.isGeneralSearch.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
     val hasOrtskenntnis by viewModel.hasOrtskenntnis.collectAsState()
     val hasDoubledSearchTime by viewModel.hasDoubledSearchTime.collectAsState()
@@ -203,13 +204,37 @@ fun HerbSearchScreen(
                         onClick = { showHerbMenu = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(selectedHerb?.name ?: "Kraut wählen...")
+                        Text(
+                            when {
+                                isGeneralSearch -> "Allgemeine Suche"
+                                selectedHerb != null -> selectedHerb?.name ?: ""
+                                else -> "Kraut wählen..."
+                            }
+                        )
                     }
                     
                     DropdownMenu(
                         expanded = showHerbMenu,
                         onDismissRequest = { showHerbMenu = false }
                     ) {
+                        // Option: Allgemeine Suche
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = "Allgemeine Suche",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            onClick = {
+                                viewModel.selectGeneralSearch()
+                                showHerbMenu = false
+                            }
+                        )
+                        
+                        Divider()
+                        
+                        // Spezifische Kräuter
                         availableHerbs.forEach { herb ->
                             DropdownMenuItem(
                                 text = { 
@@ -238,7 +263,7 @@ fun HerbSearchScreen(
             }
             
             // Modifiers und Probe-Vorschau zusammengefasst
-            if (selectedHerb != null) {
+            if (selectedHerb != null || isGeneralSearch) {
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -311,11 +336,17 @@ fun HerbSearchScreen(
                 
                 // Search Button
                 Button(
-                    onClick = { viewModel.performSearch() },
+                    onClick = { 
+                        if (isGeneralSearch) {
+                            viewModel.performGeneralSearch()
+                        } else {
+                            viewModel.performSearch()
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = character != null
+                    enabled = character != null && (selectedHerb != null || isGeneralSearch)
                 ) {
-                    Text("Suche durchführen")
+                    Text(if (isGeneralSearch) "Allgemeine Suche durchführen" else "Suche durchführen")
                 }
             }
             
@@ -370,7 +401,46 @@ fun HerbSearchScreen(
                             style = MaterialTheme.typography.bodyLarge
                         )
                         
-                        if (result.portionCount > 1) {
+                        // Bei allgemeiner Suche: Zeige alle gefundenen Kräuter
+                        if (result.generalSearchResults != null && result.generalSearchResults.isNotEmpty()) {
+                            Text(
+                                text = "🌿 ${result.generalSearchResults.size} verschiedene Pflanzen gefunden!",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                            
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            
+                            result.generalSearchResults.forEach { herbResult ->
+                                Text(
+                                    text = herbResult.herb.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                
+                                herbResult.harvestedItems.forEach { item ->
+                                    val displayText = if (item.diceRoll != null && item.rolled && item.individualRolls.isNotEmpty()) {
+                                        if (item.individualRolls.size > 1) {
+                                            val rollsText = item.individualRolls.joinToString(", ")
+                                            "  • ${item.diceRoll} → [$rollsText] = ${item.quantity}x ${item.productName}"
+                                        } else {
+                                            "  • ${item.diceRoll} → ${item.quantity}x ${item.productName}"
+                                        }
+                                    } else if (item.diceRoll != null && item.rolled) {
+                                        "  • ${item.diceRoll} → ${item.quantity}x ${item.productName}"
+                                    } else {
+                                        "  • ${item.quantity}x ${item.productName}"
+                                    }
+                                    Text(
+                                        text = displayText,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        } else if (result.portionCount > 1) {
+                            // Gezielte Suche mit mehreren Portionen
                             Text(
                                 text = "🌿 ${result.portionCount} Portionen gefunden!",
                                 style = MaterialTheme.typography.titleMedium,
@@ -378,8 +448,8 @@ fun HerbSearchScreen(
                             )
                         }
                         
-                        // Zeige gewürfelte Mengen
-                        if (result.harvestedItems.isNotEmpty()) {
+                        // Zeige gewürfelte Mengen (nur bei gezielter Suche)
+                        if (result.harvestedItems.isNotEmpty() && result.generalSearchResults == null) {
                             Divider(modifier = Modifier.padding(vertical = 4.dp))
                             Text(
                                 text = "Gefunden:",

@@ -89,20 +89,36 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
     }
     
     /**
+     * Datenklasse für einzelne Funde in einer allgemeinen Suche
+     */
+    data class GeneralSearchHerbResult(
+        val herb: Herb,
+        val harvestedItems: List<de.applicatus.app.logic.BaseQuantityParser.HerbHarvestItem>
+    )
+    
+    /**
      * Datenklasse für das Ergebnis einer Kräutersuche
      */
     data class HerbSearchResult(
         val success: Boolean,
+        val diceRolls: List<Int>, // Die drei Würfelwürfe
         val qualityPoints: Int,  // TaP* (Talentpunkte übrig, negativ bei Fehlschlag)
-        val roll1: Int,
-        val roll2: Int,
-        val roll3: Int,
-        val isSpectacular: Boolean = false,  // Doppel-1
-        val isCatastrophic: Boolean = false, // Doppel-20
+        val effectiveTaW: Int, // Effektiver TaW (mit Modifikatoren)
+        val difficulty: Int, // Erschwernis (bei gezielter Suche)
+        val foundHerb: Herb? = null, // Gefundenes Kraut (bei gezielter Suche)
         val foundQuantity: String? = null,   // Gefundene Menge (bei Erfolg)
         val harvestedItems: List<de.applicatus.app.logic.BaseQuantityParser.HerbHarvestItem> = emptyList(), // Tatsächlich gewürfelte Items
-        val portionCount: Int = 1 // Anzahl gefundener Portionen (basierend auf TaP*)
-    )
+        val portionCount: Int = 1, // Anzahl gefundener Portionen (basierend auf TaP*)
+        val searchDuration: String = "1 Stunde", // Suchdauer
+        val generalSearchResults: List<GeneralSearchHerbResult>? = null // Mehrere Funde bei allgemeiner Suche
+    ) {
+        // Alte Kompatibilitäts-Properties
+        val roll1: Int get() = diceRolls.getOrNull(0) ?: 0
+        val roll2: Int get() = diceRolls.getOrNull(1) ?: 0
+        val roll3: Int get() = diceRolls.getOrNull(2) ?: 0
+        val isSpectacular: Boolean get() = (roll1 == 1 && roll2 == 1) || (roll2 == 1 && roll3 == 1) || (roll1 == 1 && roll3 == 1)
+        val isCatastrophic: Boolean get() = (roll1 == 20 && roll2 == 20) || (roll2 == 20 && roll3 == 20) || (roll1 == 20 && roll3 == 20)
+    }
     
     /**
      * Berechnet die Anzahl der gefundenen Portionen basierend auf TaP*
@@ -126,6 +142,26 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
         }
         
         return portions
+    }
+    
+    /**
+     * Führt eine Talentprobe durch (für allgemeine Suche ohne spezifisches Kraut)
+     */
+    fun performProbe(
+        mu: Int,
+        inValue: Int,
+        ff: Int,
+        taw: Int,
+        difficulty: Int
+    ): ProbeResult {
+        return ProbeChecker.performThreeAttributeProbe(
+            fertigkeitswert = taw,
+            difficulty = difficulty,
+            attribute1 = mu,
+            attribute2 = inValue,
+            attribute3 = ff,
+            qualityPointName = "TaP*"
+        )
     }
     
     /**
@@ -201,16 +237,18 @@ nis = Bestimmungsschwierigkeit + Häufigkeit - Geländekunde - Ortskenntnis
             0
         }
         
+        val searchDuration = if (hasDoubledSearchTime) "2 Stunden" else "1 Stunde"
+        
         return HerbSearchResult(
             success = result.success,
+            diceRolls = result.rolls,
             qualityPoints = result.qualityPoints,
-            roll1 = result.rolls[0],
-            roll2 = result.rolls[1],
-            roll3 = result.rolls[2],
-            isSpectacular = result.isDoubleOne || result.isTripleOne,
-            isCatastrophic = result.isDoubleTwenty || result.isTripleTwenty,
+            effectiveTaW = taw,
+            difficulty = difficulty,
+            foundHerb = herb,
             foundQuantity = if (result.success) herb.baseQuantity else null,
-            portionCount = portionCount
+            portionCount = portionCount,
+            searchDuration = searchDuration
         )
     }
 }
