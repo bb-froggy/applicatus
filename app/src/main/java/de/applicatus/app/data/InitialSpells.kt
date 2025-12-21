@@ -237,7 +237,10 @@ object InitialSpells {
             Spell(name = "Vipernblick", attribute1 = "MU", attribute2 = "MU", attribute3 = "CH"),
             Spell(name = "Zauberwesen der Natur", attribute1 = "MU", attribute2 = "IN", attribute3 = "CH"),
             Spell(name = "Zauberzwang", attribute1 = "MU", attribute2 = "CH", attribute3 = "CH"),
-            Spell(name = "Zunge lähmen", attribute1 = "MU", attribute2 = "CH", attribute3 = "FF")
+            Spell(name = "Zunge lähmen", attribute1 = "MU", attribute2 = "CH", attribute3 = "FF"),
+
+            // Besondere Elfenzauber (Hausregel)
+            Spell(name = "Reinheit der Lohe", attribute1 = "MU", attribute2 = "IN", attribute3 = "KO")
         )
     }
 }
